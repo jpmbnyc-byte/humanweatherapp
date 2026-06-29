@@ -208,6 +208,7 @@ export default function SomaticGrid({ onStateChange, currentTheme }: SomaticGrid
             : 'bg-white/75 border-sky-300/40 shadow-lg shadow-sky-100/30'
         }`}
         style={{
+          touchAction: 'pan-y',
           boxShadow: currentTheme === 'night' 
             ? '0 10px 30px -10px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255,255,255,0.03)' 
             : '0 10px 30px -10px rgba(14, 165, 233, 0.08)'
@@ -225,6 +226,7 @@ export default function SomaticGrid({ onStateChange, currentTheme }: SomaticGrid
                 onTouchStart={(e) => handleTouchStart(rIdx, cIdx, e)}
                 className="relative aspect-square rounded-md cursor-crosshair select-none overflow-hidden transition-all duration-300"
                 style={{
+                  touchAction: 'pan-y',
                   backgroundColor: active 
                     ? currentTheme === 'night' ? '#eab308' : '#d97706' 
                     : currentTheme === 'night' 
