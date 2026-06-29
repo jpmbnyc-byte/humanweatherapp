@@ -1,29 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
+import App from "@/App";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Your App" },
-      { name: "description", content: "Replace this with a one-sentence description of your app." },
-      { property: "og:title", content: "Your App" },
-      { property: "og:description", content: "Replace this with a one-sentence description of your app." },
+      { title: "Human Weather — Somatic Climate & Circadian Alignment" },
+      {
+        name: "description",
+        content:
+          "A luxury-minimal somatic weather app mapping the climate inside your body — breathwork, frequency therapy, light, and solar-aware circadian protocols.",
+      },
+      { property: "og:title", content: "Human Weather" },
+      {
+        property: "og:description",
+        content:
+          "Map your inner climate. Breathwork, frequencies, light therapy, and solar-aware circadian rhythms.",
+      },
     ],
   }),
-  component: Index,
+  component: App,
 });
-
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
-  return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
-  );
-}
