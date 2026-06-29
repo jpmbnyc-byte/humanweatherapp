@@ -470,7 +470,6 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     
     // Automatically match appropriate ambient weather backdrop for the preset
     let backdrop: typeof soundEnv = 'silence';
-    if (preset.id === 'joy') backdrop = 'forest';
     if (preset.id === 'solitude') backdrop = 'ocean';
     if (preset.id === 'reflection') backdrop = 'rain';
     setSoundEnv(backdrop);
