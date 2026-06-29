@@ -8,42 +8,6 @@ export interface Preset {
 
 export const PRESETS: Preset[] = [
   {
-    id: 'joy',
-    title: 'The Mechanics of Joy',
-    subtitle: 'A Daily Formative Strategy · June 2026',
-    author: 'Compiled with Sources',
-    text: `The Mechanics of Joy Across the Living World — A Daily Formative Strategy
-
-COMPILED WITH SOURCES · JUNE 2026
-ABSTRACT
-Bliss is not a reward reserved for exceptional moments. It is a biochemical inheritance — a state the body was architecturally designed to enter, written into mammalian tissue across hundreds of millions of years of evolution. This thesis argues that bliss, understood sensorially rather than cognitively, is available every day through deliberate engagement with the body's naturalistic triggers: sunlight, movement, sound, touch, breath, awe, play, and connection. Drawing on peer-reviewed neuroscience, ethology, and environmental psychology, it maps the specific neurochemical mechanisms of bliss, traces those mechanisms across species, and offers a practical daily strategy for influxing the senses — bypassing the analytical mind — to arrive at states of genuine, embodied joy.
-✦ · ✦ · ✦
-I — FOUNDATION
-What Bliss Actually Is Inside the Body
-
-The word bliss tends toward the spiritual, but its origins are purely biological. The body maintains a standing orchestra of neurochemicals whose sole purpose is to generate states of wellbeing. These are not incidental byproducts — they are ancient, conserved, and purposeful systems present in nearly every vertebrate on Earth.
-
-Modern neuroscience distinguishes three neurologically separate states that together constitute the full spectrum of what we call bliss. Pleasure is immediate and sensory, driven by opioid receptors in the brain and lasting minutes. Happiness is a sustained subjective mood, reflecting overall life satisfaction. Joy — the deepest register — involves simultaneous activation of multiple brain regions and represents what researchers describe as a transcendent, all-encompassing state.¹
-
-The primary molecules involved are four, each with a distinct character and trigger profile:
-
-DOPAMINE
-SEROTONIN
-OXYTOCIN
-ENDORPHINS
-Dopamine peaks not during reward, but during anticipation of it — the lean-forward feeling. It drives motivation, pursuit, and the euphoria of forward movement. Elevated dopamine produces genuine feelings of bliss, enhanced concentration, and a warm sense of aliveness.²
-
-Serotonin governs mood stability, the sense of calm sufficiency. It is the molecule behind the feeling that everything is okay — that the present moment is enough. Sunlight, movement, and meditation reliably trigger its release.³
-
-Oxytocin is produced in the brain's hypothalamus and released into the bloodstream during intimacy, meaningful conversation, and deep social bonds. A long embrace from someone you love can shift your entire neurochemical state within seconds — this is not metaphor, it is measurable physiology.⁴
-
-Endorphins are the body's natural opioids — pain relievers and euphoria generators. Released during exercise, laughter, and physical touch, they create the runner's high, the warmth after a good cry, the deep ease after physical exertion. Crucially, researchers at Johns Hopkins have identified that the post-movement euphoria is also substantially driven by endocannabinoids — specifically anandamide, a molecule whose very name derives from the Sanskrit word for bliss.⁵
-
-"Lasting wellbeing comes from the combined and balanced activity of multiple brain chemicals — not a single quick boost."
-— Khiron Clinics, Neuroscience Research Synthesis, 2026
-This is the critical insight for daily practice: no single trigger suffices. The strategy must engage the whole orchestra — motion, light, connection, sensation, awe — across the day's arc. The goal is not a spike but a sustained, nourishing chemical environment.`
-  },
-  {
     id: 'solitude',
     title: 'The Art of Embracing Solitude',
     subtitle: 'A Journey to Inner Peace · The Wanderer Mind',
