@@ -49,8 +49,10 @@ export default function App() {
       
       {/* Immersive Atmospheric Ambient Glow backing (Golden sun-colored ambience shining through) */}
       <div 
-        className="absolute top-[-50px] right-[10%] w-[500px] h-[500px] rounded-full blur-[120px] pointer-events-none z-0 transition-all duration-700"
+        className="fixed top-[-50px] right-[10%] w-[500px] h-[500px] rounded-full blur-[120px] pointer-events-none z-0 transition-all duration-700"
         style={{
+          transform: 'translateZ(0)',
+          willChange: 'opacity',
           background: isNight 
             ? 'radial-gradient(circle, rgba(234,179,8,0.04) 0%, rgba(5,5,5,0) 70%)' 
             : 'radial-gradient(circle, rgba(253,224,71,0.6) 0%, rgba(245,158,11,0.3) 40%, rgba(186,230,253,0) 75%)'
@@ -59,8 +61,10 @@ export default function App() {
       
       {!isNight && (
         <div 
-          className="absolute bottom-[-100px] left-[-50px] w-[450px] h-[450px] rounded-full blur-[130px] pointer-events-none z-0 animate-pulse"
+          className="fixed bottom-[-100px] left-[-50px] w-[450px] h-[450px] rounded-full blur-[130px] pointer-events-none z-0 animate-pulse"
           style={{
+            transform: 'translateZ(0)',
+            willChange: 'opacity',
             background: 'radial-gradient(circle, rgba(253,224,71,0.35) 0%, rgba(251,191,36,0.1) 50%, rgba(186,230,253,0) 80%)',
             animationDuration: '10s'
           }}
