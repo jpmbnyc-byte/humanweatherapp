@@ -12,16 +12,31 @@ import { WEATHER_STATES } from './data';
 import { WeatherState } from './types';
 import { Sun, Moon, Compass, Sparkles, Headphones, Eye, BookOpen, AlertCircle, RefreshCw } from 'lucide-react';
 
+const getThemeForNow = (): 'day' | 'night' => {
+  const h = new Date().getHours();
+  return h >= 6 && h < 18 ? 'day' : 'night';
+};
+
 export default function App() {
-  const [currentTheme, setCurrentTheme] = useState<'day' | 'night'>('night');
+  const [currentTheme, setCurrentTheme] = useState<'day' | 'night'>(getThemeForNow);
+  const [manualOverride, setManualOverride] = useState(false);
   const [activeTab, setActiveTab] = useState<'somatic' | 'therapy' | 'rhythms' | 'tender'>('somatic');
   const [activeWeather, setActiveWeather] = useState<WeatherState>(WEATHER_STATES[5]); // Default: Autonomic Stillness
   const [activeCoordinates, setActiveCoordinates] = useState<[number, number][]>([]);
 
   // Smooth theme toggle shifts
   const toggleTheme = () => {
+    setManualOverride(true);
     setCurrentTheme(prev => prev === 'night' ? 'day' : 'night');
   };
+
+  // Auto follow time of day unless the user has manually toggled
+  useEffect(() => {
+    if (manualOverride) return;
+    setCurrentTheme(getThemeForNow());
+    const id = setInterval(() => setCurrentTheme(getThemeForNow()), 60_000);
+    return () => clearInterval(id);
+  }, [manualOverride]);
 
   // Handle grid updates
   const handleStateChange = useCallback((state: WeatherState, coords: [number, number][]) => {
