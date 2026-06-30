@@ -25,13 +25,13 @@ export default function App() {
   const [activeWeather, setActiveWeather] = useState<WeatherState>(WEATHER_STATES[5]); // Default: Autonomic Stillness
   const [activeCoordinates, setActiveCoordinates] = useState<[number, number][]>([]);
 
-  // Client-side: sync theme to local time and start live clock
+  // Client-side only: start live clock (null on server avoids hydration mismatch)
   useEffect(() => {
-    setCurrentTheme(getThemeForNow());
     setCurrentTime(new Date());
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
 
   const timeString = currentTime?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) ?? '--:--';
   const dateString = currentTime?.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) ?? '---';
