@@ -114,6 +114,10 @@ export default function App() {
         {/* Day / Night visual shift toggle */}
         <div className="flex items-center gap-2">
           <span className="font-mono text-[9px] uppercase tracking-widest opacity-40 hidden sm:inline">Visual Shift</span>
+          <div className={`hidden sm:flex flex-col items-end px-2 border-r ${themeStyles.border}`}>
+            <span className="font-mono text-xs font-medium tracking-wider leading-none">{timeString}</span>
+            <span className="font-mono text-[9px] uppercase tracking-widest opacity-50 leading-none mt-0.5">{dateString}</span>
+          </div>
           <motion.button
             id="theme-toggle-btn"
             onClick={toggleTheme}
