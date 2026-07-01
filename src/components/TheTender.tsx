@@ -410,10 +410,18 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const handlePauseToggle = () => {
     if (isReading) {
       if (isPaused) {
-        if (window.speechSynthesis) window.speechSynthesis.resume();
+        if (customAudioRef.current) {
+          customAudioRef.current.play().catch(() => {});
+        } else if (window.speechSynthesis) {
+          window.speechSynthesis.resume();
+        }
         setIsPaused(false);
       } else {
-        if (window.speechSynthesis) window.speechSynthesis.pause();
+        if (customAudioRef.current) {
+          customAudioRef.current.pause();
+        } else if (window.speechSynthesis) {
+          window.speechSynthesis.pause();
+        }
         setIsPaused(true);
       }
     }
