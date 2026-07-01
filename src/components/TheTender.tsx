@@ -429,7 +429,11 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
       if (soundEnv !== 'silence') {
         startSoundEnvironment(soundEnv);
       }
-      handleStartReading(inputText);
+      if (customVoice) {
+        playCustomVoice(customVoice);
+      } else {
+        handleStartReading(inputText);
+      }
     }
   };
 
@@ -447,6 +451,12 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
         window.speechSynthesis.cancel();
       } catch (e) {}
     }
+    if (customAudioRef.current) {
+      try {
+        customAudioRef.current.pause();
+        customAudioRef.current.currentTime = 0;
+      } catch (e) {}
+    }
     setIsReading(false);
     setIsPreparing(false);
     setIsPaused(false);
@@ -455,6 +465,54 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     if (stopAmbient) {
       stopSoundEnvironment();
     }
+  };
+
+  // Play a pre-recorded custom voice recording
+  const playCustomVoice = (id: CustomVoiceId) => {
+    const voice = CUSTOM_VOICES.find(v => v.id === id);
+    if (!voice) return;
+    setSpeechError(null);
+
+    // Tear down any previous playback
+    if (customAudioRef.current) {
+      try { customAudioRef.current.pause(); } catch (e) {}
+      customAudioRef.current = null;
+    }
+    if (window.speechSynthesis) {
+      try { window.speechSynthesis.cancel(); } catch (e) {}
+    }
+
+    const audio = new Audio(voice.url);
+    audio.preload = 'auto';
+    customAudioRef.current = audio;
+    setIsPreparing(true);
+
+    audio.onplaying = () => {
+      setIsPreparing(false);
+      setIsReading(true);
+      setIsPaused(false);
+    };
+    audio.onpause = () => {
+      if (!audio.ended) setIsPaused(true);
+    };
+    audio.onended = () => {
+      setIsReading(false);
+      setIsPaused(false);
+      setIsPreparing(false);
+      customAudioRef.current = null;
+    };
+    audio.onerror = () => {
+      setIsReading(false);
+      setIsPaused(false);
+      setIsPreparing(false);
+      setSpeechError('audio-load-failed');
+      customAudioRef.current = null;
+    };
+
+    audio.play().catch(() => {
+      setSpeechError('autoplay-blocked');
+      setIsPreparing(false);
+    });
   };
 
   const handleVoiceChange = (voice: typeof activeVoice) => {
