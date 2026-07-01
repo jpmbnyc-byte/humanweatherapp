@@ -875,18 +875,21 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
             <div className="flex items-center gap-1.5 border-b pb-2 mb-3 border-zinc-200/10" style={{ borderColor: isNight ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
               <Sliders className={`w-3.5 h-3.5 ${styles.goldText}`} />
               <span className={`font-mono text-[9px] uppercase tracking-widest ${styles.mutedText}`}>
-                Narrator Tone Register
+                Tender Voice
               </span>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              {(['warm', 'deep', 'gentle', 'resonant'] as const).map((v) => {
-                const isSelected = activeVoice === v;
+              {CUSTOM_VOICES.map((v) => {
+                const isSelected = customVoice === v.id;
                 return (
                   <button
-                    id={`voice-register-btn-${v}`}
-                    key={v}
-                    onClick={() => handleVoiceChange(v)}
+                    id={`voice-custom-btn-${v.id}`}
+                    key={v.id}
+                    onClick={() => {
+                      stopReading(false);
+                      setCustomVoice(v.id);
+                    }}
                     className="px-2.5 py-2 text-[10px] font-mono rounded border uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5"
                     style={{
                       backgroundColor: isSelected 
@@ -901,13 +904,13 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                     }}
                   >
                     <span className={`w-1 h-1 rounded-full ${isSelected ? (isNight ? 'bg-[#eab308]' : 'bg-[#d97706]') : 'bg-transparent'}`} />
-                    {v}
+                    {v.name}
                   </button>
                 );
               })}
             </div>
             <p className="font-sans text-[9.5px] italic text-left opacity-60 mt-2">
-              Changes apply instantly and restart speech narration smoothly.
+              Signature Human Weather voices. Pre-recorded — Listen to hear them speak.
             </p>
           </div>
 
