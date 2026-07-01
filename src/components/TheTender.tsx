@@ -287,20 +287,33 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     }
   };
 
-  const getVoiceSettings = (voice: typeof activeVoice) => {
-    switch (voice) {
-      case 'warm': return { pitch: 0.95, rate: 0.85 };
-      case 'deep': return { pitch: 0.78, rate: 0.82 };
-      case 'gentle': return { pitch: 1.05, rate: 0.76 };
-      case 'resonant': return { pitch: 1.0, rate: 0.88 };
+  const getVoiceProfile = (id: TenderVoiceId): TenderVoiceProfile =>
+    TENDER_VOICES.find(v => v.id === id) || TENDER_VOICES[0];
+
+  const pickSystemVoice = (profile: TenderVoiceProfile): SpeechSynthesisVoice | undefined => {
+    if (!window.speechSynthesis) return undefined;
+    const all = window.speechSynthesis.getVoices();
+    if (!all.length) return undefined;
+    const english = all.filter(v => v.lang.toLowerCase().startsWith('en'));
+    const pool = english.length ? english : all;
+
+    // 1. Preferred name fragments
+    for (const frag of profile.preferred) {
+      const match = pool.find(v => v.name.toLowerCase().includes(frag));
+      if (match) return match;
     }
+    // 2. Gender hint fallback
+    const hints = profile.gender === 'female' ? FEMALE_HINTS : MALE_HINTS;
+    const genderMatch = pool.find(v => hints.some(h => v.name.toLowerCase().includes(h)));
+    if (genderMatch) return genderMatch;
+    // 3. First English (or first available)
+    return pool[0];
   };
 
   // Speech synthesizers triggers
   const handleStartReading = (
-    textToUse?: string, 
-    voiceOverride?: typeof activeVoice, 
-    accentOverride?: typeof activeAccent
+    textToUse?: string,
+    voiceOverride?: TenderVoiceId,
   ) => {
     const textSrc = textToUse !== undefined ? textToUse : inputText;
     if (!textSrc.trim()) return;
