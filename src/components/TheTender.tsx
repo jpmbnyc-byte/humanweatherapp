@@ -24,6 +24,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const [activeVoice, setActiveVoice] = useState<'warm' | 'deep' | 'gentle' | 'resonant'>('warm');
   const [activeAccent, setActiveAccent] = useState<'us' | 'uk' | 'au' | 'ie' | 'za' | 'in'>('uk');
   const [soundEnv, setSoundEnv] = useState<'rain' | 'forest' | 'ocean' | 'hearth' | 'crickets' | 'silence'>('silence');
+  const [customVoice, setCustomVoice] = useState<CustomVoiceId | null>('joan');
   
   const [isReading, setIsReading] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -40,6 +41,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const cricketTimerRef = useRef<any>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const speakTimeoutRef = useRef<any>(null);
+  const customAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Active word list cache for matching onboundary indices
   const [wordsList, setWordsList] = useState<string[]>([]);
