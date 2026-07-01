@@ -2,6 +2,18 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, Volume2, Play, Pause, Square, Music, Headphones, Sliders, Edit2, Check, Globe } from 'lucide-react';
 import { PRESETS } from '../data/presets';
+import JoanAsset from '../assets/voices/Joan_Voice.mp3.asset.json';
+import GraceAsset from '../assets/voices/Grace_Voice.mp3.asset.json';
+import PeterAsset from '../assets/voices/Peter_Voice.mp3.asset.json';
+import DanielAsset from '../assets/voices/Daniel_Voice.mp3.asset.json';
+
+type CustomVoiceId = 'joan' | 'grace' | 'peter' | 'daniel';
+const CUSTOM_VOICES: { id: CustomVoiceId; name: string; url: string }[] = [
+  { id: 'joan', name: 'Joan', url: JoanAsset.url },
+  { id: 'grace', name: 'Grace', url: GraceAsset.url },
+  { id: 'peter', name: 'Peter', url: PeterAsset.url },
+  { id: 'daniel', name: 'Daniel', url: DanielAsset.url },
+];
 
 interface TheTenderProps {
   currentTheme: 'day' | 'night';
