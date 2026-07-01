@@ -344,60 +344,15 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     // Give SpeechSynthesis cancel time to settle beautifully
     speakTimeoutRef.current = setTimeout(() => {
       try {
-        const currentVoice = voiceOverride || activeVoice;
-        const currentAccent = accentOverride || activeAccent;
-        const settings = getVoiceSettings(currentVoice);
+        const profile = getVoiceProfile(voiceOverride || tenderVoice);
         const utterance = new SpeechSynthesisUtterance(textSrc);
-        utterance.pitch = settings.pitch;
-        utterance.rate = settings.rate;
+        utterance.pitch = profile.pitch;
+        utterance.rate = profile.rate;
 
-        if (window.speechSynthesis) {
-          const voices = window.speechSynthesis.getVoices();
-          
-          const accentLangMap: Record<string, string> = {
-            uk: 'en-gb',
-            us: 'en-us',
-            au: 'en-au',
-            ie: 'en-ie',
-            za: 'en-za',
-            in: 'en-in'
-          };
-          
-          const targetLangCode = accentLangMap[currentAccent];
-          let filteredVoices = voices.filter(v => v.lang.toLowerCase().startsWith(targetLangCode));
-          
-          if (filteredVoices.length === 0) {
-            filteredVoices = voices.filter(v => v.lang.toLowerCase().startsWith('en'));
-          }
-          if (filteredVoices.length === 0) {
-            filteredVoices = voices;
-          }
-
-          let voiceMatch: SpeechSynthesisVoice | undefined = undefined;
-          
-          if (currentVoice === 'deep') {
-            const deepIdentifiers = ['david', 'daniel', 'male', 'george', 'mick', 'rishi', 'jamie', 'oliver', 'alex', 'premium male'];
-            voiceMatch = filteredVoices.find(v => deepIdentifiers.some(id => v.name.toLowerCase().includes(id)));
-          } else if (currentVoice === 'warm') {
-            const warmIdentifiers = ['samantha', 'zira', 'karen', 'serena', 'moira', 'tessa', 'rishi', 'veena', 'kate', 'google', 'natural', 'premium'];
-            voiceMatch = filteredVoices.find(v => warmIdentifiers.some(id => v.name.toLowerCase().includes(id)));
-          } else if (currentVoice === 'gentle') {
-            const gentleIdentifiers = ['samantha', 'zira', 'karen', 'moira', 'tessa', 'veena', 'serena', 'kate', 'victoria', 'hazel', 'susan', 'female'];
-            voiceMatch = filteredVoices.find(v => gentleIdentifiers.some(id => v.name.toLowerCase().includes(id)));
-          } else if (currentVoice === 'resonant') {
-            const resonantIdentifiers = ['daniel', 'serena', 'tessa', 'moira', 'veena', 'rishi', 'samantha', 'google', 'natural', 'premium'];
-            voiceMatch = filteredVoices.find(v => resonantIdentifiers.some(id => v.name.toLowerCase().includes(id)));
-          }
-          
-          if (!voiceMatch) {
-            voiceMatch = filteredVoices[0];
-          }
-          
-          const selectedVoice = voiceMatch || voices[0];
-          if (selectedVoice) {
-            utterance.voice = selectedVoice;
-            console.log(`[Voice Accent Registry] Accent: "${currentAccent}", Tone: "${currentVoice}" -> Configured:`, selectedVoice.name);
-          }
+        const selectedVoice = pickSystemVoice(profile);
+        if (selectedVoice) {
+          utterance.voice = selectedVoice;
+          utterance.lang = selectedVoice.lang;
         }
 
         utteranceRef.current = utterance;
@@ -461,16 +416,12 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const handlePauseToggle = () => {
     if (isReading) {
       if (isPaused) {
-        if (customAudioRef.current) {
-          customAudioRef.current.play().catch(() => {});
-        } else if (window.speechSynthesis) {
+        if (window.speechSynthesis) {
           window.speechSynthesis.resume();
         }
         setIsPaused(false);
       } else {
-        if (customAudioRef.current) {
-          customAudioRef.current.pause();
-        } else if (window.speechSynthesis) {
+        if (window.speechSynthesis) {
           window.speechSynthesis.pause();
         }
         setIsPaused(true);
@@ -488,11 +439,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
       if (soundEnv !== 'silence') {
         startSoundEnvironment(soundEnv);
       }
-      if (customVoice) {
-        playCustomVoice(customVoice);
-      } else {
-        handleStartReading(inputText);
-      }
+      handleStartReading(inputText);
     }
   };
 
@@ -510,12 +457,6 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
         window.speechSynthesis.cancel();
       } catch (e) {}
     }
-    if (customAudioRef.current) {
-      try {
-        customAudioRef.current.pause();
-        customAudioRef.current.currentTime = 0;
-      } catch (e) {}
-    }
     setIsReading(false);
     setIsPreparing(false);
     setIsPaused(false);
@@ -526,70 +467,12 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     }
   };
 
-  // Play a pre-recorded custom voice recording
-  const playCustomVoice = (id: CustomVoiceId) => {
-    const voice = CUSTOM_VOICES.find(v => v.id === id);
-    if (!voice) return;
-    setSpeechError(null);
-
-    // Tear down any previous playback
-    if (customAudioRef.current) {
-      try { customAudioRef.current.pause(); } catch (e) {}
-      customAudioRef.current = null;
-    }
-    if (window.speechSynthesis) {
-      try { window.speechSynthesis.cancel(); } catch (e) {}
-    }
-
-    const audio = new Audio(voice.url);
-    audio.preload = 'auto';
-    customAudioRef.current = audio;
-    setIsPreparing(true);
-
-    audio.onplaying = () => {
-      setIsPreparing(false);
-      setIsReading(true);
-      setIsPaused(false);
-    };
-    audio.onpause = () => {
-      if (!audio.ended) setIsPaused(true);
-    };
-    audio.onended = () => {
-      setIsReading(false);
-      setIsPaused(false);
-      setIsPreparing(false);
-      customAudioRef.current = null;
-    };
-    audio.onerror = () => {
-      setIsReading(false);
-      setIsPaused(false);
-      setIsPreparing(false);
-      setSpeechError('audio-load-failed');
-      customAudioRef.current = null;
-    };
-
-    audio.play().catch(() => {
-      setSpeechError('autoplay-blocked');
-      setIsPreparing(false);
-    });
-  };
-
-  const handleVoiceChange = (voice: typeof activeVoice) => {
-    setActiveVoice(voice);
+  const handleVoiceChange = (voice: TenderVoiceId) => {
+    setTenderVoice(voice);
     if (isReading) {
       stopReading(false);
       setTimeout(() => {
-        handleStartReading(inputText, voice, activeAccent);
-      }, 150);
-    }
-  };
-
-  const handleAccentChange = (accent: typeof activeAccent) => {
-    setActiveAccent(accent);
-    if (isReading) {
-      stopReading(false);
-      setTimeout(() => {
-        handleStartReading(inputText, activeVoice, accent);
+        handleStartReading(inputText, voice);
       }, 150);
     }
   };
