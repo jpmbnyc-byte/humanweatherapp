@@ -1,19 +1,60 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, Volume2, Play, Pause, Square, Music, Headphones, Sliders, Edit2, Check, Globe } from 'lucide-react';
+import { Sparkles, Volume2, Play, Pause, Square, Music, Headphones, Sliders, Edit2, Check } from 'lucide-react';
 import { PRESETS } from '../data/presets';
-import JoanAsset from '../assets/voices/Joan_Voice.mp3.asset.json';
-import GraceAsset from '../assets/voices/Grace_Voice.mp3.asset.json';
-import PeterAsset from '../assets/voices/Peter_Voice.mp3.asset.json';
-import DanielAsset from '../assets/voices/Daniel_Voice.mp3.asset.json';
 
-type CustomVoiceId = 'joan' | 'grace' | 'peter' | 'daniel';
-const CUSTOM_VOICES: { id: CustomVoiceId; name: string; url: string }[] = [
-  { id: 'joan', name: 'Joan', url: JoanAsset.url },
-  { id: 'grace', name: 'Grace', url: GraceAsset.url },
-  { id: 'peter', name: 'Peter', url: PeterAsset.url },
-  { id: 'daniel', name: 'Daniel', url: DanielAsset.url },
+type TenderVoiceId = 'joan' | 'grace' | 'peter' | 'daniel';
+interface TenderVoiceProfile {
+  id: TenderVoiceId;
+  name: string;
+  descriptor: string;
+  gender: 'female' | 'male';
+  pitch: number;
+  rate: number;
+  // Preferred system voice name fragments (case-insensitive), tried in order
+  preferred: string[];
+}
+const TENDER_VOICES: TenderVoiceProfile[] = [
+  {
+    id: 'joan',
+    name: 'Joan',
+    descriptor: 'Warm · Grounded',
+    gender: 'female',
+    pitch: 0.96,
+    rate: 0.82,
+    preferred: ['samantha', 'jenny', 'ava', 'serena', 'karen', 'joanna', 'susan', 'zira'],
+  },
+  {
+    id: 'grace',
+    name: 'Grace',
+    descriptor: 'Gentle · Airy',
+    gender: 'female',
+    pitch: 1.08,
+    rate: 0.76,
+    preferred: ['moira', 'tessa', 'kate', 'fiona', 'victoria', 'hazel', 'aria', 'libby'],
+  },
+  {
+    id: 'peter',
+    name: 'Peter',
+    descriptor: 'Deep · Anchored',
+    gender: 'male',
+    pitch: 0.78,
+    rate: 0.8,
+    preferred: ['daniel', 'oliver', 'george', 'arthur', 'brian', 'rishi', 'guy', 'david'],
+  },
+  {
+    id: 'daniel',
+    name: 'Daniel',
+    descriptor: 'Resonant · Measured',
+    gender: 'male',
+    pitch: 0.9,
+    rate: 0.85,
+    preferred: ['daniel', 'alex', 'tom', 'ryan', 'aaron', 'mark', 'jamie'],
+  },
 ];
+
+const FEMALE_HINTS = ['female', 'samantha', 'zira', 'karen', 'moira', 'tessa', 'serena', 'victoria', 'kate', 'hazel', 'fiona', 'susan', 'ava', 'jenny', 'aria', 'libby', 'joanna'];
+const MALE_HINTS = ['male', 'daniel', 'david', 'george', 'alex', 'oliver', 'arthur', 'brian', 'tom', 'ryan', 'aaron', 'mark', 'jamie', 'guy', 'rishi'];
 
 interface TheTenderProps {
   currentTheme: 'day' | 'night';
@@ -21,10 +62,8 @@ interface TheTenderProps {
 
 export default function TheTender({ currentTheme }: TheTenderProps) {
   const [inputText, setInputText] = useState(PRESETS[0].text);
-  const [activeVoice, setActiveVoice] = useState<'warm' | 'deep' | 'gentle' | 'resonant'>('warm');
-  const [activeAccent, setActiveAccent] = useState<'us' | 'uk' | 'au' | 'ie' | 'za' | 'in'>('uk');
   const [soundEnv, setSoundEnv] = useState<'rain' | 'forest' | 'ocean' | 'hearth' | 'crickets' | 'silence'>('silence');
-  const [customVoice, setCustomVoice] = useState<CustomVoiceId | null>('joan');
+  const [tenderVoice, setTenderVoice] = useState<TenderVoiceId>('joan');
   
   const [isReading, setIsReading] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -41,7 +80,6 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const cricketTimerRef = useRef<any>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const speakTimeoutRef = useRef<any>(null);
-  const customAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Active word list cache for matching onboundary indices
   const [wordsList, setWordsList] = useState<string[]>([]);
@@ -249,20 +287,33 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     }
   };
 
-  const getVoiceSettings = (voice: typeof activeVoice) => {
-    switch (voice) {
-      case 'warm': return { pitch: 0.95, rate: 0.85 };
-      case 'deep': return { pitch: 0.78, rate: 0.82 };
-      case 'gentle': return { pitch: 1.05, rate: 0.76 };
-      case 'resonant': return { pitch: 1.0, rate: 0.88 };
+  const getVoiceProfile = (id: TenderVoiceId): TenderVoiceProfile =>
+    TENDER_VOICES.find(v => v.id === id) || TENDER_VOICES[0];
+
+  const pickSystemVoice = (profile: TenderVoiceProfile): SpeechSynthesisVoice | undefined => {
+    if (!window.speechSynthesis) return undefined;
+    const all = window.speechSynthesis.getVoices();
+    if (!all.length) return undefined;
+    const english = all.filter(v => v.lang.toLowerCase().startsWith('en'));
+    const pool = english.length ? english : all;
+
+    // 1. Preferred name fragments
+    for (const frag of profile.preferred) {
+      const match = pool.find(v => v.name.toLowerCase().includes(frag));
+      if (match) return match;
     }
+    // 2. Gender hint fallback
+    const hints = profile.gender === 'female' ? FEMALE_HINTS : MALE_HINTS;
+    const genderMatch = pool.find(v => hints.some(h => v.name.toLowerCase().includes(h)));
+    if (genderMatch) return genderMatch;
+    // 3. First English (or first available)
+    return pool[0];
   };
 
   // Speech synthesizers triggers
   const handleStartReading = (
-    textToUse?: string, 
-    voiceOverride?: typeof activeVoice, 
-    accentOverride?: typeof activeAccent
+    textToUse?: string,
+    voiceOverride?: TenderVoiceId,
   ) => {
     const textSrc = textToUse !== undefined ? textToUse : inputText;
     if (!textSrc.trim()) return;
@@ -293,60 +344,15 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     // Give SpeechSynthesis cancel time to settle beautifully
     speakTimeoutRef.current = setTimeout(() => {
       try {
-        const currentVoice = voiceOverride || activeVoice;
-        const currentAccent = accentOverride || activeAccent;
-        const settings = getVoiceSettings(currentVoice);
+        const profile = getVoiceProfile(voiceOverride || tenderVoice);
         const utterance = new SpeechSynthesisUtterance(textSrc);
-        utterance.pitch = settings.pitch;
-        utterance.rate = settings.rate;
+        utterance.pitch = profile.pitch;
+        utterance.rate = profile.rate;
 
-        if (window.speechSynthesis) {
-          const voices = window.speechSynthesis.getVoices();
-          
-          const accentLangMap: Record<string, string> = {
-            uk: 'en-gb',
-            us: 'en-us',
-            au: 'en-au',
-            ie: 'en-ie',
-            za: 'en-za',
-            in: 'en-in'
-          };
-          
-          const targetLangCode = accentLangMap[currentAccent];
-          let filteredVoices = voices.filter(v => v.lang.toLowerCase().startsWith(targetLangCode));
-          
-          if (filteredVoices.length === 0) {
-            filteredVoices = voices.filter(v => v.lang.toLowerCase().startsWith('en'));
-          }
-          if (filteredVoices.length === 0) {
-            filteredVoices = voices;
-          }
-
-          let voiceMatch: SpeechSynthesisVoice | undefined = undefined;
-          
-          if (currentVoice === 'deep') {
-            const deepIdentifiers = ['david', 'daniel', 'male', 'george', 'mick', 'rishi', 'jamie', 'oliver', 'alex', 'premium male'];
-            voiceMatch = filteredVoices.find(v => deepIdentifiers.some(id => v.name.toLowerCase().includes(id)));
-          } else if (currentVoice === 'warm') {
-            const warmIdentifiers = ['samantha', 'zira', 'karen', 'serena', 'moira', 'tessa', 'rishi', 'veena', 'kate', 'google', 'natural', 'premium'];
-            voiceMatch = filteredVoices.find(v => warmIdentifiers.some(id => v.name.toLowerCase().includes(id)));
-          } else if (currentVoice === 'gentle') {
-            const gentleIdentifiers = ['samantha', 'zira', 'karen', 'moira', 'tessa', 'veena', 'serena', 'kate', 'victoria', 'hazel', 'susan', 'female'];
-            voiceMatch = filteredVoices.find(v => gentleIdentifiers.some(id => v.name.toLowerCase().includes(id)));
-          } else if (currentVoice === 'resonant') {
-            const resonantIdentifiers = ['daniel', 'serena', 'tessa', 'moira', 'veena', 'rishi', 'samantha', 'google', 'natural', 'premium'];
-            voiceMatch = filteredVoices.find(v => resonantIdentifiers.some(id => v.name.toLowerCase().includes(id)));
-          }
-          
-          if (!voiceMatch) {
-            voiceMatch = filteredVoices[0];
-          }
-          
-          const selectedVoice = voiceMatch || voices[0];
-          if (selectedVoice) {
-            utterance.voice = selectedVoice;
-            console.log(`[Voice Accent Registry] Accent: "${currentAccent}", Tone: "${currentVoice}" -> Configured:`, selectedVoice.name);
-          }
+        const selectedVoice = pickSystemVoice(profile);
+        if (selectedVoice) {
+          utterance.voice = selectedVoice;
+          utterance.lang = selectedVoice.lang;
         }
 
         utteranceRef.current = utterance;
@@ -410,16 +416,12 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const handlePauseToggle = () => {
     if (isReading) {
       if (isPaused) {
-        if (customAudioRef.current) {
-          customAudioRef.current.play().catch(() => {});
-        } else if (window.speechSynthesis) {
+        if (window.speechSynthesis) {
           window.speechSynthesis.resume();
         }
         setIsPaused(false);
       } else {
-        if (customAudioRef.current) {
-          customAudioRef.current.pause();
-        } else if (window.speechSynthesis) {
+        if (window.speechSynthesis) {
           window.speechSynthesis.pause();
         }
         setIsPaused(true);
@@ -437,11 +439,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
       if (soundEnv !== 'silence') {
         startSoundEnvironment(soundEnv);
       }
-      if (customVoice) {
-        playCustomVoice(customVoice);
-      } else {
-        handleStartReading(inputText);
-      }
+      handleStartReading(inputText);
     }
   };
 
@@ -459,12 +457,6 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
         window.speechSynthesis.cancel();
       } catch (e) {}
     }
-    if (customAudioRef.current) {
-      try {
-        customAudioRef.current.pause();
-        customAudioRef.current.currentTime = 0;
-      } catch (e) {}
-    }
     setIsReading(false);
     setIsPreparing(false);
     setIsPaused(false);
@@ -475,70 +467,12 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     }
   };
 
-  // Play a pre-recorded custom voice recording
-  const playCustomVoice = (id: CustomVoiceId) => {
-    const voice = CUSTOM_VOICES.find(v => v.id === id);
-    if (!voice) return;
-    setSpeechError(null);
-
-    // Tear down any previous playback
-    if (customAudioRef.current) {
-      try { customAudioRef.current.pause(); } catch (e) {}
-      customAudioRef.current = null;
-    }
-    if (window.speechSynthesis) {
-      try { window.speechSynthesis.cancel(); } catch (e) {}
-    }
-
-    const audio = new Audio(voice.url);
-    audio.preload = 'auto';
-    customAudioRef.current = audio;
-    setIsPreparing(true);
-
-    audio.onplaying = () => {
-      setIsPreparing(false);
-      setIsReading(true);
-      setIsPaused(false);
-    };
-    audio.onpause = () => {
-      if (!audio.ended) setIsPaused(true);
-    };
-    audio.onended = () => {
-      setIsReading(false);
-      setIsPaused(false);
-      setIsPreparing(false);
-      customAudioRef.current = null;
-    };
-    audio.onerror = () => {
-      setIsReading(false);
-      setIsPaused(false);
-      setIsPreparing(false);
-      setSpeechError('audio-load-failed');
-      customAudioRef.current = null;
-    };
-
-    audio.play().catch(() => {
-      setSpeechError('autoplay-blocked');
-      setIsPreparing(false);
-    });
-  };
-
-  const handleVoiceChange = (voice: typeof activeVoice) => {
-    setActiveVoice(voice);
+  const handleVoiceChange = (voice: TenderVoiceId) => {
+    setTenderVoice(voice);
     if (isReading) {
       stopReading(false);
       setTimeout(() => {
-        handleStartReading(inputText, voice, activeAccent);
-      }, 150);
-    }
-  };
-
-  const handleAccentChange = (accent: typeof activeAccent) => {
-    setActiveAccent(accent);
-    if (isReading) {
-      stopReading(false);
-      setTimeout(() => {
-        handleStartReading(inputText, activeVoice, accent);
+        handleStartReading(inputText, voice);
       }, 150);
     }
   };
@@ -821,56 +755,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
         {/* RIGHT COLUMN: The Acoustic Console Bento Box (Takes up 5 cols) */}
         <div className="md:col-span-5 flex flex-col gap-4">
           
-          {/* Narrator Regional Accent Selection */}
-          <div className={`p-4 rounded-xl border flex flex-col justify-between ${styles.innerBg}`}>
-            <div className="flex items-center gap-1.5 border-b pb-2 mb-3 border-zinc-200/10" style={{ borderColor: isNight ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
-              <Globe className={`w-3.5 h-3.5 ${styles.goldText}`} />
-              <span className={`font-mono text-[9px] uppercase tracking-widest ${styles.mutedText}`}>
-                Narrator Accent (Apple Style)
-              </span>
-            </div>
-
-            <div className="grid grid-cols-3 gap-1.5">
-              {[
-                { id: 'uk', label: 'UK British', flag: '🇬🇧' },
-                { id: 'us', label: 'US American', flag: '🇺🇸' },
-                { id: 'au', label: 'AU Australian', flag: '🇦🇺' },
-                { id: 'ie', label: 'IE Irish', flag: '🇮🇪' },
-                { id: 'za', label: 'ZA S. African', flag: '🇿🇦' },
-                { id: 'in', label: 'IN Indian', flag: '🇮🇳' },
-              ].map((acc) => {
-                const isSelected = activeAccent === acc.id;
-                return (
-                  <button
-                    id={`accent-btn-${acc.id}`}
-                    key={acc.id}
-                    onClick={() => handleAccentChange(acc.id as any)}
-                    className="px-1.5 py-1.5 text-[9.5px] font-mono rounded border transition-all cursor-pointer flex flex-col items-center justify-center gap-1"
-                    style={{
-                      backgroundColor: isSelected 
-                        ? isNight ? 'rgba(234,179,8,0.12)' : 'rgba(217,119,6,0.1)' 
-                        : 'transparent',
-                      borderColor: isSelected 
-                        ? isNight ? '#eab308' : '#d97706' 
-                        : isNight ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.1)',
-                      color: isSelected 
-                        ? isNight ? '#eab308' : '#d97706' 
-                        : isNight ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.5)',
-                    }}
-                    title={acc.label}
-                  >
-                    <span className="text-sm leading-none">{acc.flag}</span>
-                    <span className="text-[8px] uppercase tracking-tight">{acc.id}</span>
-                  </button>
-                );
-              })}
-            </div>
-            <p className="font-sans text-[9.5px] italic text-left opacity-60 mt-2">
-              Apple-inspired regional neural system voice targets.
-            </p>
-          </div>
-
-          {/* Narrator Voice Pitch Registers Selection */}
+          {/* Tender Voice Selection */}
           <div className={`p-4 rounded-xl border flex flex-col justify-between ${styles.innerBg}`}>
             <div className="flex items-center gap-1.5 border-b pb-2 mb-3 border-zinc-200/10" style={{ borderColor: isNight ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
               <Sliders className={`w-3.5 h-3.5 ${styles.goldText}`} />
@@ -880,17 +765,14 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              {CUSTOM_VOICES.map((v) => {
-                const isSelected = customVoice === v.id;
+              {TENDER_VOICES.map((v) => {
+                const isSelected = tenderVoice === v.id;
                 return (
                   <button
                     id={`voice-custom-btn-${v.id}`}
                     key={v.id}
-                    onClick={() => {
-                      stopReading(false);
-                      setCustomVoice(v.id);
-                    }}
-                    className="px-2.5 py-2 text-[10px] font-mono rounded border uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                    onClick={() => handleVoiceChange(v.id)}
+                    className="px-2.5 py-2 rounded border transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5"
                     style={{
                       backgroundColor: isSelected 
                         ? isNight ? 'rgba(234,179,8,0.12)' : 'rgba(217,119,6,0.12)' 
@@ -903,14 +785,14 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                         : isNight ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.5)',
                     }}
                   >
-                    <span className={`w-1 h-1 rounded-full ${isSelected ? (isNight ? 'bg-[#eab308]' : 'bg-[#d97706]') : 'bg-transparent'}`} />
-                    {v.name}
+                    <span className="font-serif text-[13px] tracking-wide leading-tight">{v.name}</span>
+                    <span className="font-mono text-[8px] uppercase tracking-widest opacity-70">{v.descriptor}</span>
                   </button>
                 );
               })}
             </div>
             <p className="font-sans text-[9.5px] italic text-left opacity-60 mt-2">
-              Signature Human Weather voices. Pre-recorded — Listen to hear them speak.
+              Each voice narrates the selected prose live using your system's neural speech engine, tuned to a distinct pitch and cadence.
             </p>
           </div>
 
