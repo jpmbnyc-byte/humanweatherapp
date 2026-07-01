@@ -2,6 +2,18 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, Volume2, Play, Pause, Square, Music, Headphones, Sliders, Edit2, Check, Globe } from 'lucide-react';
 import { PRESETS } from '../data/presets';
+import JoanAsset from '../assets/voices/Joan_Voice.mp3.asset.json';
+import GraceAsset from '../assets/voices/Grace_Voice.mp3.asset.json';
+import PeterAsset from '../assets/voices/Peter_Voice.mp3.asset.json';
+import DanielAsset from '../assets/voices/Daniel_Voice.mp3.asset.json';
+
+type CustomVoiceId = 'joan' | 'grace' | 'peter' | 'daniel';
+const CUSTOM_VOICES: { id: CustomVoiceId; name: string; url: string }[] = [
+  { id: 'joan', name: 'Joan', url: JoanAsset.url },
+  { id: 'grace', name: 'Grace', url: GraceAsset.url },
+  { id: 'peter', name: 'Peter', url: PeterAsset.url },
+  { id: 'daniel', name: 'Daniel', url: DanielAsset.url },
+];
 
 interface TheTenderProps {
   currentTheme: 'day' | 'night';
@@ -12,6 +24,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const [activeVoice, setActiveVoice] = useState<'warm' | 'deep' | 'gentle' | 'resonant'>('warm');
   const [activeAccent, setActiveAccent] = useState<'us' | 'uk' | 'au' | 'ie' | 'za' | 'in'>('uk');
   const [soundEnv, setSoundEnv] = useState<'rain' | 'forest' | 'ocean' | 'hearth' | 'crickets' | 'silence'>('silence');
+  const [customVoice, setCustomVoice] = useState<CustomVoiceId | null>('joan');
   
   const [isReading, setIsReading] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -28,6 +41,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const cricketTimerRef = useRef<any>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const speakTimeoutRef = useRef<any>(null);
+  const customAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Active word list cache for matching onboundary indices
   const [wordsList, setWordsList] = useState<string[]>([]);
@@ -396,10 +410,18 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const handlePauseToggle = () => {
     if (isReading) {
       if (isPaused) {
-        if (window.speechSynthesis) window.speechSynthesis.resume();
+        if (customAudioRef.current) {
+          customAudioRef.current.play().catch(() => {});
+        } else if (window.speechSynthesis) {
+          window.speechSynthesis.resume();
+        }
         setIsPaused(false);
       } else {
-        if (window.speechSynthesis) window.speechSynthesis.pause();
+        if (customAudioRef.current) {
+          customAudioRef.current.pause();
+        } else if (window.speechSynthesis) {
+          window.speechSynthesis.pause();
+        }
         setIsPaused(true);
       }
     }
@@ -415,7 +437,11 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
       if (soundEnv !== 'silence') {
         startSoundEnvironment(soundEnv);
       }
-      handleStartReading(inputText);
+      if (customVoice) {
+        playCustomVoice(customVoice);
+      } else {
+        handleStartReading(inputText);
+      }
     }
   };
 
@@ -433,6 +459,12 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
         window.speechSynthesis.cancel();
       } catch (e) {}
     }
+    if (customAudioRef.current) {
+      try {
+        customAudioRef.current.pause();
+        customAudioRef.current.currentTime = 0;
+      } catch (e) {}
+    }
     setIsReading(false);
     setIsPreparing(false);
     setIsPaused(false);
@@ -441,6 +473,54 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     if (stopAmbient) {
       stopSoundEnvironment();
     }
+  };
+
+  // Play a pre-recorded custom voice recording
+  const playCustomVoice = (id: CustomVoiceId) => {
+    const voice = CUSTOM_VOICES.find(v => v.id === id);
+    if (!voice) return;
+    setSpeechError(null);
+
+    // Tear down any previous playback
+    if (customAudioRef.current) {
+      try { customAudioRef.current.pause(); } catch (e) {}
+      customAudioRef.current = null;
+    }
+    if (window.speechSynthesis) {
+      try { window.speechSynthesis.cancel(); } catch (e) {}
+    }
+
+    const audio = new Audio(voice.url);
+    audio.preload = 'auto';
+    customAudioRef.current = audio;
+    setIsPreparing(true);
+
+    audio.onplaying = () => {
+      setIsPreparing(false);
+      setIsReading(true);
+      setIsPaused(false);
+    };
+    audio.onpause = () => {
+      if (!audio.ended) setIsPaused(true);
+    };
+    audio.onended = () => {
+      setIsReading(false);
+      setIsPaused(false);
+      setIsPreparing(false);
+      customAudioRef.current = null;
+    };
+    audio.onerror = () => {
+      setIsReading(false);
+      setIsPaused(false);
+      setIsPreparing(false);
+      setSpeechError('audio-load-failed');
+      customAudioRef.current = null;
+    };
+
+    audio.play().catch(() => {
+      setSpeechError('autoplay-blocked');
+      setIsPreparing(false);
+    });
   };
 
   const handleVoiceChange = (voice: typeof activeVoice) => {
@@ -795,18 +875,21 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
             <div className="flex items-center gap-1.5 border-b pb-2 mb-3 border-zinc-200/10" style={{ borderColor: isNight ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
               <Sliders className={`w-3.5 h-3.5 ${styles.goldText}`} />
               <span className={`font-mono text-[9px] uppercase tracking-widest ${styles.mutedText}`}>
-                Narrator Tone Register
+                Tender Voice
               </span>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              {(['warm', 'deep', 'gentle', 'resonant'] as const).map((v) => {
-                const isSelected = activeVoice === v;
+              {CUSTOM_VOICES.map((v) => {
+                const isSelected = customVoice === v.id;
                 return (
                   <button
-                    id={`voice-register-btn-${v}`}
-                    key={v}
-                    onClick={() => handleVoiceChange(v)}
+                    id={`voice-custom-btn-${v.id}`}
+                    key={v.id}
+                    onClick={() => {
+                      stopReading(false);
+                      setCustomVoice(v.id);
+                    }}
                     className="px-2.5 py-2 text-[10px] font-mono rounded border uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5"
                     style={{
                       backgroundColor: isSelected 
@@ -821,13 +904,13 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                     }}
                   >
                     <span className={`w-1 h-1 rounded-full ${isSelected ? (isNight ? 'bg-[#eab308]' : 'bg-[#d97706]') : 'bg-transparent'}`} />
-                    {v}
+                    {v.name}
                   </button>
                 );
               })}
             </div>
             <p className="font-sans text-[9.5px] italic text-left opacity-60 mt-2">
-              Changes apply instantly and restart speech narration smoothly.
+              Signature Human Weather voices. Pre-recorded — Listen to hear them speak.
             </p>
           </div>
 
