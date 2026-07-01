@@ -755,56 +755,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
         {/* RIGHT COLUMN: The Acoustic Console Bento Box (Takes up 5 cols) */}
         <div className="md:col-span-5 flex flex-col gap-4">
           
-          {/* Narrator Regional Accent Selection */}
-          <div className={`p-4 rounded-xl border flex flex-col justify-between ${styles.innerBg}`}>
-            <div className="flex items-center gap-1.5 border-b pb-2 mb-3 border-zinc-200/10" style={{ borderColor: isNight ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
-              <Globe className={`w-3.5 h-3.5 ${styles.goldText}`} />
-              <span className={`font-mono text-[9px] uppercase tracking-widest ${styles.mutedText}`}>
-                Narrator Accent (Apple Style)
-              </span>
-            </div>
-
-            <div className="grid grid-cols-3 gap-1.5">
-              {[
-                { id: 'uk', label: 'UK British', flag: '🇬🇧' },
-                { id: 'us', label: 'US American', flag: '🇺🇸' },
-                { id: 'au', label: 'AU Australian', flag: '🇦🇺' },
-                { id: 'ie', label: 'IE Irish', flag: '🇮🇪' },
-                { id: 'za', label: 'ZA S. African', flag: '🇿🇦' },
-                { id: 'in', label: 'IN Indian', flag: '🇮🇳' },
-              ].map((acc) => {
-                const isSelected = activeAccent === acc.id;
-                return (
-                  <button
-                    id={`accent-btn-${acc.id}`}
-                    key={acc.id}
-                    onClick={() => handleAccentChange(acc.id as any)}
-                    className="px-1.5 py-1.5 text-[9.5px] font-mono rounded border transition-all cursor-pointer flex flex-col items-center justify-center gap-1"
-                    style={{
-                      backgroundColor: isSelected 
-                        ? isNight ? 'rgba(234,179,8,0.12)' : 'rgba(217,119,6,0.1)' 
-                        : 'transparent',
-                      borderColor: isSelected 
-                        ? isNight ? '#eab308' : '#d97706' 
-                        : isNight ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.1)',
-                      color: isSelected 
-                        ? isNight ? '#eab308' : '#d97706' 
-                        : isNight ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.5)',
-                    }}
-                    title={acc.label}
-                  >
-                    <span className="text-sm leading-none">{acc.flag}</span>
-                    <span className="text-[8px] uppercase tracking-tight">{acc.id}</span>
-                  </button>
-                );
-              })}
-            </div>
-            <p className="font-sans text-[9.5px] italic text-left opacity-60 mt-2">
-              Apple-inspired regional neural system voice targets.
-            </p>
-          </div>
-
-          {/* Narrator Voice Pitch Registers Selection */}
+          {/* Tender Voice Selection */}
           <div className={`p-4 rounded-xl border flex flex-col justify-between ${styles.innerBg}`}>
             <div className="flex items-center gap-1.5 border-b pb-2 mb-3 border-zinc-200/10" style={{ borderColor: isNight ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
               <Sliders className={`w-3.5 h-3.5 ${styles.goldText}`} />
@@ -814,17 +765,14 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              {CUSTOM_VOICES.map((v) => {
-                const isSelected = customVoice === v.id;
+              {TENDER_VOICES.map((v) => {
+                const isSelected = tenderVoice === v.id;
                 return (
                   <button
                     id={`voice-custom-btn-${v.id}`}
                     key={v.id}
-                    onClick={() => {
-                      stopReading(false);
-                      setCustomVoice(v.id);
-                    }}
-                    className="px-2.5 py-2 text-[10px] font-mono rounded border uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                    onClick={() => handleVoiceChange(v.id)}
+                    className="px-2.5 py-2 rounded border transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5"
                     style={{
                       backgroundColor: isSelected 
                         ? isNight ? 'rgba(234,179,8,0.12)' : 'rgba(217,119,6,0.12)' 
@@ -837,14 +785,14 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                         : isNight ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.5)',
                     }}
                   >
-                    <span className={`w-1 h-1 rounded-full ${isSelected ? (isNight ? 'bg-[#eab308]' : 'bg-[#d97706]') : 'bg-transparent'}`} />
-                    {v.name}
+                    <span className="font-serif text-[13px] tracking-wide leading-tight">{v.name}</span>
+                    <span className="font-mono text-[8px] uppercase tracking-widest opacity-70">{v.descriptor}</span>
                   </button>
                 );
               })}
             </div>
             <p className="font-sans text-[9.5px] italic text-left opacity-60 mt-2">
-              Signature Human Weather voices. Pre-recorded — Listen to hear them speak.
+              Each voice narrates the selected prose live using your system's neural speech engine, tuned to a distinct pitch and cadence.
             </p>
           </div>
 
