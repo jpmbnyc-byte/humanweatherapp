@@ -1,19 +1,60 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, Volume2, Play, Pause, Square, Music, Headphones, Sliders, Edit2, Check, Globe } from 'lucide-react';
+import { Sparkles, Volume2, Play, Pause, Square, Music, Headphones, Sliders, Edit2, Check } from 'lucide-react';
 import { PRESETS } from '../data/presets';
-import JoanAsset from '../assets/voices/Joan_Voice.mp3.asset.json';
-import GraceAsset from '../assets/voices/Grace_Voice.mp3.asset.json';
-import PeterAsset from '../assets/voices/Peter_Voice.mp3.asset.json';
-import DanielAsset from '../assets/voices/Daniel_Voice.mp3.asset.json';
 
-type CustomVoiceId = 'joan' | 'grace' | 'peter' | 'daniel';
-const CUSTOM_VOICES: { id: CustomVoiceId; name: string; url: string }[] = [
-  { id: 'joan', name: 'Joan', url: JoanAsset.url },
-  { id: 'grace', name: 'Grace', url: GraceAsset.url },
-  { id: 'peter', name: 'Peter', url: PeterAsset.url },
-  { id: 'daniel', name: 'Daniel', url: DanielAsset.url },
+type TenderVoiceId = 'joan' | 'grace' | 'peter' | 'daniel';
+interface TenderVoiceProfile {
+  id: TenderVoiceId;
+  name: string;
+  descriptor: string;
+  gender: 'female' | 'male';
+  pitch: number;
+  rate: number;
+  // Preferred system voice name fragments (case-insensitive), tried in order
+  preferred: string[];
+}
+const TENDER_VOICES: TenderVoiceProfile[] = [
+  {
+    id: 'joan',
+    name: 'Joan',
+    descriptor: 'Warm · Grounded',
+    gender: 'female',
+    pitch: 0.96,
+    rate: 0.82,
+    preferred: ['samantha', 'jenny', 'ava', 'serena', 'karen', 'joanna', 'susan', 'zira'],
+  },
+  {
+    id: 'grace',
+    name: 'Grace',
+    descriptor: 'Gentle · Airy',
+    gender: 'female',
+    pitch: 1.08,
+    rate: 0.76,
+    preferred: ['moira', 'tessa', 'kate', 'fiona', 'victoria', 'hazel', 'aria', 'libby'],
+  },
+  {
+    id: 'peter',
+    name: 'Peter',
+    descriptor: 'Deep · Anchored',
+    gender: 'male',
+    pitch: 0.78,
+    rate: 0.8,
+    preferred: ['daniel', 'oliver', 'george', 'arthur', 'brian', 'rishi', 'guy', 'david'],
+  },
+  {
+    id: 'daniel',
+    name: 'Daniel',
+    descriptor: 'Resonant · Measured',
+    gender: 'male',
+    pitch: 0.9,
+    rate: 0.85,
+    preferred: ['daniel', 'alex', 'tom', 'ryan', 'aaron', 'mark', 'jamie'],
+  },
 ];
+
+const FEMALE_HINTS = ['female', 'samantha', 'zira', 'karen', 'moira', 'tessa', 'serena', 'victoria', 'kate', 'hazel', 'fiona', 'susan', 'ava', 'jenny', 'aria', 'libby', 'joanna'];
+const MALE_HINTS = ['male', 'daniel', 'david', 'george', 'alex', 'oliver', 'arthur', 'brian', 'tom', 'ryan', 'aaron', 'mark', 'jamie', 'guy', 'rishi'];
 
 interface TheTenderProps {
   currentTheme: 'day' | 'night';
@@ -21,10 +62,8 @@ interface TheTenderProps {
 
 export default function TheTender({ currentTheme }: TheTenderProps) {
   const [inputText, setInputText] = useState(PRESETS[0].text);
-  const [activeVoice, setActiveVoice] = useState<'warm' | 'deep' | 'gentle' | 'resonant'>('warm');
-  const [activeAccent, setActiveAccent] = useState<'us' | 'uk' | 'au' | 'ie' | 'za' | 'in'>('uk');
   const [soundEnv, setSoundEnv] = useState<'rain' | 'forest' | 'ocean' | 'hearth' | 'crickets' | 'silence'>('silence');
-  const [customVoice, setCustomVoice] = useState<CustomVoiceId | null>('joan');
+  const [tenderVoice, setTenderVoice] = useState<TenderVoiceId>('joan');
   
   const [isReading, setIsReading] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -41,7 +80,6 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const cricketTimerRef = useRef<any>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const speakTimeoutRef = useRef<any>(null);
-  const customAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Active word list cache for matching onboundary indices
   const [wordsList, setWordsList] = useState<string[]>([]);
