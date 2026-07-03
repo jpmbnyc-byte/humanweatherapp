@@ -851,7 +851,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
               })}
             </div>
             <p className="font-sans text-[9.5px] italic text-left opacity-60 mt-2">
-              Each voice narrates the selected prose live using your system's neural speech engine, tuned to a distinct pitch and cadence.
+              Studio-grade AI voiceovers via Lovable AI. Each narrator reads the selected prose live with its own timbre, cadence and breath.
             </p>
           </div>
 
