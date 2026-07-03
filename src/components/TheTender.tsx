@@ -8,53 +8,45 @@ interface TenderVoiceProfile {
   id: TenderVoiceId;
   name: string;
   descriptor: string;
-  gender: 'female' | 'male';
-  pitch: number;
-  rate: number;
-  // Preferred system voice name fragments (case-insensitive), tried in order
-  preferred: string[];
+  // OpenAI TTS voice (routed through Lovable AI Gateway)
+  ttsVoice: 'shimmer' | 'nova' | 'onyx' | 'echo' | 'alloy' | 'sage' | 'coral' | 'ballad';
+  // Natural-language steering for tone/pacing
+  instructions: string;
 }
 const TENDER_VOICES: TenderVoiceProfile[] = [
   {
     id: 'joan',
     name: 'Joan',
     descriptor: 'Warm · Grounded',
-    gender: 'female',
-    pitch: 0.96,
-    rate: 0.82,
-    preferred: ['samantha', 'jenny', 'ava', 'serena', 'karen', 'joanna', 'susan', 'zira'],
+    ttsVoice: 'shimmer',
+    instructions:
+      'Speak as a warm, grounded woman in her early 40s. Unhurried, gentle, with soft breath and a low, reassuring cadence. Meditative pauses between sentences.',
   },
   {
     id: 'grace',
     name: 'Grace',
     descriptor: 'Gentle · Airy',
-    gender: 'female',
-    pitch: 1.08,
-    rate: 0.76,
-    preferred: ['moira', 'tessa', 'kate', 'fiona', 'victoria', 'hazel', 'aria', 'libby'],
+    ttsVoice: 'nova',
+    instructions:
+      'Speak as a gentle, airy woman with a light, luminous tone. Slow, tender, contemplative pacing, as if reading a poem aloud in a candlelit room.',
   },
   {
     id: 'peter',
     name: 'Peter',
     descriptor: 'Deep · Anchored',
-    gender: 'male',
-    pitch: 0.78,
-    rate: 0.8,
-    preferred: ['daniel', 'oliver', 'george', 'arthur', 'brian', 'rishi', 'guy', 'david'],
+    ttsVoice: 'onyx',
+    instructions:
+      'Speak as a deep, anchored man with a resonant baritone. Slow, deliberate, monk-like. Long, calm breaths. Convey stillness and gravity.',
   },
   {
     id: 'daniel',
     name: 'Daniel',
     descriptor: 'Resonant · Measured',
-    gender: 'male',
-    pitch: 0.9,
-    rate: 0.85,
-    preferred: ['daniel', 'alex', 'tom', 'ryan', 'aaron', 'mark', 'jamie'],
+    ttsVoice: 'echo',
+    instructions:
+      'Speak as a resonant, measured man — a thoughtful narrator with clear diction, gentle warmth and a reflective, unhurried tempo.',
   },
 ];
-
-const FEMALE_HINTS = ['female', 'samantha', 'zira', 'karen', 'moira', 'tessa', 'serena', 'victoria', 'kate', 'hazel', 'fiona', 'susan', 'ava', 'jenny', 'aria', 'libby', 'joanna'];
-const MALE_HINTS = ['male', 'daniel', 'david', 'george', 'alex', 'oliver', 'arthur', 'brian', 'tom', 'ryan', 'aaron', 'mark', 'jamie', 'guy', 'rishi'];
 
 interface TheTenderProps {
   currentTheme: 'day' | 'night';
@@ -78,8 +70,14 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const noiseSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const envGainNodeRef = useRef<GainNode | null>(null);
   const cricketTimerRef = useRef<any>(null);
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const speakTimeoutRef = useRef<any>(null);
+
+  // AI TTS streaming refs
+  const ttsAbortRef = useRef<AbortController | null>(null);
+  const ttsGainRef = useRef<GainNode | null>(null);
+  const ttsSourcesRef = useRef<AudioBufferSourceNode[]>([]);
+  const ttsPlayheadRef = useRef<number>(0);
+  const ttsSessionIdRef = useRef<number>(0);
 
   // Active word list cache for matching onboundary indices
   const [wordsList, setWordsList] = useState<string[]>([]);
@@ -290,142 +288,209 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const getVoiceProfile = (id: TenderVoiceId): TenderVoiceProfile =>
     TENDER_VOICES.find(v => v.id === id) || TENDER_VOICES[0];
 
-  const pickSystemVoice = (profile: TenderVoiceProfile): SpeechSynthesisVoice | undefined => {
-    if (!window.speechSynthesis) return undefined;
-    const all = window.speechSynthesis.getVoices();
-    if (!all.length) return undefined;
-    const english = all.filter(v => v.lang.toLowerCase().startsWith('en'));
-    const pool = english.length ? english : all;
+  // ---- Lovable AI streaming TTS ----
 
-    // 1. Preferred name fragments
-    for (const frag of profile.preferred) {
-      const match = pool.find(v => v.name.toLowerCase().includes(frag));
-      if (match) return match;
+  // Split into chunks that stay well under the model input cap and start at sentence boundaries
+  const chunkForTTS = (text: string, maxChars = 900): string[] => {
+    const sentences = text.match(/[^.!?\n]+[.!?]?[\n]?|\n+/g) ?? [text];
+    const chunks: string[] = [];
+    let current = '';
+    const flush = () => { if (current.trim()) chunks.push(current.trim()); current = ''; };
+    for (const s of sentences) {
+      if (s.length > maxChars) {
+        flush();
+        for (let i = 0; i < s.length; i += maxChars) chunks.push(s.slice(i, i + maxChars));
+        continue;
+      }
+      if (current.length + s.length > maxChars) flush();
+      current += s;
     }
-    // 2. Gender hint fallback
-    const hints = profile.gender === 'female' ? FEMALE_HINTS : MALE_HINTS;
-    const genderMatch = pool.find(v => hints.some(h => v.name.toLowerCase().includes(h)));
-    if (genderMatch) return genderMatch;
-    // 3. First English (or first available)
-    return pool[0];
+    flush();
+    return chunks;
   };
 
-  // Speech synthesizers triggers
+  const teardownTts = () => {
+    ttsSessionIdRef.current += 1;
+    if (ttsAbortRef.current) {
+      try { ttsAbortRef.current.abort(); } catch {}
+      ttsAbortRef.current = null;
+    }
+    for (const src of ttsSourcesRef.current) {
+      try { src.stop(); } catch {}
+      try { src.disconnect(); } catch {}
+    }
+    ttsSourcesRef.current = [];
+    if (ttsGainRef.current) {
+      try { ttsGainRef.current.disconnect(); } catch {}
+      ttsGainRef.current = null;
+    }
+    ttsPlayheadRef.current = 0;
+  };
+
+  const streamTtsChunk = async (
+    ctx: AudioContext,
+    gain: GainNode,
+    session: number,
+    text: string,
+    voice: string,
+    instructions: string,
+    abort: AbortController,
+    onFirstAudio: () => void,
+  ): Promise<void> => {
+    const res = await fetch('/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, voice, instructions }),
+      signal: abort.signal,
+    });
+    if (!res.ok || !res.body) {
+      const msg = await res.text().catch(() => '');
+      throw new Error(msg || `TTS request failed (${res.status})`);
+    }
+
+    const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+    let buffer = '';
+    let pending = new Uint8Array(0);
+    let firstEmitted = false;
+
+    const emitPcm = (incoming: Uint8Array) => {
+      if (ttsSessionIdRef.current !== session) return;
+      const bytes = new Uint8Array(pending.length + incoming.length);
+      bytes.set(pending);
+      bytes.set(incoming, pending.length);
+      const usable = bytes.length - (bytes.length % 2);
+      pending = bytes.slice(usable);
+      if (usable === 0) return;
+      const samples = new Int16Array(bytes.buffer, 0, usable / 2);
+      const floats = Float32Array.from(samples, s => s / 32768);
+      const buf = ctx.createBuffer(1, floats.length, 24000);
+      buf.copyToChannel(floats, 0);
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(gain);
+      if (ttsPlayheadRef.current === 0) {
+        ttsPlayheadRef.current = ctx.currentTime + 0.08;
+      } else {
+        ttsPlayheadRef.current = Math.max(ttsPlayheadRef.current, ctx.currentTime);
+      }
+      src.start(ttsPlayheadRef.current);
+      ttsPlayheadRef.current += buf.duration;
+      ttsSourcesRef.current.push(src);
+      src.onended = () => {
+        ttsSourcesRef.current = ttsSourcesRef.current.filter(x => x !== src);
+        try { src.disconnect(); } catch {}
+      };
+      if (!firstEmitted) {
+        firstEmitted = true;
+        onFirstAudio();
+      }
+    };
+
+    const handleEvent = (data: string) => {
+      if (!data) return;
+      let payload: any;
+      try { payload = JSON.parse(data); } catch { return; }
+      if (payload?.type !== 'speech.audio.delta' || !payload.audio) return;
+      const binary = atob(payload.audio);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      emitPcm(bytes);
+    };
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      if (ttsSessionIdRef.current !== session) { try { reader.cancel(); } catch {} return; }
+      buffer += value;
+      let idx: number;
+      while ((idx = buffer.indexOf('\n\n')) !== -1) {
+        const block = buffer.slice(0, idx);
+        buffer = buffer.slice(idx + 2);
+        for (const line of block.split('\n')) {
+          if (line.startsWith('data: ')) handleEvent(line.slice(6));
+          else if (line.startsWith('data:')) handleEvent(line.slice(5).trim());
+        }
+      }
+    }
+  };
+
   const handleStartReading = (
     textToUse?: string,
     voiceOverride?: TenderVoiceId,
   ) => {
-    const textSrc = textToUse !== undefined ? textToUse : inputText;
-    if (!textSrc.trim()) return;
+    const textSrc = (textToUse !== undefined ? textToUse : inputText).trim();
+    if (!textSrc) return;
 
-    if (speakTimeoutRef.current) {
-      clearTimeout(speakTimeoutRef.current);
-    }
-
+    teardownTts();
     setSpeechError(null);
     setIsPreparing(true);
     setIsReading(false);
     setIsPaused(false);
-
-    if (window.speechSynthesis) {
-      try {
-        if (window.speechSynthesis.paused) {
-          window.speechSynthesis.resume();
-        }
-        window.speechSynthesis.cancel();
-      } catch (e) {}
-    }
-
-    // Split text into words for boundary highlighting matching
-    const words = textSrc.split(/\s+/);
-    setWordsList(words);
     setCurrentWordIndex(-1);
+    setWordsList(textSrc.split(/\s+/));
 
-    // Give SpeechSynthesis cancel time to settle beautifully
-    speakTimeoutRef.current = setTimeout(() => {
+    const profile = getVoiceProfile(voiceOverride || tenderVoice);
+
+    if (!audioCtxRef.current) {
       try {
-        const profile = getVoiceProfile(voiceOverride || tenderVoice);
-        const utterance = new SpeechSynthesisUtterance(textSrc);
-        utterance.pitch = profile.pitch;
-        utterance.rate = profile.rate;
+        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+      } catch (e: any) {
+        setSpeechError(e?.message || 'audio-init-failed');
+        setIsPreparing(false);
+        return;
+      }
+    }
+    const ctx = audioCtxRef.current;
+    const ensureRunning = ctx.state === 'suspended' ? ctx.resume().catch(() => {}) : Promise.resolve();
 
-        const selectedVoice = pickSystemVoice(profile);
-        if (selectedVoice) {
-          utterance.voice = selectedVoice;
-          utterance.lang = selectedVoice.lang;
-        }
+    const gain = ctx.createGain();
+    gain.gain.value = 1.0;
+    gain.connect(ctx.destination);
+    ttsGainRef.current = gain;
+    ttsPlayheadRef.current = 0;
 
-        utteranceRef.current = utterance;
+    const abort = new AbortController();
+    ttsAbortRef.current = abort;
+    const session = ++ttsSessionIdRef.current;
 
-        utterance.onstart = () => {
-          if (utteranceRef.current === utterance) {
+    const run = async () => {
+      await ensureRunning;
+      try {
+        const chunks = chunkForTTS(textSrc);
+        for (const chunk of chunks) {
+          if (ttsSessionIdRef.current !== session) return;
+          await streamTtsChunk(ctx, gain, session, chunk, profile.ttsVoice, profile.instructions, abort, () => {
+            if (ttsSessionIdRef.current !== session) return;
+            setIsPreparing(false);
             setIsReading(true);
-            setIsPreparing(false);
-            setIsPaused(false);
-            setSpeechError(null);
-            setCurrentWordIndex(0);
-          }
-        };
-
-        // Bulletproof dynamic real-time word mapping via text slicing
-        utterance.onboundary = (event) => {
-          if (utteranceRef.current !== utterance) return;
-          if (event.name === 'word') {
-            const textBefore = textSrc.substring(0, event.charIndex);
-            const wordIndex = textBefore.trim() === "" ? 0 : textBefore.trim().split(/\s+/).length;
-            setCurrentWordIndex(wordIndex);
-          }
-        };
-
-        utterance.onend = () => {
-          if (utteranceRef.current === utterance) {
-            setIsReading(false);
-            setIsPreparing(false);
-            setIsPaused(false);
-            setCurrentWordIndex(-1);
-            utteranceRef.current = null;
-          }
-        };
-
-        utterance.onerror = (e) => {
-          if (utteranceRef.current === utterance) {
-            setIsReading(false);
-            setIsPreparing(false);
-            setIsPaused(false);
-            setCurrentWordIndex(-1);
-            utteranceRef.current = null;
-            if (e.error && e.error !== 'interrupted') {
-              setSpeechError(e.error);
-            }
-          }
-        };
-
-        if (window.speechSynthesis) {
-          window.speechSynthesis.speak(utterance);
-        } else {
-          setSpeechError('not-supported');
-          setIsPreparing(false);
+          });
         }
+        if (ttsSessionIdRef.current !== session) return;
+        // Wait for scheduled audio to finish
+        const remaining = Math.max(0, ttsPlayheadRef.current - ctx.currentTime);
+        setTimeout(() => {
+          if (ttsSessionIdRef.current !== session) return;
+          setIsReading(false);
+          setIsPreparing(false);
+          setIsPaused(false);
+        }, remaining * 1000 + 200);
       } catch (err: any) {
-        setSpeechError(err.message || 'unknown');
+        if (abort.signal.aborted || ttsSessionIdRef.current !== session) return;
+        setSpeechError(err?.message || 'tts-failed');
+        setIsReading(false);
         setIsPreparing(false);
       }
-    }, 100);
+    };
+    void run();
   };
 
   const handlePauseToggle = () => {
-    if (isReading) {
-      if (isPaused) {
-        if (window.speechSynthesis) {
-          window.speechSynthesis.resume();
-        }
-        setIsPaused(false);
-      } else {
-        if (window.speechSynthesis) {
-          window.speechSynthesis.pause();
-        }
-        setIsPaused(true);
-      }
+    const ctx = audioCtxRef.current;
+    if (!ctx || !isReading) return;
+    if (isPaused) {
+      ctx.resume().then(() => setIsPaused(false)).catch(() => setIsPaused(false));
+    } else {
+      ctx.suspend().then(() => setIsPaused(true)).catch(() => setIsPaused(true));
     }
   };
 
@@ -447,15 +512,9 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     if (speakTimeoutRef.current) {
       clearTimeout(speakTimeoutRef.current);
     }
-    utteranceRef.current = null;
-    
-    if (window.speechSynthesis) {
-      try {
-        if (window.speechSynthesis.paused) {
-          window.speechSynthesis.resume();
-        }
-        window.speechSynthesis.cancel();
-      } catch (e) {}
+    teardownTts();
+    if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+      audioCtxRef.current.resume().catch(() => {});
     }
     setIsReading(false);
     setIsPreparing(false);
