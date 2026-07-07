@@ -129,7 +129,7 @@ export default function BreathworkOrb({ weatherState, currentTheme }: Breathwork
             animate={{ rotate: 360 }}
             transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
             className="absolute w-32 h-32 rounded-full border border-dashed border-accent/45 pointer-events-none"
-            style={{ originX: '50%', originY: '50%' }}
+            style={{ transformOrigin: 'center center' }}
           />
         )}
 

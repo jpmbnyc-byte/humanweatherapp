@@ -21,7 +21,15 @@ export const Route = createFileRoute('/api/tts')({
         if (text.length > 4000) return new Response('Text too long', { status: 400 });
 
         const key = process.env.LOVABLE_API_KEY;
-        if (!key) return new Response('LOVABLE_API_KEY not configured', { status: 500 });
+        if (!key) {
+          return new Response(JSON.stringify({
+            error: 'Studio voice is not configured for this environment.',
+            code: 'MISSING_API_KEY',
+          }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
 
         const upstream = await fetch('https://ai.gateway.lovable.dev/v1/audio/speech', {
           method: 'POST',

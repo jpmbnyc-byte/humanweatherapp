@@ -49,6 +49,61 @@ const TENDER_VOICES: TenderVoiceProfile[] = [
   },
 ];
 
+function formatSpeechError(raw?: string): string {
+  if (!raw) return 'Voice playback failed. Tap Listen to try again.';
+  const m = raw.toLowerCase();
+  if (m.includes('lovable_api_key') || m.includes('not configured')) {
+    return 'Studio voice is unavailable in this environment. Using your browser narrator instead.';
+  }
+  if (m.includes('notallowed') || m.includes('audio playback blocked') || m.includes('suspended')) {
+    return 'Your browser paused audio. Tap Listen once to allow sound, then try again.';
+  }
+  if (m.includes('failed to fetch') || m.includes('network')) {
+    return 'Could not reach the voice service. Check your connection and try again.';
+  }
+  if (m.includes('browser-speech-unavailable')) {
+    return 'This browser does not support spoken narration.';
+  }
+  return raw.length > 140 ? `${raw.slice(0, 140)}…` : raw;
+}
+
+function shouldFallbackToBrowserTts(message?: string): boolean {
+  if (!message) return true;
+  const m = message.toLowerCase();
+  return (
+    m.includes('lovable_api_key') ||
+    m.includes('not configured') ||
+    m.includes('failed to fetch') ||
+    m.includes('network') ||
+    m.includes('upstream') ||
+    m.includes('tts request failed') ||
+    m.includes('no audio received') ||
+    m.includes('503') ||
+    m.includes('500') ||
+    m.includes('502') ||
+    m.includes('504')
+  );
+}
+
+function pickBrowserVoice(profile: TenderVoiceProfile): SpeechSynthesisVoice | null {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return null;
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) return null;
+  const en = voices.filter(v => v.lang.startsWith('en'));
+  const pool = en.length ? en : voices;
+  const preferFemale = profile.id === 'joan' || profile.id === 'grace';
+  const scored = pool.map(v => {
+    const name = v.name.toLowerCase();
+    let score = 0;
+    if (preferFemale && /female|samantha|victoria|karen|moira|fiona|zira|susan|kate|emily|ava|allison|siri/.test(name)) score += 10;
+    if (!preferFemale && /male|daniel|alex|fred|david|mark|james|tom|aaron|nathan|matthew|fred/.test(name)) score += 10;
+    if (v.default) score += 1;
+    return { v, score };
+  });
+  scored.sort((a, b) => b.score - a.score);
+  return scored[0]?.v ?? pool[0];
+}
+
 interface TheTenderProps {
   currentTheme: 'day' | 'night';
 }
@@ -79,9 +134,30 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const ttsSourcesRef = useRef<AudioBufferSourceNode[]>([]);
   const ttsPlayheadRef = useRef<number>(0);
   const ttsSessionIdRef = useRef<number>(0);
+  const ttsModeRef = useRef<'ai' | 'browser' | null>(null);
+  const browserSessionRef = useRef<number>(0);
+  const apiUnavailableRef = useRef<boolean | null>(null);
 
   // Active word list cache for matching onboundary indices
   const [wordsList, setWordsList] = useState<string[]>([]);
+
+  // Preload browser speech voices + probe studio TTS availability
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    const load = () => window.speechSynthesis.getVoices();
+    load();
+    window.speechSynthesis.addEventListener('voiceschanged', load);
+
+    fetch('/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: 'ok', voice: 'alloy' }),
+    })
+      .then(res => { apiUnavailableRef.current = res.status === 503; })
+      .catch(() => { apiUnavailableRef.current = true; });
+
+    return () => window.speechSynthesis.removeEventListener('voiceschanged', load);
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -310,8 +386,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     return chunks;
   };
 
-  const teardownTts = () => {
-    ttsSessionIdRef.current += 1;
+  const stopAiTts = () => {
     if (ttsAbortRef.current) {
       try { ttsAbortRef.current.abort(); } catch {}
       ttsAbortRef.current = null;
@@ -326,6 +401,126 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
       ttsGainRef.current = null;
     }
     ttsPlayheadRef.current = 0;
+  };
+
+  const stopBrowserSpeech = () => {
+    browserSessionRef.current += 1;
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    if (ttsModeRef.current === 'browser') {
+      ttsModeRef.current = null;
+    }
+  };
+
+  const teardownTts = () => {
+    ttsSessionIdRef.current += 1;
+    stopAiTts();
+    stopBrowserSpeech();
+  };
+
+  const ensureAudioUnlocked = async (): Promise<AudioContext> => {
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    const ctx = audioCtxRef.current;
+    if (ctx.state === 'suspended') {
+      await ctx.resume();
+    }
+    if (ctx.state !== 'running') {
+      throw new Error('Audio playback blocked. Tap Listen to allow sound.');
+    }
+    return ctx;
+  };
+
+  const beginBrowserSpeech = (
+    text: string,
+    profile: TenderVoiceProfile,
+    session: number,
+  ) => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) {
+      throw new Error('browser-speech-unavailable');
+    }
+
+    window.speechSynthesis.cancel();
+    browserSessionRef.current = session;
+    ttsModeRef.current = 'browser';
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US';
+    const voice = pickBrowserVoice(profile);
+    if (voice) utterance.voice = voice;
+
+    const voiceSettings: Record<TenderVoiceId, { rate: number; pitch: number }> = {
+      joan: { rate: 0.88, pitch: 0.95 },
+      grace: { rate: 0.82, pitch: 1.05 },
+      peter: { rate: 0.78, pitch: 0.75 },
+      daniel: { rate: 0.85, pitch: 0.85 },
+    };
+    const settings = voiceSettings[profile.id];
+    utterance.rate = settings.rate;
+    utterance.pitch = settings.pitch;
+
+    utterance.onstart = () => {
+      if (browserSessionRef.current !== session) return;
+      setIsPreparing(false);
+      setIsReading(true);
+      setIsPaused(false);
+      setSpeechError(null);
+    };
+
+    utterance.onboundary = (ev) => {
+      if (browserSessionRef.current !== session) return;
+      const prefix = text.slice(0, ev.charIndex);
+      setCurrentWordIndex(prefix.trim().split(/\s+/).filter(Boolean).length);
+    };
+
+    utterance.onend = () => {
+      if (browserSessionRef.current !== session) return;
+      setIsReading(false);
+      setIsPreparing(false);
+      setIsPaused(false);
+      setCurrentWordIndex(-1);
+      ttsModeRef.current = null;
+    };
+
+    utterance.onerror = (ev) => {
+      if (browserSessionRef.current !== session) return;
+      ttsModeRef.current = null;
+      if (ev.error === 'interrupted' || ev.error === 'canceled') return;
+      setSpeechError(`${formatSpeechError(ev.error || 'browser-speech-failed')} Tap Listen to try again.`);
+      setIsReading(false);
+      setIsPreparing(false);
+    };
+
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const handleBrowserReading = (
+    textToUse?: string,
+    voiceOverride?: TenderVoiceId,
+  ) => {
+    const textSrc = (textToUse !== undefined ? textToUse : inputText).trim();
+    if (!textSrc) return;
+
+    stopAiTts();
+    stopBrowserSpeech();
+    setSpeechError(null);
+    setIsPreparing(true);
+    setIsReading(false);
+    setIsPaused(false);
+    setCurrentWordIndex(-1);
+    setWordsList(textSrc.split(/\s+/));
+
+    const profile = getVoiceProfile(voiceOverride || tenderVoice);
+    const session = ++ttsSessionIdRef.current;
+
+    try {
+      beginBrowserSpeech(textSrc, profile, session);
+    } catch (err: any) {
+      setSpeechError(`${formatSpeechError(err?.message)} Tap Listen to try again.`);
+      setIsPreparing(false);
+    }
   };
 
   const streamTtsChunk = async (
@@ -346,7 +541,15 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     });
     if (!res.ok || !res.body) {
       const msg = await res.text().catch(() => '');
-      throw new Error(msg || `TTS request failed (${res.status})`);
+      try {
+        const json = JSON.parse(msg);
+        throw new Error(json.error || json.code || msg || `TTS request failed (${res.status})`);
+      } catch (parseErr) {
+        if (parseErr instanceof Error && parseErr.message !== msg && !parseErr.message.startsWith('TTS request failed')) {
+          throw parseErr;
+        }
+        throw new Error(msg || `TTS request failed (${res.status})`);
+      }
     }
 
     const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
@@ -422,7 +625,8 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     const textSrc = (textToUse !== undefined ? textToUse : inputText).trim();
     if (!textSrc) return;
 
-    teardownTts();
+    stopAiTts();
+    stopBrowserSpeech();
     setSpeechError(null);
     setIsPreparing(true);
     setIsReading(false);
@@ -431,53 +635,66 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     setWordsList(textSrc.split(/\s+/));
 
     const profile = getVoiceProfile(voiceOverride || tenderVoice);
-
-    if (!audioCtxRef.current) {
-      try {
-        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-      } catch (e: any) {
-        setSpeechError(e?.message || 'audio-init-failed');
-        setIsPreparing(false);
-        return;
-      }
-    }
-    const ctx = audioCtxRef.current;
-    const ensureRunning = ctx.state === 'suspended' ? ctx.resume().catch(() => {}) : Promise.resolve();
-
-    const gain = ctx.createGain();
-    gain.gain.value = 1.0;
-    gain.connect(ctx.destination);
-    ttsGainRef.current = gain;
-    ttsPlayheadRef.current = 0;
-
-    const abort = new AbortController();
-    ttsAbortRef.current = abort;
     const session = ++ttsSessionIdRef.current;
 
     const run = async () => {
-      await ensureRunning;
+      let ctx: AudioContext;
+      try {
+        ctx = await ensureAudioUnlocked();
+      } catch (e: any) {
+        setSpeechError(formatSpeechError(e?.message || 'audio-init-failed'));
+        setIsPreparing(false);
+        return;
+      }
+
+      const gain = ctx.createGain();
+      gain.gain.value = 1.0;
+      gain.connect(ctx.destination);
+      ttsGainRef.current = gain;
+      ttsPlayheadRef.current = 0;
+
+      const abort = new AbortController();
+      ttsAbortRef.current = abort;
+
       try {
         const chunks = chunkForTTS(textSrc);
+        let gotAudio = false;
         for (const chunk of chunks) {
           if (ttsSessionIdRef.current !== session) return;
           await streamTtsChunk(ctx, gain, session, chunk, profile.ttsVoice, profile.instructions, abort, () => {
             if (ttsSessionIdRef.current !== session) return;
+            gotAudio = true;
             setIsPreparing(false);
             setIsReading(true);
+            ttsModeRef.current = 'ai';
           });
         }
+        if (!gotAudio) {
+          throw new Error('No audio received from voice service.');
+        }
         if (ttsSessionIdRef.current !== session) return;
-        // Wait for scheduled audio to finish
         const remaining = Math.max(0, ttsPlayheadRef.current - ctx.currentTime);
         setTimeout(() => {
           if (ttsSessionIdRef.current !== session) return;
           setIsReading(false);
           setIsPreparing(false);
           setIsPaused(false);
+          setCurrentWordIndex(-1);
+          ttsModeRef.current = null;
         }, remaining * 1000 + 200);
       } catch (err: any) {
         if (abort.signal.aborted || ttsSessionIdRef.current !== session) return;
-        setSpeechError(err?.message || 'tts-failed');
+        stopAiTts();
+
+        if (shouldFallbackToBrowserTts(err?.message)) {
+          apiUnavailableRef.current = true;
+          setSpeechError('Studio voice unavailable. Tap Listen again to use your browser narrator.');
+          setIsReading(false);
+          setIsPreparing(false);
+          return;
+        } else {
+          setSpeechError(formatSpeechError(err?.message));
+        }
         setIsReading(false);
         setIsPreparing(false);
       }
@@ -486,6 +703,18 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   };
 
   const handlePauseToggle = () => {
+    if (ttsModeRef.current === 'browser') {
+      if (typeof window === 'undefined' || !window.speechSynthesis) return;
+      if (isPaused) {
+        window.speechSynthesis.resume();
+        setIsPaused(false);
+      } else {
+        window.speechSynthesis.pause();
+        setIsPaused(true);
+      }
+      return;
+    }
+
     const ctx = audioCtxRef.current;
     if (!ctx || !isReading) return;
     if (isPaused) {
@@ -498,15 +727,30 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const handlePlayToggle = () => {
     if (isReading) {
       handlePauseToggle();
-    } else {
-      if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
-        audioCtxRef.current.resume().catch(() => {});
-      }
-      if (soundEnv !== 'silence') {
-        startSoundEnvironment(soundEnv);
+      return;
+    }
+
+    setSpeechError(null);
+
+    if (soundEnv !== 'silence') {
+      startSoundEnvironment(soundEnv);
+    }
+
+    if (apiUnavailableRef.current) {
+      handleBrowserReading(inputText);
+      void ensureAudioUnlocked().catch(() => {});
+      return;
+    }
+
+    void (async () => {
+      try {
+        await ensureAudioUnlocked();
+      } catch (e: any) {
+        setSpeechError(formatSpeechError(e?.message || 'audio-blocked'));
+        return;
       }
       handleStartReading(inputText);
-    }
+    })();
   };
 
   const stopReading = (stopAmbient = true) => {
@@ -532,7 +776,11 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     if (isReading) {
       stopReading(false);
       setTimeout(() => {
-        handleStartReading(inputText, voice);
+        if (apiUnavailableRef.current) {
+          handleBrowserReading(inputText, voice);
+        } else {
+          handleStartReading(inputText, voice);
+        }
       }, 150);
     }
   };
@@ -743,8 +991,8 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
 
             {/* Diagnostics Warnings */}
             {speechError && (
-              <div className="mt-4 p-2.5 bg-red-950/15 border border-red-500/10 rounded-lg text-[10px] font-mono text-red-300 leading-normal">
-                ⚠️ Voice familiarization note: Browser restricted speaking. Click the button below to allow speech audio.
+              <div className="mt-4 p-3 bg-red-950/15 border border-red-500/10 rounded-xl text-xs font-sans text-red-300/90 leading-relaxed">
+                {formatSpeechError(speechError)}
               </div>
             )}
 
