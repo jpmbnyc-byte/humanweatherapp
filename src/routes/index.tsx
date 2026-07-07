@@ -4,17 +4,17 @@ import App from "@/App";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Human Weather — Somatic Climate & Circadian Alignment" },
+      { title: "Human Weather — A guide to the wiring you already own" },
       {
         name: "description",
         content:
-          "A luxury-minimal somatic weather app mapping the climate inside your body — breathwork, frequency therapy, light, and solar-aware circadian protocols.",
+          "Three offices kept by the real sun. One Field Station always open. One Fascia quietly keeping the record.",
       },
       { property: "og:title", content: "Human Weather" },
       {
         property: "og:description",
         content:
-          "Map your inner climate. Breathwork, frequencies, light therapy, and solar-aware circadian rhythms.",
+          "A guide to the wiring you already own. Somatic field mapping, solar-timed offices, and offline voice.",
       },
     ],
   }),
