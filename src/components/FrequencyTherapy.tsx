@@ -154,9 +154,9 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
       {/* Section Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
-          <span className="font-mono text-[10px] tracking-widest uppercase opacity-50 block mb-1">Sound therapy</span>
+          <span className="hw-eyebrow block mb-1">Sound therapy</span>
           <h2 className="font-serif text-2xl text-accent font-medium">Frequency Therapy</h2>
-          <p className="font-serif text-xs italic opacity-85 mt-1">
+          <p className="hw-caption mt-1">
             Restorative sound waves synthesized in real time to gently clear mental static and support neural harmony.
           </p>
         </div>
@@ -181,7 +181,7 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
                 stopAudio();
                 setActiveTone(null);
               }}
-              className="ml-2 px-3 py-1 bg-red-500/15 text-red-400 border border-red-500/30 rounded-full font-mono text-[10px] uppercase tracking-wider flex items-center gap-1 hover:bg-red-500/25 transition-all cursor-pointer"
+              className="ml-2 px-3 py-1 bg-red-500/15 text-red-400 border border-red-500/30 rounded-full hw-badge flex items-center gap-1 hover:bg-red-500/25 transition-all cursor-pointer"
             >
               <Square className="w-2.5 h-2.5 fill-current" /> Stop
             </button>
@@ -193,7 +193,7 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
       <div className="flex items-start gap-2.5 p-3 rounded-lg bg-accent/5 border border-accent/10 mb-6 text-xs text-accent/90">
         <Headphones className="w-4 h-4 mt-0.5 shrink-0" />
         <p className="font-serif italic leading-relaxed">
-          <strong className="font-mono text-[10px] uppercase tracking-wider not-italic mr-1 text-accent">Note:</strong> 
+          <strong className="hw-badge not-italic mr-1 text-accent">Note:</strong> 
           Binaural frequencies (Delta, Theta, Alpha, Beta) require stereo headphones. The left and right channels output distinct, slightly separated frequencies, allowing your brain to naturally perceive the differential beat.
         </p>
       </div>
@@ -220,7 +220,7 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
             >
               <div>
                 <div className="flex justify-between items-start mb-2">
-                  <span className={`font-mono text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full border ${
+                  <span className={`hw-meta px-2 py-0.5 rounded-full border ${
                     tone.type === 'binaural' 
                       ? 'border-accent/30 bg-accent/5 text-accent' 
                       : 'bg-[#d4b05a]/30 bg-[#d4b05a]/5 text-[#e8cc6a]'
@@ -239,17 +239,17 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
                 <h3 className="font-serif text-lg font-medium text-accent leading-tight mb-1">
                   {tone.name}
                 </h3>
-                <h4 className="font-serif text-xs italic opacity-80 mb-2 leading-snug">
+                <h4 className="hw-caption mb-2 leading-snug">
                   {tone.subtitle}
                 </h4>
-                <p className="font-serif text-[11px] leading-relaxed opacity-60">
+                <p className="hw-body-muted">
                   {tone.description}
                 </p>
               </div>
 
               {/* Waveform Visualization Overlay (for active cards) */}
               <div className="mt-4 pt-4 border-t border-accent/10 flex items-center justify-between">
-                <span className="font-mono text-[9px] opacity-40 uppercase">
+                <span className="hw-meta opacity-40 uppercase">
                   {tone.hz} Hz
                 </span>
                 

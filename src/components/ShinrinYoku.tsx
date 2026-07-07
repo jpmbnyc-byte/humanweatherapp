@@ -87,7 +87,7 @@ export default function ShinrinYoku({ currentTheme }: ShinrinYokuProps) {
               <p className="font-serif text-2xl font-semibold text-accent tracking-wide italic leading-normal">
                 "the forest is working."
               </p>
-              <p className="font-mono text-[9px] uppercase tracking-widest text-white/50 mt-2">
+              <p className="hw-meta text-white/50 mt-2">
                 Prescription slot recorded
               </p>
             </div>
@@ -97,9 +97,9 @@ export default function ShinrinYoku({ currentTheme }: ShinrinYokuProps) {
 
       {/* Header */}
       <div className="mb-6">
-        <span className="font-mono text-[10px] tracking-widest uppercase opacity-50 block mb-1">Forest bathing</span>
+        <span className="hw-eyebrow block mb-1">Forest bathing</span>
         <h2 className="font-serif text-2xl text-accent font-medium">Shinrin-Yoku Forest Bathing</h2>
-        <p className="font-serif text-xs italic opacity-85 mt-1">
+        <p className="hw-caption mt-1">
           Gentle forest bathing rituals designed to slow your pace, ground your attention, and welcome the restorative energy of nature.
         </p>
       </div>
@@ -124,11 +124,11 @@ export default function ShinrinYoku({ currentTheme }: ShinrinYokuProps) {
               <div>
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex flex-col text-left">
-                    <span className="font-mono text-[8px] uppercase tracking-widest opacity-40">{protocol.number}</span>
+                    <span className="hw-meta opacity-40">{protocol.number}</span>
                     <span className="font-serif text-lg font-bold text-accent tracking-wide">{protocol.title}</span>
                   </div>
                   
-                  <span className={`font-mono text-[9px] uppercase tracking-widest px-2.5 py-1 rounded ${
+                  <span className={`hw-meta px-2.5 py-1 rounded ${
                     currentTheme === 'night'
                       ? 'bg-green-950/20 text-green-400 border border-green-500/10'
                       : 'bg-emerald-100/70 text-emerald-800 border border-emerald-300/60 font-semibold'
@@ -140,22 +140,22 @@ export default function ShinrinYoku({ currentTheme }: ShinrinYokuProps) {
                 {/* Statistics Box */}
                 <div className="flex items-center gap-2 mb-3 px-3 py-1.5 rounded bg-accent/5 border border-accent/5">
                   <Heart className="w-3.5 h-3.5 text-accent shrink-0 animate-pulse" />
-                  <span className="font-mono text-[10px] text-accent/90 font-medium tracking-tight">
+                  <span className="hw-badge text-accent/90 font-medium tracking-tight">
                     {protocol.stats}
                   </span>
                 </div>
 
-                <p className={`font-serif text-xs leading-relaxed mb-4 ${currentTheme === 'night' ? 'text-slate-300' : 'text-slate-700'}`}>
+                <p className={`hw-body mb-4 ${currentTheme === 'night' ? 'text-slate-300' : 'text-slate-700'}`}>
                   {protocol.description}
                 </p>
 
                 {/* Biomarker Citation */}
-                <div className={`p-3 rounded border text-[10px] font-mono leading-relaxed mb-5 ${
+                <div className={`p-3 rounded border hw-body font-mono mb-5 ${
                   currentTheme === 'night' 
                     ? 'border-white/5 bg-black/40 text-slate-400' 
                     : 'border-[#f3efe8] bg-[#f3efe8]/30 text-[#8a6f2e]'
                 }`}>
-                  <span className="text-accent font-bold block mb-0.5 uppercase tracking-wider text-[8px]">Measurable Biomarkers:</span>
+                  <span className="text-accent font-bold block mb-0.5 hw-stat-label">Measurable Biomarkers:</span>
                   {protocol.biomarkers}
                 </div>
               </div>
@@ -163,8 +163,8 @@ export default function ShinrinYoku({ currentTheme }: ShinrinYokuProps) {
               {/* Progress & Session Tracker Row */}
               <div className="border-t border-accent/10 pt-4 flex flex-col sm:flex-row justify-between items-center gap-3">
                 <div className="flex flex-col items-start">
-                  <span className="font-mono text-[8px] uppercase tracking-widest opacity-40">Session checklist</span>
-                  <span className="font-serif text-[11px] italic text-accent">
+                  <span className="hw-meta opacity-40">Session checklist</span>
+                  <span className="hw-body-muted text-accent">
                     {completedCount === 4 ? 'Protocol fully integrated' : `${completedCount} of 4 sessions logged`}
                   </span>
                 </div>
@@ -188,7 +188,7 @@ export default function ShinrinYoku({ currentTheme }: ShinrinYokuProps) {
                       {checked ? (
                         <Check className="w-4 h-4 stroke-[3]" />
                       ) : (
-                        <span className="font-mono text-[10px] font-medium">{index + 1}</span>
+                        <span className="hw-badge font-medium">{index + 1}</span>
                       )}
                     </motion.button>
                   ))}

@@ -163,9 +163,9 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
-          <span className="font-mono text-[10px] tracking-widest uppercase opacity-50 block mb-1">Contemplative music</span>
+          <span className="hw-eyebrow block mb-1">Contemplative music</span>
           <h2 className="font-serif text-2xl text-accent font-medium">Classical Music Immersion</h2>
-          <p className="font-serif text-xs italic opacity-85 mt-1">
+          <p className="hw-caption mt-1">
             Six timeless arrangements selected to gently soothe your nervous system, quiet the mind, and restore inner balance.
           </p>
         </div>
@@ -190,7 +190,7 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
                 stopAmbient();
                 setActivePiece(null);
               }}
-              className="ml-2 px-3 py-1 bg-red-500/15 text-red-400 border border-red-500/30 rounded-full font-mono text-[10px] uppercase tracking-wider flex items-center gap-1 hover:bg-red-500/25 transition-all cursor-pointer"
+              className="ml-2 px-3 py-1 bg-red-500/15 text-red-400 border border-red-500/30 rounded-full hw-badge flex items-center gap-1 hover:bg-red-500/25 transition-all cursor-pointer"
             >
               Stop
             </button>
@@ -220,20 +220,20 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
               <div>
                 <div className="flex justify-between items-start mb-2">
                   <div className="flex flex-col text-left">
-                    <span className="font-mono text-[8px] uppercase tracking-widest opacity-40">Composer</span>
+                    <span className="hw-meta opacity-40">Composer</span>
                     <span className={`font-serif text-sm font-semibold tracking-wide ${currentTheme === 'night' ? 'text-white' : 'text-slate-800'}`}>{piece.composer}</span>
                   </div>
-                  <span className="font-mono text-[9px] uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-accent/5 text-accent/80 border border-accent/10">
+                  <span className="hw-meta px-2.5 py-0.5 rounded-full bg-accent/5 text-accent/80 border border-accent/10">
                     {piece.weatherState}
                   </span>
                 </div>
 
                 <h3 className="font-serif text-xl font-medium text-accent mb-1">{piece.title}</h3>
-                <p className="font-serif text-xs italic opacity-85 mb-3 leading-relaxed">"{piece.description}"</p>
+                <p className="hw-caption mb-3">"{piece.description}"</p>
                 
                 {/* Scientific Reason */}
-                <div className="p-3 rounded bg-black/40 border border-accent/5 text-[11px] leading-relaxed text-accent/75 font-serif italic mb-4">
-                  <span className="font-mono text-[9px] uppercase tracking-widest not-italic font-semibold text-accent block mb-1">
+                <div className="p-3 rounded bg-black/40 border border-accent/5 hw-body-muted text-accent/75 italic mb-4">
+                  <span className="hw-meta not-italic font-semibold text-accent block mb-1">
                     Neurological Rationale:
                   </span>
                   {piece.explanation}
@@ -272,7 +272,7 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
                   href={piece.youtubeUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-[11px] font-mono text-accent/60 hover:text-accent transition-colors"
+                  className="flex items-center gap-1 hw-body font-mono text-accent/60 hover:text-accent transition-colors"
                 >
                   FULL RECORDING <ExternalLink className="w-3 h-3" />
                 </a>

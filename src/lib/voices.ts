@@ -1,4 +1,4 @@
-/** Maps Tender personas to Kokoro voice IDs (OpenAI-compatible API). */
+/** Maps Tender personas to Kokoro voice IDs. */
 export type KokoroVoiceId = 'af_heart' | 'af_bella' | 'am_michael' | 'bm_daniel';
 
 export type TenderVoiceId = 'joan' | 'grace' | 'peter' | 'daniel';
@@ -8,8 +8,6 @@ export interface TenderVoiceProfile {
   name: string;
   descriptor: string;
   kokoroVoice: KokoroVoiceId;
-  /** OpenAI TTS fallback when Kokoro API is unavailable */
-  openAiVoice: 'shimmer' | 'nova' | 'onyx' | 'echo';
   speed: number;
 }
 
@@ -19,7 +17,6 @@ export const TENDER_VOICES: TenderVoiceProfile[] = [
     name: 'Joan',
     descriptor: 'Warm · grounded',
     kokoroVoice: 'af_heart',
-    openAiVoice: 'shimmer',
     speed: 0.92,
   },
   {
@@ -27,7 +24,6 @@ export const TENDER_VOICES: TenderVoiceProfile[] = [
     name: 'Grace',
     descriptor: 'Gentle · airy',
     kokoroVoice: 'af_bella',
-    openAiVoice: 'nova',
     speed: 0.88,
   },
   {
@@ -35,7 +31,6 @@ export const TENDER_VOICES: TenderVoiceProfile[] = [
     name: 'Peter',
     descriptor: 'Deep · anchored',
     kokoroVoice: 'am_michael',
-    openAiVoice: 'onyx',
     speed: 0.85,
   },
   {
@@ -43,7 +38,6 @@ export const TENDER_VOICES: TenderVoiceProfile[] = [
     name: 'Daniel',
     descriptor: 'Resonant · measured',
     kokoroVoice: 'bm_daniel',
-    openAiVoice: 'echo',
     speed: 0.9,
   },
 ];
@@ -52,8 +46,8 @@ export function getVoiceProfile(id: TenderVoiceId): TenderVoiceProfile {
   return TENDER_VOICES.find(v => v.id === id) ?? TENDER_VOICES[0];
 }
 
-/** Split long prose at sentence boundaries for API limits. */
-export function chunkText(text: string, maxChars = 900): string[] {
+/** Split long prose at sentence boundaries for Kokoro generation. */
+export function chunkText(text: string, maxChars = 450): string[] {
   const sentences = text.match(/[^.!?\n]+[.!?]?[\n]?|\n+/g) ?? [text];
   const chunks: string[] = [];
   let current = '';
@@ -72,14 +66,4 @@ export function chunkText(text: string, maxChars = 900): string[] {
   }
   flush();
   return chunks.length ? chunks : [text.trim()];
-}
-
-export type TtsEngine = 'kokoro' | 'studio' | 'browser' | 'unavailable';
-
-export interface TtsApiResult {
-  ok: boolean;
-  engine?: TtsEngine;
-  blob?: Blob;
-  error?: string;
-  fallback?: 'browser';
 }

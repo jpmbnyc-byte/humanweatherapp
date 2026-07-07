@@ -236,9 +236,9 @@ export default function SolarRay({ currentTheme }: SolarRayProps) {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
-          <span className="font-mono text-[10px] tracking-widest uppercase opacity-50 block mb-1">Circadian sunlight</span>
+          <span className="hw-eyebrow block mb-1">Circadian sunlight</span>
           <h2 className="font-serif text-2xl text-accent font-medium">Solar Ray Therapy</h2>
-          <p className="font-serif text-xs italic opacity-85 mt-1">
+          <p className="hw-caption mt-1">
             Align with the sun's natural cycles. Track solar angles, UV light ranges, and healing windows computed for your local time.
           </p>
         </div>
@@ -249,7 +249,7 @@ export default function SolarRay({ currentTheme }: SolarRayProps) {
             <MapPin className="w-3.5 h-3.5" />
             <span className="font-serif italic font-medium">{city}</span>
           </div>
-          <span className="font-mono text-[9px] text-white/40 mt-1">
+          <span className="hw-meta text-white/40 mt-1">
             {coords.lat.toFixed(4)}°N · {coords.lon.toFixed(4)}°E
           </span>
         </div>
@@ -376,13 +376,13 @@ export default function SolarRay({ currentTheme }: SolarRayProps) {
               <span className={`font-mono text-2xl font-bold tracking-tighter ${currentTheme === 'night' ? 'text-white' : 'text-slate-800'}`}>
                 {solarData.altitude.toFixed(1)}°
               </span>
-              <span className="font-mono text-[10px] uppercase tracking-widest text-accent font-bold">
+              <span className="hw-footnote text-accent font-bold">
                 Altitude
               </span>
             </div>
           </div>
 
-          <span className="font-mono text-[10px] opacity-50 uppercase tracking-wider">ASTRONOMICAL ALIGNED</span>
+          <span className="hw-footnote">ASTRONOMICAL ALIGNED</span>
         </div>
 
         {/* Dashboard Column 2: Exact Sun Markers & UV-B Window */}
@@ -423,7 +423,7 @@ export default function SolarRay({ currentTheme }: SolarRayProps) {
             </div>
           </div>
 
-          <span className="font-mono text-[10px] opacity-50 uppercase tracking-wider">UPDATED EVERY MINUTE</span>
+          <span className="hw-footnote">UPDATED EVERY MINUTE</span>
         </div>
 
         {/* Dashboard Column 3: Now Active Ray */}
@@ -445,14 +445,14 @@ export default function SolarRay({ currentTheme }: SolarRayProps) {
             <h3 className={`font-serif text-sm sm:text-base font-semibold mb-1 ${currentTheme === 'night' ? 'text-white' : 'text-slate-800'}`}>
               {solarData.activeRay}
             </h3>
-            <p className="font-serif text-[11px] leading-relaxed text-accent/75 italic px-2">
+            <p className="hw-body-muted text-accent/75 italic px-2">
               {solarData.isUvbActive 
                 ? 'Synthesizing vitamin D. Protect skin if exposure exceeds 20 minutes.'
                 : 'Safe light exposure window. Highly recommended for ocular circadian resetting.'}
             </p>
           </div>
 
-          <span className="font-mono text-[10px] opacity-50 uppercase tracking-wider">ATMOSPHERIC CONSTANT</span>
+          <span className="hw-footnote">ATMOSPHERIC CONSTANT</span>
         </div>
 
       </div>
@@ -487,18 +487,18 @@ export default function SolarRay({ currentTheme }: SolarRayProps) {
                     {/* Status badge */}
                     <div className="flex items-center gap-1">
                       {status === 'NOW' && (
-                        <span className="flex items-center gap-1 font-mono text-[10px] font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-full border border-accent/30">
+                        <span className="flex items-center gap-1 hw-badge font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-full border border-accent/30">
                           <span className="h-1.5 w-1.5 rounded-full bg-accent animate-ping"></span>
                           ● NOW
                         </span>
                       )}
                       {status === 'DONE' && (
-                        <span className={`flex items-center gap-1 font-mono text-[10px] ${currentTheme === 'night' ? 'text-white/40' : 'text-slate-400'}`}>
+                        <span className={`flex items-center gap-1 hw-badge ${currentTheme === 'night' ? 'text-white/40' : 'text-slate-400'}`}>
                           ✓ DONE
                         </span>
                       )}
                       {status === 'SOON' && (
-                        <span className={`flex items-center gap-1 font-mono text-[10px] ${currentTheme === 'night' ? 'text-white/60' : 'text-slate-500'}`}>
+                        <span className={`flex items-center gap-1 hw-badge ${currentTheme === 'night' ? 'text-white/60' : 'text-slate-500'}`}>
                           ○ SOON
                         </span>
                       )}

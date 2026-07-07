@@ -179,3 +179,100 @@ body {
 .animate-spin-slow {
   animation: spin-slow 40s linear infinite;
 }
+
+@layer components {
+  /* Human Weather — uniform editorial type scale */
+  .hw-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.5;
+  }
+
+  .hw-meta {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.6;
+  }
+
+  .hw-footnote {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0.5;
+  }
+
+  .hw-caption {
+    font-family: var(--font-serif);
+    font-size: 0.875rem;
+    font-style: italic;
+    line-height: 1.65;
+    opacity: 0.85;
+  }
+
+  .hw-body {
+    font-family: var(--font-serif);
+    font-size: 0.875rem;
+    line-height: 1.65;
+  }
+
+  @media (min-width: 640px) {
+    .hw-body {
+      font-size: 1rem;
+    }
+  }
+
+  .hw-body-muted {
+    font-family: var(--font-serif);
+    font-size: 0.875rem;
+    line-height: 1.65;
+    opacity: 0.7;
+  }
+
+  .hw-display {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+  }
+
+  @media (min-width: 768px) {
+    .hw-display {
+      font-size: 1.875rem;
+    }
+  }
+
+  .hw-stat-value {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-accent);
+  }
+
+  .hw-stat-label {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0.5;
+  }
+
+  .hw-badge {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .hw-btn-label {
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+}

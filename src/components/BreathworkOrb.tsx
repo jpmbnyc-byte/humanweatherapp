@@ -99,7 +99,7 @@ export default function BreathworkOrb({ weatherState, currentTheme }: Breathwork
          id="breathwork-guide-orb-container">
       
       {/* Title */}
-      <span className="font-mono text-xs tracking-widest uppercase opacity-50 mb-1">Breath guide</span>
+      <span className="hw-eyebrow mb-1">Breath guide</span>
       <h3 className={`font-serif text-xl md:text-2xl italic mb-8 ${currentTheme === 'night' ? 'text-accent' : 'text-[#2c2824]'}`}>{weatherState.title} Pacing</h3>
 
       {/* Breathing Canvas Stage */}
@@ -149,7 +149,7 @@ export default function BreathworkOrb({ weatherState, currentTheme }: Breathwork
           <span className="font-serif text-2xl font-bold tracking-tight">
             {secondsLeft}
           </span>
-          <span className="font-mono text-[8px] uppercase tracking-widest font-semibold opacity-70">
+          <span className="hw-meta font-semibold opacity-70">
             sec
           </span>
         </motion.div>
@@ -169,7 +169,7 @@ export default function BreathworkOrb({ weatherState, currentTheme }: Breathwork
             <span className="font-serif text-2xl font-medium tracking-wide">
               {phase === 'Hold Out' ? 'Hold' : phase}
             </span>
-            <span className="font-mono text-[9px] uppercase tracking-widest opacity-60">
+            <span className="hw-meta">
               {phase === 'Inhale' && `Expand Chest (${inhale}s)`}
               {phase === 'Hold' && `Suspend Breath (${holdIn}s)`}
               {phase === 'Exhale' && `Contraction / Release (${exhale}s)`}
@@ -207,20 +207,20 @@ export default function BreathworkOrb({ weatherState, currentTheme }: Breathwork
         {/* Respiration Pattern Info Bar */}
         <div className="w-full border-t border-accent/10 mt-6 pt-4 flex justify-around text-center">
           <div>
-            <div className="font-mono text-xs text-accent font-medium">{inhale}s</div>
-            <div className="font-mono text-[8px] uppercase tracking-wider opacity-50">Inhale</div>
+            <div className="hw-stat-value">{inhale}s</div>
+            <div className="hw-stat-label">Inhale</div>
           </div>
           <div>
-            <div className="font-mono text-xs text-accent font-medium">{exhale}s</div>
-            <div className="font-mono text-[8px] uppercase tracking-wider opacity-50">Exhale</div>
+            <div className="hw-stat-value">{exhale}s</div>
+            <div className="hw-stat-label">Exhale</div>
           </div>
           <div>
-            <div className="font-mono text-xs text-accent font-medium">{weatherState.respiratoryRatio}</div>
-            <div className="font-mono text-[8px] uppercase tracking-wider opacity-50">Ratio</div>
+            <div className="hw-stat-value">{weatherState.respiratoryRatio}</div>
+            <div className="hw-stat-label">Ratio</div>
           </div>
           <div>
-            <div className="font-mono text-xs text-accent font-medium">{weatherState.hrv}%</div>
-            <div className="font-mono text-[8px] uppercase tracking-wider opacity-50">Coherence</div>
+            <div className="hw-stat-value">{weatherState.hrv}%</div>
+            <div className="hw-stat-label">Coherence</div>
           </div>
         </div>
       </div>

@@ -6,53 +6,25 @@ import { getThemeStyles } from '../lib/theme';
 import {
   TENDER_VOICES,
   getVoiceProfile,
+  chunkText,
   type TenderVoiceId,
-  type TtsEngine,
 } from '../lib/voices';
 
 type NarrationPhase = 'idle' | 'preparing' | 'reading' | 'paused' | 'error';
 
-function pickBrowserVoice(preferFemale: boolean): SpeechSynthesisVoice | null {
-  if (typeof window === 'undefined' || !window.speechSynthesis) return null;
-  const voices = window.speechSynthesis.getVoices();
-  if (!voices.length) return null;
-  const en = voices.filter(v => v.lang.startsWith('en'));
-  const pool = en.length ? en : voices;
-  const scored = pool.map(v => {
-    const name = v.name.toLowerCase();
-    let score = 0;
-    if (preferFemale && /female|samantha|victoria|karen|moira|fiona|zira|susan|kate|emily|ava|allison|siri|aria/.test(name)) score += 10;
-    if (!preferFemale && /male|daniel|alex|fred|david|mark|james|tom|aaron|nathan|matthew|gordon/.test(name)) score += 10;
-    if (v.default) score += 1;
-    return { v, score };
-  });
-  scored.sort((a, b) => b.score - a.score);
-  return scored[0]?.v ?? pool[0];
-}
-
 function getStatusMessage(
   phase: NarrationPhase,
   voiceName: string,
-  engine: TtsEngine | null,
   progress: string | null,
   error: string | null,
 ): string {
   if (phase === 'error' && error) return error;
   if (phase === 'preparing') return progress ?? `Preparing ${voiceName}'s voice…`;
   if (phase === 'reading') {
-    if (engine === 'browser') {
-      return `${voiceName} is reading with your device's built-in voice.`;
-    }
-    if (engine === 'studio') {
-      return `${voiceName} is reading with a human studio voice. Words highlight as they're spoken.`;
-    }
-    if (engine === 'kokoro') {
-      return `${voiceName} is reading with a human Kokoro voice. Words highlight as they're spoken.`;
-    }
-    return `${voiceName} is reading aloud. Words highlight as they're spoken.`;
+    return `${voiceName} is reading with a human Kokoro voice. Words highlight as they're spoken.`;
   }
   if (phase === 'paused') return "Paused. Tap Resume when you're ready to continue.";
-  return 'Tap Listen for human voice narration — generated on the server, nothing downloads to your device.';
+  return 'Tap Listen for human voice narration. Voices load once on first use, then stay ready.';
 }
 
 interface TheTenderProps {
@@ -69,17 +41,15 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const [ambientVolume, setAmbientVolume] = useState(0.4);
   const [isEditMode, setIsEditMode] = useState(false);
   const [progressMessage, setProgressMessage] = useState<string | null>(null);
-  const [activeEngine, setActiveEngine] = useState<TtsEngine | null>(null);
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const noiseSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const envGainNodeRef = useRef<GainNode | null>(null);
   const cricketTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const narrationRef = useRef<HTMLAudioElement | null>(null);
-  const blobUrlRef = useRef<string | null>(null);
+  const blobUrlsRef = useRef<string[]>([]);
   const sessionRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
-  const browserSessionRef = useRef(0);
 
   const isReading = phase === 'reading';
   const isPaused = phase === 'paused';
@@ -91,14 +61,6 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
       stopReading(true);
       if (audioCtxRef.current) audioCtxRef.current.close().catch(() => {});
     };
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return;
-    const load = () => window.speechSynthesis.getVoices();
-    load();
-    window.speechSynthesis.addEventListener('voiceschanged', load);
-    return () => window.speechSynthesis.removeEventListener('voiceschanged', load);
   }, []);
 
   useEffect(() => {
@@ -126,11 +88,9 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     return ambientVolume * 0.5;
   };
 
-  const revokeBlobUrl = () => {
-    if (blobUrlRef.current) {
-      URL.revokeObjectURL(blobUrlRef.current);
-      blobUrlRef.current = null;
-    }
+  const revokeBlobUrls = () => {
+    for (const url of blobUrlsRef.current) URL.revokeObjectURL(url);
+    blobUrlsRef.current = [];
   };
 
   const stopNarration = () => {
@@ -144,7 +104,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
       audio.src = '';
       narrationRef.current = null;
     }
-    revokeBlobUrl();
+    revokeBlobUrls();
     setCurrentWordIndex(-1);
   };
 
@@ -203,80 +163,56 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     }
   };
 
-  const stopBrowserSpeech = () => {
-    browserSessionRef.current += 1;
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-    }
-  };
-
   const stopReading = (stopAmbient = true) => {
     abortRef.current?.abort();
     abortRef.current = null;
-    stopBrowserSpeech();
     stopNarration();
     setPhase('idle');
     setSpeechError(null);
     setProgressMessage(null);
-    setActiveEngine(null);
     if (stopAmbient) stopSoundEnvironment();
   };
 
-  const playBrowserNarration = (textSrc: string, voiceId: TenderVoiceId) => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) {
-      setSpeechError('This browser does not support spoken narration.');
-      setPhase('error');
-      return;
-    }
+  const playAudioUrl = (
+    url: string,
+    chunkWords: string[],
+    wordOffset: number,
+    session: number,
+  ): Promise<void> =>
+    new Promise((resolve, reject) => {
+      if (sessionRef.current !== session) {
+        resolve();
+        return;
+      }
 
-    const profile = getVoiceProfile(voiceId);
-    const session = ++browserSessionRef.current;
-    stopBrowserSpeech();
+      const audio = new Audio(url);
+      narrationRef.current = audio;
 
-    setActiveEngine('browser');
-    setPhase('preparing');
-    setProgressMessage(`Using your device's narrator for ${profile.name}…`);
+      audio.ontimeupdate = () => {
+        if (sessionRef.current !== session || !audio.duration) return;
+        const ratio = audio.currentTime / audio.duration;
+        const localIdx = Math.min(Math.floor(ratio * chunkWords.length), chunkWords.length - 1);
+        setCurrentWordIndex(wordOffset + localIdx);
+      };
 
-    const utterance = new SpeechSynthesisUtterance(textSrc);
-    utterance.lang = 'en-US';
-    utterance.rate = profile.id === 'peter' || profile.id === 'daniel' ? 0.85 : 0.9;
-    utterance.pitch = profile.id === 'grace' ? 1.05 : profile.id === 'peter' ? 0.78 : 0.95;
-    const voice = pickBrowserVoice(profile.id === 'joan' || profile.id === 'grace');
-    if (voice) utterance.voice = voice;
+      audio.onended = () => {
+        if (sessionRef.current !== session) return;
+        resolve();
+      };
 
-    utterance.onstart = () => {
-      if (browserSessionRef.current !== session) return;
-      setProgressMessage(null);
-      setPhase('reading');
-    };
+      audio.onerror = () => {
+        if (sessionRef.current !== session) return;
+        reject(new Error('Playback failed'));
+      };
 
-    utterance.onboundary = (ev) => {
-      if (browserSessionRef.current !== session) return;
-      const prefix = textSrc.slice(0, ev.charIndex);
-      setCurrentWordIndex(prefix.trim().split(/\s+/).filter(Boolean).length);
-    };
-
-    utterance.onend = () => {
-      if (browserSessionRef.current !== session) return;
-      setPhase('idle');
-      setCurrentWordIndex(-1);
-      setActiveEngine(null);
-    };
-
-    utterance.onerror = (ev) => {
-      if (browserSessionRef.current !== session) return;
-      if (ev.error === 'interrupted' || ev.error === 'canceled') return;
-      setSpeechError('Device voice failed. Tap Listen to try again.');
-      setPhase('error');
-    };
-
-    window.speechSynthesis.speak(utterance);
-  };
+      audio.play().catch(reject);
+    });
 
   const playNarration = async (textSrc: string, voiceId: TenderVoiceId) => {
     const session = ++sessionRef.current;
     const profile = getVoiceProfile(voiceId);
-    const words = textSrc.split(/\s+/).filter(Boolean);
+    const allWords = textSrc.split(/\s+/).filter(Boolean);
+    const chunks = chunkText(textSrc);
 
     abortRef.current?.abort();
     const abort = new AbortController();
@@ -284,84 +220,73 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
 
     setSpeechError(null);
     setPhase('preparing');
-    setProgressMessage(`Connecting to voice server for ${profile.name}…`);
+    setProgressMessage(`Loading human voice for ${profile.name}…`);
 
-    const { fetchNarrationAudio } = await import('../lib/voices-client');
+    try {
+      const { generateKokoroSpeech } = await import('../lib/kokoro');
 
-    const result = await fetchNarrationAudio(
-      textSrc,
-      profile,
-      msg => {
-        if (sessionRef.current === session) {
-          startTransition(() => setProgressMessage(msg));
+      const blobs: Blob[] = [];
+      for (let i = 0; i < chunks.length; i++) {
+        if (sessionRef.current !== session || abort.signal.aborted) return;
+
+        if (chunks.length > 1) {
+          startTransition(() =>
+            setProgressMessage(`Generating part ${i + 1} of ${chunks.length}…`),
+          );
         }
-      },
-      abort.signal,
-    );
 
-    if (sessionRef.current !== session || abort.signal.aborted) return;
-
-    if (!result.ok || !result.blob) {
-      if (result.fallback === 'browser') {
-        playBrowserNarration(textSrc, voiceId);
-        return;
+        const blob = await generateKokoroSpeech(
+          chunks[i],
+          profile.kokoroVoice,
+          profile.speed,
+          progress => {
+            if (sessionRef.current === session) {
+              startTransition(() => setProgressMessage(progress.status));
+            }
+          },
+          abort.signal,
+        );
+        blobs.push(blob);
       }
-      setSpeechError(result.error ?? 'Could not generate voice. Please try again.');
-      setPhase('error');
+
+      if (sessionRef.current !== session || abort.signal.aborted) return;
+
+      revokeBlobUrls();
+      const urls = blobs.map(blob => {
+        const url = URL.createObjectURL(blob);
+        blobUrlsRef.current.push(url);
+        return url;
+      });
+
       setProgressMessage(null);
-      return;
-    }
+      setPhase('reading');
 
-    setActiveEngine(result.engine ?? 'studio');
-    revokeBlobUrl();
-    const url = URL.createObjectURL(result.blob);
-    blobUrlRef.current = url;
+      let wordOffset = 0;
+      for (let i = 0; i < urls.length; i++) {
+        if (sessionRef.current !== session || abort.signal.aborted) return;
+        const chunkWords = chunks[i].split(/\s+/).filter(Boolean);
+        await playAudioUrl(urls[i], chunkWords, wordOffset, session);
+        wordOffset += chunkWords.length;
+      }
 
-    const audio = new Audio(url);
-    narrationRef.current = audio;
-
-    audio.ontimeupdate = () => {
-      if (sessionRef.current !== session || !audio.duration) return;
-      const ratio = audio.currentTime / audio.duration;
-      setCurrentWordIndex(Math.min(Math.floor(ratio * words.length), words.length - 1));
-    };
-
-    audio.onended = () => {
       if (sessionRef.current !== session) return;
       setPhase('idle');
-      setProgressMessage(null);
       setCurrentWordIndex(-1);
-    };
+      setProgressMessage(null);
+    } catch (err) {
+      if (sessionRef.current !== session || abort.signal.aborted) return;
+      if (err instanceof DOMException && err.name === 'AbortError') return;
 
-    audio.onerror = () => {
-      if (sessionRef.current !== session) return;
-      setSpeechError('Playback failed. Tap Listen to try again.');
+      console.error('Kokoro narration failed:', err);
+      setSpeechError(
+        'Human voice could not load. Check your connection for the first use, then try Listen again.',
+      );
       setPhase('error');
-    };
-
-    setProgressMessage(null);
-    setPhase('reading');
-    try {
-      await audio.play();
-    } catch {
-      setSpeechError('Your browser blocked audio. Tap Listen once to allow sound.');
-      setPhase('error');
+      setProgressMessage(null);
     }
   };
 
   const handlePlayToggle = () => {
-    if (activeEngine === 'browser') {
-      if (typeof window === 'undefined' || !window.speechSynthesis) return;
-      if (isPaused) {
-        window.speechSynthesis.resume();
-        setPhase('reading');
-      } else if (isReading) {
-        window.speechSynthesis.pause();
-        setPhase('paused');
-      }
-      return;
-    }
-
     const audio = narrationRef.current;
     if (isReading || isPaused) {
       if (!audio) return;
@@ -401,7 +326,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const renderContemplativeText = () => {
     let wordCounter = 0;
     return inputText.split('\n\n').map((paragraph, pIdx) => (
-      <p key={pIdx} className="mb-4 font-serif text-base sm:text-lg leading-relaxed tracking-wide text-left">
+      <p key={pIdx} className="mb-4 hw-body text-left">
         {paragraph.split(/(\s+)/).map((part, index) => {
           const isWord = /\S/.test(part);
           const currentIdx = wordCounter;
@@ -431,7 +356,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const isNight = currentTheme === 'night';
   const theme = getThemeStyles(currentTheme);
   const profile = getVoiceProfile(tenderVoice);
-  const statusMessage = getStatusMessage(phase, profile.name, activeEngine, progressMessage, speechError);
+  const statusMessage = getStatusMessage(phase, profile.name, progressMessage, speechError);
 
   const styles = {
     cardBg: theme.cardBg,
@@ -456,16 +381,16 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
 
       <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between border-b pb-4 mb-5 border-accent/10">
         <div className="text-left">
-          <span className="font-mono text-xs tracking-widest uppercase opacity-50 block">Guided narration</span>
-          <h2 className={`font-serif text-2xl md:text-3xl font-normal tracking-wide mt-1 ${styles.titleText}`}>The Tender</h2>
-          <p className={`font-sans text-sm md:text-base mt-1 ${styles.mutedText}`}>
-            Human studio voices — generated on the server when you tap Listen
+          <span className="hw-eyebrow block">Guided narration</span>
+          <h2 className={`hw-display mt-1 ${styles.titleText}`}>The Tender</h2>
+          <p className={`font-sans text-sm mt-1 ${styles.mutedText}`}>
+            Four human Kokoro voices — loaded on demand, never generic studio speech
           </p>
         </div>
         <button
           id="toggle-edit-mode-btn"
           onClick={() => { stopReading(true); setIsEditMode(!isEditMode); }}
-          className={`mt-3 sm:mt-0 px-4 py-2.5 rounded-full border font-sans text-xs uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-all ${
+          className={`mt-3 sm:mt-0 px-4 py-2.5 rounded-full border hw-btn-label flex items-center gap-1.5 cursor-pointer transition-all ${
             isEditMode ? styles.badgeActive : styles.badgeInactive
           }`}
         >
@@ -486,19 +411,17 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
       >
         <Info className={`w-4 h-4 mt-1 shrink-0 ${phase === 'error' ? 'text-red-400' : styles.accentText}`} />
         <div>
-          <p className={`font-sans text-sm md:text-base leading-relaxed ${phase === 'error' ? 'text-red-300' : theme.text}`}>
+          <p className={`font-sans text-sm leading-relaxed ${phase === 'error' ? 'text-red-300' : theme.text}`}>
             {statusMessage}
           </p>
-          {activeEngine && phase === 'reading' && (
-            <p className="font-mono text-xs uppercase tracking-widest opacity-50 mt-1.5">
-              Engine: {activeEngine === 'kokoro' ? 'Kokoro (human)' : 'Studio voice'}
-            </p>
+          {phase === 'reading' && (
+            <p className="hw-footnote mt-1.5">Engine: Kokoro (human)</p>
           )}
         </div>
       </div>
 
       <div className="relative z-10 mb-5">
-        <span className="font-mono text-xs uppercase tracking-widest block text-left mb-2 opacity-50">Presets</span>
+        <span className="hw-eyebrow block text-left mb-2">Presets</span>
         <div className="flex flex-wrap gap-2">
           {PRESETS.map(preset => {
             const isSelected = !isEditMode && inputText === preset.text;
@@ -512,7 +435,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                 }`}
               >
                 <div className="font-serif font-semibold text-base">{preset.title}</div>
-                <div className="text-xs opacity-60 font-mono mt-0.5 uppercase tracking-tight">{preset.author}</div>
+                <div className="hw-meta mt-0.5">{preset.author}</div>
               </button>
             );
           })}
@@ -534,7 +457,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                 style={{ borderColor: isNight ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
                 <div className="flex items-center gap-2">
                   <Headphones className={`w-4 h-4 ${styles.accentText}`} />
-                  <span className={`font-mono text-xs uppercase tracking-widest ${styles.mutedText}`}>
+                  <span className={`hw-eyebrow ${styles.mutedText}`}>
                     {isEditMode ? 'Text composer' : 'Reading sanctuary'}
                   </span>
                 </div>
@@ -553,7 +476,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                   <textarea
                     id="tender-custom-textarea"
                     rows={8}
-                    className={`w-full p-3 rounded-2xl border text-base font-serif leading-relaxed focus:outline-none focus:border-stone-400 ${
+                    className={`w-full p-3 rounded-2xl border hw-body focus:outline-none focus:border-stone-400 ${
                       isNight ? 'bg-black/60 border-white/10 text-white placeholder-white/25' : 'bg-white border-stone-300 text-[#2c2824] placeholder-stone-400'
                     }`}
                     placeholder="Write or paste your reflection here…"
@@ -563,7 +486,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                 ) : inputText.trim() ? (
                   renderContemplativeText()
                 ) : (
-                  <p className={`font-serif text-base italic ${styles.mutedText}`}>
+                  <p className={`hw-caption ${styles.mutedText}`}>
                     Select a preset or edit your own prose.
                   </p>
                 )}
@@ -583,7 +506,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                     isPreparing ? 'bg-[#e8cc6a]' : isReading ? 'bg-emerald-400' : isPaused ? 'bg-[#e8cc6a]' : 'bg-stone-400'
                   }`} />
                 </span>
-                <span className="font-mono text-xs uppercase tracking-widest opacity-70">
+                <span className="hw-meta opacity-70">
                   {isPreparing ? 'Generating…' : isReading ? 'Speaking' : isPaused ? 'Paused' : 'Ready'}
                 </span>
               </div>
@@ -593,7 +516,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                   id="tender-play-toggle-btn"
                   disabled={isPreparing || isEditMode || !inputText.trim()}
                   onClick={handlePlayToggle}
-                  className={`px-5 py-2.5 rounded-full font-sans text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
+                  className={`px-5 py-2.5 rounded-full hw-btn-label flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
                     isReading
                       ? isNight
                         ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
@@ -610,7 +533,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                   id="tender-stop-btn"
                   disabled={phase === 'idle'}
                   onClick={() => stopReading(true)}
-                  className={`px-4 py-2.5 border disabled:opacity-20 disabled:cursor-not-allowed rounded-full font-sans text-xs font-semibold uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-all ${
+                  className={`px-4 py-2.5 border disabled:opacity-20 disabled:cursor-not-allowed rounded-full hw-btn-label flex items-center gap-1 cursor-pointer transition-all ${
                     isNight ? 'bg-red-950/15 text-red-300 border-red-500/10' : 'bg-red-50 text-red-800 border-red-200'
                   }`}
                 >
@@ -626,7 +549,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
             <div className="flex items-center gap-2 border-b pb-2.5 mb-3 border-zinc-200/10"
               style={{ borderColor: isNight ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
               <Sliders className={`w-4 h-4 ${styles.accentText}`} />
-              <span className={`font-mono text-xs uppercase tracking-widest ${styles.mutedText}`}>Voice</span>
+              <span className={`hw-eyebrow ${styles.mutedText}`}>Voice</span>
             </div>
             <div className="grid grid-cols-2 gap-2">
               {TENDER_VOICES.map(v => {
@@ -650,7 +573,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
               })}
             </div>
             <p className="font-sans text-sm text-left opacity-70 mt-3 leading-relaxed">
-              Four human voices. On Lovable, studio narration works automatically — no downloads, no setup.
+              Joan, Grace, Peter, and Daniel use Kokoro human voices. The engine loads once on first Listen, then stays cached.
             </p>
           </div>
 
@@ -658,7 +581,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
             <div className="flex items-center gap-2 border-b pb-2.5 mb-3 border-zinc-200/10"
               style={{ borderColor: isNight ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
               <Music className={`w-4 h-4 ${styles.accentText}`} />
-              <span className={`font-mono text-xs uppercase tracking-widest ${styles.mutedText}`}>Backdrop</span>
+              <span className={`hw-eyebrow ${styles.mutedText}`}>Backdrop</span>
             </div>
             <select
               id="tender-backdrop-select"
@@ -695,10 +618,10 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
           <div className={`p-4 sm:p-5 rounded-xl border text-left ${styles.innerBg}`}>
             <div className="flex items-center gap-2 mb-2">
               <Sparkles className={`w-4 h-4 ${styles.accentText}`} />
-              <span className={`font-mono text-xs uppercase tracking-widest ${styles.mutedText}`}>How it works</span>
+              <span className={`hw-eyebrow ${styles.mutedText}`}>How it works</span>
             </div>
-            <p className="font-sans text-sm md:text-base leading-relaxed opacity-80">
-              When you tap Listen, a human voice is generated on the server and played here instantly. If the studio is unavailable locally, your device's narrator is used instead.
+            <p className="font-sans text-sm leading-relaxed opacity-80">
+              Kokoro runs locally in your browser — no studio APIs, no device narrator. First Listen downloads the voice model once; after that, narration starts quickly.
             </p>
           </div>
         </div>

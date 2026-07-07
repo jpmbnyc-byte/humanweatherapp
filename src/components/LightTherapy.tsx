@@ -21,9 +21,9 @@ export default function LightTherapy({ currentTheme }: LightTherapyProps) {
       
       {/* Header */}
       <div className="mb-6">
-        <span className="font-mono text-[10px] tracking-widest uppercase opacity-50 block mb-1">Light therapy</span>
+        <span className="hw-eyebrow block mb-1">Light therapy</span>
         <h2 className="font-serif text-2xl text-accent font-medium">Light Therapy</h2>
-        <p className="font-serif text-xs italic opacity-85 mt-1">
+        <p className="hw-caption mt-1">
           Immerse yourself in gentle, full-screen color washes designed to support your natural circadian rhythms and peace of mind.
         </p>
       </div>
@@ -50,7 +50,7 @@ export default function LightTherapy({ currentTheme }: LightTherapyProps) {
 
             <div>
               <div className="flex justify-between items-center mb-3">
-                <span className="font-mono text-[9px] uppercase tracking-widest px-2.5 py-0.5 rounded-full border border-accent/15 bg-accent/5 text-accent">
+                <span className="hw-meta px-2.5 py-0.5 rounded-full border border-accent/15 bg-accent/5 text-accent">
                   {mode.label}
                 </span>
                 
@@ -62,14 +62,14 @@ export default function LightTherapy({ currentTheme }: LightTherapyProps) {
               </div>
 
               <h3 className="font-serif text-lg font-medium text-accent mb-1">{mode.name}</h3>
-              <p className="font-serif text-xs opacity-85 italic mb-3 leading-relaxed">{mode.description}</p>
-              <p className="font-serif text-[11px] opacity-65 leading-relaxed border-t border-accent/10 pt-2.5">
+              <p className="hw-caption mb-3">{mode.description}</p>
+              <p className="hw-body-muted border-t border-accent/10 pt-2.5">
                 {mode.benefits}
               </p>
             </div>
 
             <div className="mt-4 pt-3 flex justify-end">
-              <button className="text-accent/80 hover:text-accent flex items-center gap-1 text-[11px] font-mono tracking-wider">
+              <button className="text-accent/80 hover:text-accent flex items-center gap-1 hw-body font-mono tracking-wider">
                 <Eye className="w-3.5 h-3.5" /> ENTER IMMERSION
               </button>
             </div>
@@ -117,7 +117,7 @@ export default function LightTherapy({ currentTheme }: LightTherapyProps) {
             {/* IMMERSION TOP BAR */}
             <div className="flex items-center justify-between z-10 w-full max-w-5xl mx-auto">
               <div className="flex flex-col text-left">
-                <span className="font-mono text-[9px] tracking-widest uppercase text-white/50">{activeMode.label} mode active</span>
+                <span className="hw-meta text-white/50">{activeMode.label} mode active</span>
                 <span className="font-serif text-xl font-medium text-white tracking-wide">{activeMode.name}</span>
               </div>
 
@@ -162,7 +162,7 @@ export default function LightTherapy({ currentTheme }: LightTherapyProps) {
                   className="absolute inset-0 rounded-full border border-white/10 pointer-events-none"
                 />
                 
-                <span className="font-mono text-[10px] text-white/80 uppercase tracking-widest font-semibold">
+                <span className="hw-badge text-white/80 font-semibold">
                   BREATHE
                 </span>
               </motion.div>
@@ -178,7 +178,7 @@ export default function LightTherapy({ currentTheme }: LightTherapyProps) {
             </div>
 
             {/* IMMERSION FOOTER */}
-            <div className="z-10 w-full max-w-5xl mx-auto text-center border-t border-white/10 pt-4 flex flex-col sm:flex-row justify-between items-center text-white/50 text-[10px] font-mono tracking-widest uppercase">
+            <div className="z-10 w-full max-w-5xl mx-auto text-center border-t border-white/10 pt-4 flex flex-col sm:flex-row justify-between items-center text-white/50 hw-footnote">
               <span>HUMAN WEATHER CHROMATHERAPY ENGINE</span>
               <span className="mt-1 sm:mt-0">{activeMode.pulseSpeed}S CYCLE · BIOLOGICAL RESONANCE</span>
             </div>

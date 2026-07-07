@@ -171,7 +171,7 @@ export default function SomaticGrid({ onStateChange, currentTheme }: SomaticGrid
       {/* Title & Stats */}
       <div className="w-full flex items-center justify-between mb-2">
         <div className="flex flex-col">
-          <span className="font-mono text-[10px] tracking-widest uppercase opacity-50">Somatic Field mapping</span>
+          <span className="hw-eyebrow">Somatic Field mapping</span>
           <span className="font-serif text-sm italic">
             {activeCount === 0 ? 'Quiet canvas...' : `${activeCount} active sensations`}
           </span>
@@ -267,7 +267,7 @@ export default function SomaticGrid({ onStateChange, currentTheme }: SomaticGrid
 
       {/* Guide Pathways Entry points */}
       <div className="w-full mt-6">
-        <span className="font-mono text-[9px] tracking-widest uppercase opacity-50 block mb-2.5">
+        <span className="hw-eyebrow block mb-2.5">
           Or load a guide pathway
         </span>
         <div className="flex flex-wrap gap-1.5 justify-center">

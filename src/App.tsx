@@ -94,7 +94,7 @@ export default function App() {
         {/* Header */}
         <header className={`w-full py-8 md:py-10 flex items-center justify-between border-b ${themeStyles.border}`} id="app-header">
           <div className="flex flex-col text-left max-w-md">
-            <span className="font-mono text-[9px] tracking-[0.25em] uppercase opacity-40 mb-3">human weather</span>
+            <span className="hw-eyebrow tracking-[0.25em] opacity-40 mb-3">human weather</span>
             <h1 className="font-serif text-4xl md:text-5xl font-medium tracking-tight leading-[1.1]">
               Human <span className="italic text-accent">Weather</span>
             </h1>
@@ -106,7 +106,7 @@ export default function App() {
           <div className="flex items-center gap-3">
             <div className={`hidden sm:flex flex-col items-end px-3 border-r ${themeStyles.border}`}>
               <span className="font-mono text-xs font-medium tracking-wider leading-none">{timeString}</span>
-              <span className="font-mono text-[9px] uppercase tracking-widest opacity-45 leading-none mt-1">{dateString}</span>
+              <span className="hw-meta opacity-45 leading-none mt-1">{dateString}</span>
             </div>
             <motion.button
               id="theme-toggle-btn"
