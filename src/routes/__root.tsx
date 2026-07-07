@@ -7,10 +7,9 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
-import { reportLovableError } from "../lib/lovable-error-reporting";
 
 function NotFoundComponent() {
   return (
@@ -37,9 +36,6 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
-  useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
-  }, [error]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -79,16 +75,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Human Weather App" },
       { name: "description", content: "Tracking the emotional climate." },
-      { name: "author", content: "Lovable" },
+      { name: "author", content: "Human Weather" },
       { property: "og:title", content: "Human Weather App" },
       { property: "og:description", content: "Tracking the emotional climate." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:site", content: "@PBWYWORLDWIDE" },
       { name: "twitter:title", content: "Human Weather App" },
       { name: "twitter:description", content: "Tracking the emotional climate." },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/Pp3cGsUtaJRNfvToOZt1zOOuAmk2/social-images/social-1782761956593-IMG_4540.webp" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/Pp3cGsUtaJRNfvToOZt1zOOuAmk2/social-images/social-1782761956593-IMG_4540.webp" },
+      // TODO: add a self-hosted social image (e.g. public/og.png) and reference it here
+      // as og:image / twitter:image. Removed the Lovable/GPT-Engineer-hosted image URL.
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
