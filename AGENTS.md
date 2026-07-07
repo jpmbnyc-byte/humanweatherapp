@@ -33,6 +33,11 @@ Headspace-style meditation app. Core rules for any UI work:
 - **Design laws (§7.0):** one thing on screen at a time; motion at breath-pace
   (4–6s, `--hw-exhale`), dissolve not slide; near-square 2px radii (`--hw-radius`);
   every element must pass the pulse test (does it lower or raise the reader's pulse?).
+- **Reference touchstones (§7.6):** aim for analog barometers / Braun instrumentation
+  / surveyor's log sheets / candlelit stone / single-column manuscripts. **Anti-references
+  (never resemble):** app-store wellness gradients (purple-teal glows), dashboard SaaS
+  chrome (drop-shadow cards, pill badges), gamified fitness UI (rings/confetti/streaks),
+  glassmorphism. When a screen drifts toward these, "return to the barometer."
 - **Process (§7, adapted from the Calm-redesign case study,
   https://www.rachel-quan.com/work/calm-app):** clone existing screens to learn
   their bones → position visually against competitors → consolidate one style tile
@@ -40,6 +45,11 @@ Headspace-style meditation app. Core rules for any UI work:
   of screens against explicit heuristics (match-to-real-world, user control,
   aesthetic-minimalist). Follow the §9 build sequence (vocab sweep → style tile →
   atomic pass → …) rather than whole-file rewrites.
+- **Offline-font doctrine caveat (§11.2):** the harness's single-HTML target forbids
+  loading fonts from Google Fonts at runtime (must self-host/embed woff2). The current
+  React app instead loads Cormorant + IBM Plex Mono via a Google Fonts `<link>` in
+  `src/routes/__root.tsx` — acceptable for the framework app, but must be switched to
+  bundled/self-hosted fonts if/when the offline single-HTML build (§8) is pursued.
 
 Note: the app shell (`src/App.tsx`) currently uses the warm-darkness palette, but
 the interactive sub-panels (`SomaticGrid`, `BreathworkOrb`, `FrequencyTherapy`,

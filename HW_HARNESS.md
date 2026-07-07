@@ -73,6 +73,11 @@ Question → grid → Conditions (header + spoken triple register) → prescript
 
 ## 6. VOICE ENGINE (Kokoro — perpetual, offline, owned)
 
+**Authoritative references (Cursor should fetch and cross-check against these, then PIN whatever version is current):**
+- Library: https://github.com/hexgrad/kokoro — kokoro-js README is the authority on the current API surface
+- Model weights: https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX — the exact files the app loads
+- Rule: the links are for building; the pinned version + private archive (per §11) are for perpetuity.
+
 - Library: kokoro-js, PINNED version (e.g. @1.2.1 — verify current stable, then freeze). Model: onnx-community/Kokoro-82M-v1.0-ONNX, dtype "q8" (~86MB), device "wasm" (optionally upgrade to webgpu on detection).
 - Lazy-load on first Listen tap, NEVER on page open. Honest loading copy ("Preparing the voice — one-time download"). Browser caches automatically; fully offline thereafter.
 - Config is the entire voice system:
@@ -156,6 +161,71 @@ The meditation category clusters around cool blues/purples (relaxation-coded) or
 - **User control & freedom:** everything is skippable and exitable mid-sequence (one gesture out, no confirmation guilt); voice, office notifications, and keeper choice are user-settable. The liturgy invites; it never locks.
 - **Aesthetic & minimalist:** every element on a screen must justify itself against the pulse test; when in doubt, remove — subtraction is the house style.
 
+### 7.6 VISUAL REFERENCE LIBRARY (the build's design-language touchstones)
+When a screen needs a decision the tokens don't answer, consult these references — each named for the specific quality it contributes. Cursor prompts may cite these by name ("treat this panel like the barometer reference").
+
+**Instrument references (structure, chrome, data display):**
+- **Analog precision barometers & marine weather stations** — a single dial, engraved scale, one needle. The Conditions header should feel like reading an instrument face: calibrated, unhurried, authoritative without decoration. No skeuomorphic dials — inherit the *discipline*, not the imagery.
+- **Dieter Rams-era Braun instrumentation** — "as little design as possible": one accent, functional markings, generous negative space. Governs buttons, toggles, and settings surfaces.
+- **Field notebooks / surveyor's log sheets** — ruled entries, mono stamps, corner registration marks. Governs The Fascia's ledger rows and every designation line.
+- **Camera/optics engraving (aperture rings, focus scales)** — how Plex Mono metadata should sit: small, letter-spaced, etched-feeling, never shouting.
+
+**Atmosphere references (color, light, texture):**
+- **Dusk nautical twilight and candlelit stone interiors** — the ground palette's emotional target: warmth inside darkness, never cold-void black. Radial washes behave like light sources (a candle, a rising sun at screen edge), not gradients-as-decoration.
+- **Long-exposure fog photography & shinrin-yoku forest light** — motion and transition reference: things emerge and dissolve, nothing slides or pops.
+- **Film grain at whisper level** — a fixed ~2–3% opacity noise texture over the ground kills digital flatness and adds instrument warmth; implement once as a CSS overlay, never animated.
+
+**Liturgical references (typography, rhythm, restraint):**
+- **Single-column sacred manuscript pages (Codex Sinaiticus lineage)** — one column, wide margins, the text as the sacred object. Governs passage display in the offices: max-measure Cormorant, nothing beside it.
+- **A daily office book's page economy** — fixed form, minimal ornament, content that changes daily inside an unchanging frame. This is the Threshold's and the Hours' structural reference.
+- **Letterpress ordination/wedding stationery** — how gold (--hw-gold) is spent: one small moment per surface, engraved-feeling, earned.
+
+**Anti-references (what HW must never resemble):** app-store wellness gradients (purple-teal glows), dashboard SaaS chrome (cards with drop shadows, pill badges), gamified fitness UI (rings, confetti, streaks), and glassmorphism. If a screen drifts toward any of these, return to the barometer.
+
+**Case-study reference — Calm redesign (rachel-quan.com/work/calm-app):** studied and selectively absorbed. TAKE: the intimacy of one's own recorded voice (parked as The Fifth Keeper, §10), user-composed soundscape layering (parked as Aura & Tones mixing), and its design-system centralization discipline (already ours via §7.2–7.3). REJECT: its core direction — live sessions, shareable affirmations, community/friend-finding — which is parade machinery and the opposite of HW's position. Its deepest lesson is procedural, not visual: it tested with real users before shipping (see §7.8).
+
+### 7.7 USER EXPERIENCE (how the app feels to move through)
+
+**The first five minutes (first-run journey):**
+1. Open → warm-dark ground breathes in (one --hw-exhale fade). No splash logo, no carousel, no permissions wall.
+2. The thesis, spoken once by a KiKi voice over near-still atmosphere — sixty words ending in *"…a guide to the wiring you already own."* Text appears line-by-line at speech pace. Skippable with one tap; never shown again.
+3. The question arrives: *"What is your weather right now?"* → straight into the Somatic Field. The user's first act is touch, not typing. No account, no name, no email.
+4. First Conditions delivered (header + spoken triple register) → first prescription → release. Total elapsed: under three minutes, and they have already *used* the instrument.
+5. Only at release does one quiet line appear: *"The station keeps the Hours, if you want them"* → optional solar-notification opt-in. Permission is requested only after value is felt, framed as fact not summons.
+
+**The daily return (the practiced user's loop):**
+- Open at dawn → the Threshold IS the Vault's door (the app knows the hour; zero navigation) → 60-second office → released into the day. The dominant feeling: *the app was waiting, not wanting.*
+- Any other moment → Threshold shows the question → Field Station loop on demand.
+- Total daily surface area: ~3 minutes across three offices. The UX succeeds when the app is the shortest meaningful interaction on the person's phone.
+
+**Interaction physics (the feel rules):**
+- **Touch is the primary instrument.** The grid responds within 16ms with a soft glow bloom; optional single soft haptic on first contact per session (never per-cell — no buzzing).
+- **The app advances itself.** Inside offices, screens progress at breath-pace with no "Next" buttons; the user's only jobs are touch, breathe, listen. Waiting is part of the medicine.
+- **One gesture out, always.** Swipe-down exits any sequence instantly, no confirmation, no guilt copy. Re-entry resumes at the sequence's start, never mid-way (a rite restarts; it doesn't buffer).
+- **Sound before screen.** Wherever voice and text coexist, the voice leads by a beat and the text supports — the app is primarily *heard*; eyes-closed use is a first-class mode.
+- **Nothing counts in front of you.** No visible timers, streaks, or progress bars anywhere in the present tense. Duration is felt, not displayed.
+
+**States & edges (the station's voice in adversity):**
+- *Empty Fascia:* "No observations yet. The sky is waiting." — invitation, never guilt.
+- *Offline:* indistinguishable from online (this is the flex, and the UX proof of sovereignty). If model files aren't yet cached, honest copy: "Preparing the voices — one-time download, works offline forever after."
+- *Errors:* stated as weather-station fact, one repair action, no apology theater: "The voice couldn't load. Try again, or read this office silently."
+- *Missed offices:* silence. The Fascia simply shows no entry. Stations don't scold the weather.
+
+**Accessibility as doctrine (not compliance):**
+- The KiKi voice IS the screen-reader for core content — spoken Conditions make the app's heart natively non-visual; VoiceOver labels cover the chrome around it.
+- prefers-reduced-motion: washes become static, dissolves become instant fades — the liturgy holds without the breathing screen.
+- All type scales with system settings; cream-on-dark tokens maintain ≥7:1 contrast for body text; touch targets ≥44px; the grid supports drag-exploration (audio feedback per zone) for low-vision use.
+
+**The emotional KPI (what UX success means here):** not session length, not DAU — but *exit velocity into life*. The best session ends with the phone face-down and the person breathing slower. Every UX decision is graded against one question: does this screen return the user to their body, or keep them in the glass?
+
+### 7.8 USER TESTING PROTOCOL (the gap the case-study method exposed — build, then watch five humans)
+Before public launch, run five first-run observations (friends, venue partners, one skeptic). Method: hand them the phone with the app at the Threshold, say only *"tell me what you think this is"* — then be silent and take notes.
+- Watch for: where they hesitate, what they tap that isn't tappable, whether they understand the grid without instruction, whether they skip the spoken thesis, their face during the first spoken Conditions.
+- Ask after (never during): "What is this app for?" · "What would bring you back tomorrow?" · "Was anything uncomfortable?"
+- Pass bar: 4 of 5 complete the first loop unaided; 4 of 5 can state the purpose in their own words afterward.
+- Rule: fix only what two or more testers independently hit. One person's confusion is noise; two is signal; the harness is not renegotiated per anecdote.
+- Repeat the five-person pass after any Five Screens (§7.4) revision.
+
 ## 8. TECHNICAL CONSTITUTION
 
 - Single self-contained HTML file (index.html) + manifest.json + og.png. No build step, no framework. When this must break, break it consciously — not by accident of tooling.
@@ -163,6 +233,35 @@ The meditation category clusters around cool blues/purples (relaxation-coded) or
 - Existing V1 features are re-homed, not rebuilt: Somatic Field grid, calibrated breath, Aura & Tones, Circadian/solar (now the liturgy's clock), Shinrin-Yoku, The Tender.
 - Future satellite layer (ephemeral shared sky, 24h TTL via Cloudflare Worker) is PHASE-LATER. Not in this build.
 - Monetization: reverse trial → $7/mo or $60/yr (LemonSqueezy). Never upsell mid-office, mid-Sanctuary, or mid-prescription.
+
+### 8.1 MONETIZATION BUILD SPEC (the reverse trial, mechanically)
+
+**Trial state machine (all state in IndexedDB, key `hw-entitlement`):**
+- First launch → `{ state: "trial", startedAt: <timestamp> }`. Full access, no account, no card, no countdown visible during days 1–5.
+- Day 6–7 → one quiet line appears at the Threshold's foot (never inside an office): *"Your full-access week ends [day]. Keep the station: $7/mo or $60/yr."*
+- Day 8+ → `state: "lapsed"`. **The graceful degradation (never a wall):** the Field Station core loop (grid → Conditions → breath) remains free forever; the Hours, KiKi voices, prescriptions suite, and The Fascia archive require membership. The free tier is a working barometer; membership is the full observatory. Lapsed screens show one line + one action, in station voice: *"This room is kept for members."* → Keep the station.
+- Purchase → LemonSqueezy hosted checkout (opens in new tab; overlay JS is optional later). Products: HW Monthly $7, HW Annual $60.
+- Return from checkout → success URL carries the license key → validate once via LemonSqueezy License API (`/v1/licenses/activate`) → store `{ state: "member", licenseKey, plan, validatedAt }` in IndexedDB. Offline-first preserved: re-validate silently at most every 30 days when online; never lock a member out while offline.
+- Restore path in settings: "Already a member?" → paste license key → same activation call. No accounts, ever — the license key IS the identity, consistent with sovereignty doctrine.
+
+**Attribution passthrough (closes the loop with the venue + creator campaigns):**
+- Scan-landing URLs carry `?ref=[venue-or-creator-slug]` → persist ref in IndexedDB on first visit → append as LemonSqueezy checkout custom data → affiliate credit flows automatically. One mechanism serves venues, creators, and Dispatch links identically.
+
+**Upsell surfaces (exhaustive list — nowhere else, per doctrine):**
+1. Threshold foot-line, days 6–7 of trial
+2. Lapsed-room lines
+3. Settings → "Keep the station"
+4. Dispatch emails (off-device, fair game)
+Never: mid-office, mid-Sanctuary, mid-prescription, or within 60 seconds of a completed office.
+
+### 8.2 DISPATCH INTEGRATION (the newsletter ↔ app loop)
+
+Publication: **The Atmospheric Dispatch on Ghost** (dispatch.humanweather.social). All links UTM'd `?ref=app` or `?ref=scan`.
+
+- **In-app surface (one, quiet):** The Fascia's foot carries a single ledger-styled line — `DISPATCH/[issue №] · [essay title]` — linking to the week's essay. Updated via one line in a tiny static JSON the app fetches when online (fails silently offline). No feeds, no badges, no red dots.
+- **Scan-landing capture:** after the 60-second experience, alongside the install action, one secondary line: *"Keep the Dispatch — one letter a week on the weather inside."* → Ghost signup embed (Ghost provides a portal link/form snippet; a simple mailto-free POST to the Ghost members API endpoint or the hosted signup URL both work — use the hosted URL for zero-JS simplicity).
+- **Email → app loop:** every Dispatch issue ends with the same footer block: this week's passage + *"Hear it read in the Vault"* deep-linking to the app. Welcome sequence (5 emails, per the Growth Engine doc) is built in Ghost's automation on day one.
+- **The rule:** the app never nags about the newsletter; the newsletter always doors back to the app. Flow direction is inward, toward the instrument.
 
 ## 9. BUILD SEQUENCE (Cursor, budget-disciplined)
 
@@ -183,12 +282,83 @@ Rules: select the specific section before every prompt (never whole-file context
 11. Kill the scroll: navigation collapses to Spine + Station + Fascia (Auto)
 11b. ★ The Five Screens pass — rebuild Threshold, Somatic Field, Conditions, Office template, and Fascia per §7.4, evaluating each against §7.5 guardrails (manual model — this is the visual signature)
 12. Offline/iOS test pass per Kokoro protocol Phase 2
+13. Trial state machine per §8.1 — IndexedDB entitlement, day-6 foot-line, lapsed graceful degradation (Auto)
+14. ★ LemonSqueezy checkout + license activation/restore flow + ref-attribution passthrough (manual model — payment paths deserve the stronger reviewer)
+15. Dispatch integration per §8.2 — Fascia foot-line via static JSON, scan-page Ghost signup, deep-link handling from email (Auto)
+16. Full revenue-path test: fresh install → trial → day-8 lapse (clock-spoofed) → checkout sandbox → activation → offline relaunch as member. Nothing ships until this path passes end-to-end.
 
 Estimated credit burn: $3–6 of the $20 pool. Spend limit set to $0 in Cursor billing before starting.
 
 ## 10. WHAT IS EXPLICITLY OUT OF SCOPE (do not build, do not suggest)
 
 Streaks, badges, scores on home screen, notification nagging, social feeds, profiles, likes, the Living Weather Map, share cards, gift sessions, creator deep-links, any server dependency, any API-dependent voice, any framework migration. These wait in the phased roadmap until the Spine is lived-in.
+
+**PARKED — sanctioned for later, still not now (doctrine-compatible ideas absorbed from references):**
+- **The Fifth Keeper** — the user records their own voice reading a passage (MediaRecorder API, stored on-device only, never shared). Joan, Daniel, Grace, Peter… and you. The deepest possible expression of "the wiring you already own" — your own voice returned to you as keeper. Earliest home: Phase 2, inside The Marrow.
+- **Aura & Tones mixing** — user-composed ambient layers (tone + frequency + rain) saved as personal presets. Enhancement of an existing chamber, not a new surface.
+- **Ephemeral presence** — the quiet "31 others are in fog with you" line + 24-hour dissolving sky. Requires the satellite Worker; waits for Phase 4 density.
+Parked means: written down, named, and untouched — Cursor must not scaffold, stub, or "prepare" for these.
+
+## 11. EXTERNAL REFERENCES & REQUIRED INPUTS (everything the harness cannot supply itself)
+
+### 11.1 Authoritative docs (Cursor may fetch; always pin what's current)
+- Kokoro library + model: see §6 links
+- LemonSqueezy: https://docs.lemonsqueezy.com — specifically Checkout links (custom data for ref-attribution) and the License API (activate/validate endpoints for §8.1)
+- Ghost members/signup: https://ghost.org/docs — Portal signup links + members docs for the §8.2 scan-page capture
+- CDN for pinned imports: https://cdn.jsdelivr.net (kokoro-js ESM)
+
+### 11.2 FONTS — OFFLINE DOCTRINE APPLIES (easy to miss, breaks §8 if missed)
+Cormorant Garamond and IBM Plex Mono must NOT load from Google Fonts at runtime — an offline-first app cannot depend on a font CDN. Build step: download both families (only the weights actually used: Cormorant 400/500/600 + italic, Plex Mono 400/500), subset to latin, convert to woff2, and either (a) base64-embed in the single HTML file (~150–300KB total, acceptable) or (b) cache-first via the service worker. Verify in airplane mode: if the type falls back to system fonts offline, the build fails the sovereignty test. Both families are SIL Open Font License — bundling is fully permitted; keep copies in the archive.
+
+### 11.3 CONFIG CHECKLIST (JP supplies before steps 13–15)
+- [ ] LemonSqueezy: store ID, product/variant IDs for HW Monthly $7 + HW Annual $60, API key (License API)
+- [ ] Ghost: publication URL (dispatch.humanweather.social) + hosted signup URL
+- [ ] Dispatch foot-line JSON: hosted path for the one-line issue pointer (any static host)
+- [ ] Final KIKI_VOICES casting IDs (placeholders valid until then)
+- [ ] humanweather.social scan-page slugs for venue/creator refs
+
+### 11.4 CONTENT LIBRARY DEPENDENCY (HW_CONTENT.md — the harness's sibling file)
+The harness defines every form; HW_CONTENT.md supplies the words. Required structure:
+- `thesis`: the 60-word first-launch spoken text
+- `passages[]`: 30+ office passages (id, text, register-tags, season-tags) — minimum for a repeat-free month
+- `conditions{}`: for every nameable weather state the grid produces → its Felt / Fact / Faith lines (§4)
+- `stationLines{}`: lapsed-room lines, empty-Fascia line, error lines, Meridian one-liners
+Cursor treats this file as data, never as something to author. If a build step needs copy that isn't in HW_CONTENT.md, the step pauses and the gap is flagged — Cursor does not write doctrine.
+
+### 11.5 THE PERPETUITY ARCHIVE (do within launch week)
+Private copies, stored off-platform: kokoro-js bundle at pinned version · Kokoro ONNX model files · both font families (woff2 + originals) · the deployed index.html + manifest + og.png · HW_HARNESS.md + HW_CONTENT.md. This folder is the guarantee that the app of 2036 can be rebuilt from a cold start with zero third parties surviving.
+
+## 12. THE LITERARY CANON & CROSS-PLATFORM COPY (from the Literary Strategy, June 2026)
+
+Human Weather is a literary brand (essays → book) and a product (app) sharing one voice. The Literary Strategy document OUTRANKS this harness on all matters of voice and tone; this section imports its binding rules so no surface drifts.
+
+### 12.1 Canonical lines (fixed doctrine — verbatim across all platforms, never paraphrased)
+- **"This desire transforms relationship, to relational."** (the anchor phrase — appears exactly as written wherever used)
+- "A guide to the wiring you already own." (the product thesis line; *already* is load-bearing)
+- "The song of circumstance is often meant to be heard first hand."
+- "Relationship is a noun — a status. Relational is a posture — an ongoing act."
+- "The book for the person who left the church but never left God." (positioning line — marketing surfaces only)
+These live in HW_CONTENT.md under `canon[]`; app, Ghost, scan pages, venue cards, and social all quote from there. The Relational Proximity® framework definition is quoted only within the Relational Faith essay itself, credited, never repurposed as product copy.
+
+### 12.2 Tone parameters (govern ALL copy — app strings included, not just essays)
+- Register: philosophical but warm; theologically rooted, not denominational; accessible to secular readers without dimming the faith for believers.
+- Rhythm: declarative and unhurried — short sentences that land, longer sentences that open into something. Never academic, never casual.
+- FORBIDDEN: cliché faith language, intellectual performance, over-explanation, sentimentality without substance. (This applies to error messages and upsell lines as much as essays.)
+- REQUIRED where the God-human relation appears: the asymmetry stays intact — the human is always the one closing the distance; the sunrise appears or is implied; silence in the questions is honored.
+
+### 12.3 The chord principle (voice unification)
+The essays move through three registers without code-switching — borrowed framework language → testimony → near-poetry — held as a chord, not a sequence. The app's triple register (Felt / Fact / Faith, §4) is the SAME chord in miniature: Fact is the borrowed framework, Felt is the testimony, Faith is the poetry. One voice, two containers. Writers (human or AI) working on either surface must honor the chord.
+
+### 12.4 The concordance (book ↔ app — the two products name each other's parts)
+- *Sunrise Protocol* (Ch. 06) ↔ **THE VAULT** — the daily architecture chapter IS the morning office's literature
+- *On Bliss* (Ch. 02) ↔ **THE INHERITANCE** — the founding thesis IS the climate metric's doctrine
+- *The Song of Circumstance* (Ch. 05) ↔ the Station's listening posture — circumstance as first-hand teacher
+- *Human Weather / What Climate Are You Making?* (Ch. 07) ↔ the weather→climate product arc (§1)
+- *The Procession* (Ch. 03) ↔ the no-parade UX doctrine (no streaks, no performance)
+Dispatch essays should consciously cross-reference app vocabulary and vice versa — the reader of either should feel one world.
+
+### 12.5 Publication reconciliation
+The Literary Strategy (June 2026) names Substack as the platform play; the operating decision (July 2026) is GHOST at dispatch.humanweather.social. The strategy's function — direct list, monthly essay cadence, audience proof for publishers — is platform-agnostic and fully served by Ghost (see Dispatch Growth Engine doc). Guest-posting and cross-recommendation targets from the strategy remain valid regardless of home platform. Publication order per strategy: Relational Faith first, On Bliss second.
 
 ---
 *The one-line summary: three offices kept by the real sun, one Field Station always open, one Fascia quietly keeping the record, one Inheritance slowly clearing — a guide to the wiring you already own.*
