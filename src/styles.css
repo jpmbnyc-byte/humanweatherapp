@@ -162,3 +162,11 @@ body {
   overscroll-behavior-y: none;
   -webkit-overflow-scrolling: touch;
 }
+
+@keyframes spin-slow {
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 40s linear infinite;
+}

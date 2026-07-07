@@ -366,14 +366,8 @@ export default function SolarRay({ currentTheme }: SolarRayProps) {
                 r="6"
                 fill={currentTheme === 'night' ? '#d4b05a' : '#b8956b'}
                 filter={`drop-shadow(0px 0px 8px ${currentTheme === 'night' ? '#d4b05a' : '#b8956b'})`}
-                animate={{
-                  r: [6, 7.5, 6]
-                }}
-                transition={{
-                  duration: 4,
-                  repeat: Infinity,
-                  ease: 'easeInOut'
-                }}
+                animate={{ r: [6, 9, 6], opacity: [1, 0.75, 1] }}
+                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
               />
             </svg>
 
@@ -441,7 +435,13 @@ export default function SolarRay({ currentTheme }: SolarRayProps) {
           <span className="font-mono text-xs uppercase tracking-widest text-accent font-semibold">Now Active Ray</span>
           
           <div className="my-auto flex flex-col items-center text-center py-2">
-            <Sun className="w-10 h-10 text-accent mb-3 animate-spin-slow" style={{ animationDuration: '40s' }} />
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 40, repeat: Infinity, ease: 'linear' }}
+              className="mb-3"
+            >
+              <Sun className="w-10 h-10 text-accent" />
+            </motion.div>
             <h3 className={`font-serif text-sm sm:text-base font-semibold mb-1 ${currentTheme === 'night' ? 'text-white' : 'text-slate-800'}`}>
               {solarData.activeRay}
             </h3>

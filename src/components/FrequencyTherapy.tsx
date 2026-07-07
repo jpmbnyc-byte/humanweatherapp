@@ -268,23 +268,15 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
 
               {/* Animated waveform visual feedback on card when active */}
               {isActive && (
-                <div className="absolute inset-x-0 bottom-0 h-1 overflow-hidden rounded-b-xl opacity-60">
-                  <svg className="w-full h-full" viewBox="0 0 100 10" preserveAspectRatio="none">
-                    <motion.path
-                      d="M0 5 Q 25 1, 50 5 T 100 5"
-                      fill="transparent"
-                      stroke={currentTheme === 'night' ? '#d4b05a' : '#b8956b'}
-                      strokeWidth="2"
-                      animate={{
-                        d: [
-                          "M0 5 Q 25 1, 50 5 T 100 5",
-                          "M0 5 Q 25 9, 50 5 T 100 5",
-                          "M0 5 Q 25 1, 50 5 T 100 5"
-                        ]
-                      }}
-                      transition={{ duration: tone.type === 'binaural' ? 0.3 : 1.2, repeat: Infinity, ease: 'linear' }}
+                <div className="absolute inset-x-0 bottom-0 h-4 flex items-end justify-center gap-[2px] px-4 pb-1.5 opacity-80">
+                  {[0.4, 0.95, 0.55, 0.8, 0.35, 0.7, 0.5].map((h, i) => (
+                    <motion.span
+                      key={i}
+                      className="w-[2px] rounded-full bg-accent"
+                      animate={{ height: [`${Math.round(h * 12)}px`, `${Math.round((1 - h) * 10 + 4)}px`, `${Math.round(h * 12)}px`] }}
+                      transition={{ duration: 0.45 + i * 0.08, repeat: Infinity, ease: 'easeInOut' }}
                     />
-                  </svg>
+                  ))}
                 </div>
               )}
             </motion.div>

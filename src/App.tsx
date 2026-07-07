@@ -60,194 +60,204 @@ export default function App() {
     <div className={`min-h-screen w-full flex flex-col ${themeStyles.bg} ${themeStyles.text} theme-transition relative overflow-x-hidden`} id="app-root-container">
       <MountainBackground theme={currentTheme} />
 
-      {/* Header */}
-      <header className={`w-full max-w-7xl mx-auto px-6 py-6 md:py-8 flex items-center justify-between border-b ${themeStyles.border} z-10`} id="app-header">
-        <div className="flex flex-col text-left">
-          <div className="flex items-center gap-1.5">
-            <span className="font-display text-[9px] tracking-[0.3em] uppercase opacity-45">human weather</span>
-            <span className="text-[9px] font-bold text-accent opacity-80">™</span>
+      <div className="relative z-10 flex flex-col flex-1 w-full max-w-5xl mx-auto px-6 md:px-10 lg:px-12">
+
+        {/* Header */}
+        <header className={`w-full py-10 md:py-14 flex items-center justify-between border-b ${themeStyles.border}`} id="app-header">
+          <div className="flex flex-col text-left max-w-md">
+            <span className="font-mono text-[9px] tracking-[0.25em] uppercase opacity-40 mb-3">human weather</span>
+            <h1 className="font-serif text-4xl md:text-5xl font-medium tracking-tight leading-[1.1]">
+              Human <span className="italic text-accent">Weather</span>
+            </h1>
+            <p className="font-sans text-base md:text-lg italic opacity-65 mt-4 leading-relaxed">
+              What is your weather right now?
+            </p>
           </div>
-          <h1 className="font-serif text-3xl md:text-4xl font-medium tracking-tight leading-none mt-1">
-            Human <span className="italic text-accent">Weather</span>
-          </h1>
-          <p className="font-sans text-sm italic opacity-70 mt-2">
-            What is your weather right now?
-          </p>
-        </div>
 
-        <div className="flex items-center gap-2">
-          <span className="font-display text-[9px] uppercase tracking-widest opacity-40 hidden sm:inline">Visual Shift</span>
-          <div className={`hidden sm:flex flex-col items-end px-2 border-r ${themeStyles.border}`}>
-            <span className="font-mono text-xs font-medium tracking-wider leading-none">{timeString}</span>
-            <span className="font-mono text-[9px] uppercase tracking-widest opacity-50 leading-none mt-0.5">{dateString}</span>
+          <div className="flex items-center gap-3">
+            <div className={`hidden sm:flex flex-col items-end px-3 border-r ${themeStyles.border}`}>
+              <span className="font-mono text-xs font-medium tracking-wider leading-none">{timeString}</span>
+              <span className="font-mono text-[9px] uppercase tracking-widest opacity-45 leading-none mt-1">{dateString}</span>
+            </div>
+            <motion.button
+              id="theme-toggle-btn"
+              onClick={toggleTheme}
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-sans font-medium tracking-wide transition-all cursor-pointer ${themeStyles.border} ${themeStyles.cardBg}`}
+            >
+              {isNight ? (
+                <span className="flex items-center gap-1.5 text-accent">
+                  <Moon className="w-3.5 h-3.5 text-accent fill-current" /> Night
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5 text-accent">
+                  <Sun className="w-3.5 h-3.5 text-accent" /> Day
+                </span>
+              )}
+            </motion.button>
           </div>
-          <motion.button
-            id="theme-toggle-btn"
-            onClick={toggleTheme}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-display font-medium tracking-wider transition-all cursor-pointer ${themeStyles.border} ${themeStyles.cardBg}`}
-          >
-            {isNight ? (
-              <span className="flex items-center gap-1.5 text-accent">
-                <Moon className="w-3.5 h-3.5 text-accent fill-current" /> Night
-              </span>
-            ) : (
-              <span className="flex items-center gap-1.5 text-accent">
-                <Sun className="w-3.5 h-3.5 text-accent" /> Day
-              </span>
-            )}
-          </motion.button>
-        </div>
-      </header>
+        </header>
 
-      {/* Navigation — pill tabs */}
-      <nav className="w-full max-w-4xl mx-auto px-6 mt-6 md:mt-8 z-10" id="app-navigation-bar">
-        <div className={`flex flex-wrap gap-1 p-1 rounded-2xl border ${themeStyles.border} ${isNight ? 'bg-black/15' : 'bg-white/50'}`}>
-          {([
-            ['somatic', 'Somatic Map'],
-            ['therapy', 'Aura & Tones'],
-            ['rhythms', 'Circadian'],
-            ['tender', 'The Tender'],
-          ] as const).map(([id, label]) => (
-            <button
-              key={id}
-              id={`tab-${id}-btn`}
-              onClick={() => setActiveTab(id)}
-              className={`flex-1 min-w-[calc(50%-4px)] sm:min-w-0 px-4 py-2.5 rounded-xl text-xs font-sans font-medium tracking-wide border transition-all cursor-pointer ${
-                activeTab === id ? themeStyles.tabActive : themeStyles.tabInactive
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </nav>
+        {/* Navigation */}
+        <nav className="w-full mt-12 md:mt-16" id="app-navigation-bar">
+          <div className={`flex flex-wrap gap-1 p-1 rounded-2xl border ${themeStyles.border} ${isNight ? 'bg-black/15' : 'bg-white/50'}`}>
+            {([
+              ['somatic', 'Somatic Map'],
+              ['therapy', 'Aura & Tones'],
+              ['rhythms', 'Circadian'],
+              ['tender', 'The Tender'],
+            ] as const).map(([id, label]) => (
+              <motion.button
+                key={id}
+                id={`tab-${id}-btn`}
+                onClick={() => setActiveTab(id)}
+                whileTap={{ scale: 0.98 }}
+                layout
+                className={`flex-1 min-w-[calc(50%-4px)] sm:min-w-0 px-5 py-3 rounded-xl text-xs font-sans font-medium tracking-wide border transition-colors cursor-pointer ${
+                  activeTab === id ? themeStyles.tabActive : themeStyles.tabInactive
+                }`}
+              >
+                {label}
+              </motion.button>
+            ))}
+          </div>
+        </nav>
 
-      {/* Main views */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-6 py-8 md:py-12 z-10 relative" id="app-main-view">
-        <AnimatePresence mode="wait">
+        {/* Main views */}
+        <main className="flex-1 w-full py-14 md:py-20" id="app-main-view">
+          <AnimatePresence mode="wait">
 
-          {activeTab === 'somatic' && (
-            <motion.div
-              key="somatic-view"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.35 }}
-              className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start"
-            >
-              <div className="lg:col-span-5 flex flex-col items-center">
-                <SomaticGrid onStateChange={handleStateChange} currentTheme={currentTheme} />
-              </div>
-
-              <div className="lg:col-span-7 flex flex-col gap-6 w-full">
-                <div className={`p-8 rounded-2xl border ${themeStyles.border} ${themeStyles.cardBg} relative`}
-                     id="weather-reading-card">
-
-                  <span className="font-mono text-[9px] uppercase tracking-widest opacity-40 block mb-2">
-                    Real-time somatic reading
-                  </span>
-
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-                    <h2 className="font-serif text-2xl md:text-3xl font-medium text-accent tracking-tight">
-                      {activeWeather.title}
-                    </h2>
-                    <div className="flex items-center gap-1.5 font-mono text-[10px]">
-                      <span className="opacity-60 uppercase">HRV Coherence:</span>
-                      <strong className="text-accent">{activeWeather.hrv}%</strong>
-                    </div>
-                  </div>
-
-                  <h4 className="font-sans text-xs italic opacity-90 mb-3 border-b border-accent/10 pb-2">
-                    {activeWeather.subtitle}
-                  </h4>
-
-                  <p className="font-sans text-sm leading-relaxed mb-4">
-                    {activeWeather.description}
-                  </p>
-
-                  <div className="p-4 rounded-xl border border-accent/15 bg-accent/[0.03] font-serif text-sm italic text-foreground/80 mb-6 leading-relaxed">
-                    <span className="font-mono text-[9px] uppercase tracking-widest not-italic text-accent/70 block mb-1.5">
-                      Physical guidance
-                    </span>
-                    "{activeWeather.guidanceText}"
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 border-t border-accent/10 pt-4 text-left">
-                    <div>
-                      <span className="font-mono text-[9px] uppercase tracking-widest opacity-40 block">Clinical Index</span>
-                      <span className="font-mono text-[10px] opacity-80">{activeWeather.clinicalIndex}</span>
-                    </div>
-                    <div>
-                      <span className="font-mono text-[9px] uppercase tracking-widest opacity-40 block">Respiratory Ratio</span>
-                      <span className="font-mono text-[10px] opacity-80">{activeWeather.respiratoryRatio} (Inhale:Exhale)</span>
-                    </div>
-                  </div>
+            {activeTab === 'somatic' && (
+              <motion.div
+                key="somatic-view"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+                className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start"
+              >
+                <div className="lg:col-span-5 flex flex-col items-center">
+                  <SomaticGrid onStateChange={handleStateChange} currentTheme={currentTheme} />
                 </div>
 
-                <BreathworkOrb weatherState={activeWeather} currentTheme={currentTheme} />
-              </div>
-            </motion.div>
-          )}
+                <div className="lg:col-span-7 flex flex-col gap-10 w-full">
+                  <div className={`p-8 md:p-10 rounded-2xl border ${themeStyles.border} ${themeStyles.cardBg}`}
+                       id="weather-reading-card">
 
-          {activeTab === 'therapy' && (
-            <motion.div
-              key="therapy-view"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.35 }}
-              className="flex flex-col gap-8"
-            >
-              <FrequencyTherapy currentTheme={currentTheme} />
-              <LightTherapy currentTheme={currentTheme} />
-              <ClassicalMusic currentTheme={currentTheme} />
-            </motion.div>
-          )}
+                    <span className="font-mono text-[9px] uppercase tracking-widest opacity-40 block mb-4">
+                      Real-time somatic reading
+                    </span>
 
-          {activeTab === 'rhythms' && (
-            <motion.div
-              key="rhythms-view"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.35 }}
-              className="flex flex-col gap-8"
-            >
-              <SolarRay currentTheme={currentTheme} />
-              <ShinrinYoku currentTheme={currentTheme} />
-            </motion.div>
-          )}
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
+                      <h2 className="font-serif text-2xl md:text-3xl font-medium text-accent tracking-tight leading-snug">
+                        {activeWeather.title}
+                      </h2>
+                      <div className="flex items-center gap-1.5 font-mono text-[10px] shrink-0">
+                        <span className="opacity-60 uppercase">HRV Coherence:</span>
+                        <strong className="text-accent">{activeWeather.hrv}%</strong>
+                      </div>
+                    </div>
 
-          {activeTab === 'tender' && (
-            <motion.div
-              key="tender-view"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.35 }}
-              className="w-full"
-            >
-              <TheTender currentTheme={currentTheme} />
-            </motion.div>
-          )}
+                    <h4 className="font-sans text-sm italic opacity-80 mb-5 border-b border-accent/10 pb-4 leading-relaxed">
+                      {activeWeather.subtitle}
+                    </h4>
 
-        </AnimatePresence>
-      </main>
+                    <p className="font-sans text-base leading-[1.75] mb-8 max-w-prose">
+                      {activeWeather.description}
+                    </p>
 
-      {/* Footer */}
-      <footer className={`w-full max-w-7xl mx-auto px-6 py-8 border-t ${themeStyles.border} mt-12 flex flex-col sm:flex-row justify-between items-center text-[10px] font-display tracking-widest uppercase ${themeStyles.textMuted} z-10`} id="app-footer">
-        <div className="flex flex-col items-center sm:items-start">
-          <span>HUMAN WEATHER © 2026 · WEATHERGRAM™ STUDIO</span>
-          <span className="opacity-50 mt-1">PEER-REVIEWED CLINICAL SOMATICS SYSTEM</span>
-        </div>
-        <div className="flex gap-4 mt-4 sm:mt-0 opacity-80">
-          <a href="https://humanweather.app" className="hover:text-accent transition-colors">humanweather.app</a>
-          <span>·</span>
-          <span>@PBWYWORLDWIDE</span>
-        </div>
-      </footer>
+                    <div className="p-5 md:p-6 rounded-xl border border-accent/15 bg-accent/[0.03] font-serif text-base italic text-foreground/80 mb-8 leading-relaxed">
+                      <span className="font-mono text-[9px] uppercase tracking-widest not-italic text-accent/70 block mb-2">
+                        Physical guidance
+                      </span>
+                      "{activeWeather.guidanceText}"
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-6 border-t border-accent/10 pt-6 text-left">
+                      <div>
+                        <span className="font-mono text-[9px] uppercase tracking-widest opacity-40 block mb-1">Clinical Index</span>
+                        <span className="font-mono text-[10px] opacity-80">{activeWeather.clinicalIndex}</span>
+                      </div>
+                      <div>
+                        <span className="font-mono text-[9px] uppercase tracking-widest opacity-40 block mb-1">Respiratory Ratio</span>
+                        <span className="font-mono text-[10px] opacity-80">{activeWeather.respiratoryRatio} (Inhale:Exhale)</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <BreathworkOrb weatherState={activeWeather} currentTheme={currentTheme} />
+                </div>
+              </motion.div>
+            )}
+
+            {activeTab === 'therapy' && (
+              <motion.div
+                key="therapy-view"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+                className="flex flex-col gap-12 md:gap-16"
+              >
+                <FrequencyTherapy currentTheme={currentTheme} />
+                <LightTherapy currentTheme={currentTheme} />
+                <ClassicalMusic currentTheme={currentTheme} />
+              </motion.div>
+            )}
+
+            {activeTab === 'rhythms' && (
+              <motion.div
+                key="rhythms-view"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+                className="flex flex-col gap-12 md:gap-16"
+              >
+                <SolarRay currentTheme={currentTheme} />
+                <ShinrinYoku currentTheme={currentTheme} />
+              </motion.div>
+            )}
+
+            {activeTab === 'tender' && (
+              <motion.div
+                key="tender-view"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+                className="w-full"
+              >
+                <TheTender currentTheme={currentTheme} />
+              </motion.div>
+            )}
+
+          </AnimatePresence>
+        </main>
+
+        {/* Footer */}
+        <footer className={`w-full py-16 md:py-20 border-t ${themeStyles.border} mt-8`} id="app-footer">
+          <div className="max-w-xl mx-auto text-center mb-14 px-4">
+            <p className="font-serif text-lg md:text-xl italic leading-relaxed opacity-80">
+              With gratitude — may you listen to your body's weather with curiosity and care.
+            </p>
+          </div>
+
+          <div className={`flex flex-col sm:flex-row justify-between items-center gap-4 text-[10px] font-mono tracking-widest uppercase ${themeStyles.textMuted}`}>
+            <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
+              <span>Human Weather © 2026 · Weathergram™ Studio</span>
+              <span className="opacity-50 mt-1.5 normal-case tracking-normal font-sans text-xs italic">Peer-reviewed clinical somatics system</span>
+            </div>
+            <div className="flex gap-4 opacity-80">
+              <a href="https://humanweather.app" className="hover:text-accent transition-colors">humanweather.app</a>
+              <span>·</span>
+              <span>@PBWYWORLDWIDE</span>
+            </div>
+          </div>
+        </footer>
+
+      </div>
     </div>
   );
 }

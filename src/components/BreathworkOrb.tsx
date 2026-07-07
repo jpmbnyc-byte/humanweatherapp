@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { WeatherState } from '../types';
 import { Play, Pause, RefreshCw } from 'lucide-react';
 
@@ -105,33 +105,33 @@ export default function BreathworkOrb({ weatherState, currentTheme }: Breathwork
       {/* Breathing Canvas Stage */}
       <div className="relative w-72 h-72 flex items-center justify-center mb-8">
         
-        {/* Ambient Pulsing Aura Layer 1 */}
-        <AnimatePresence>
-          {isPlaying && (
+        {/* Continuous ripple rings — outside orb so they stay visible */}
+        {isPlaying && (
+          <>
             <motion.div
-              key={`ripple-1-${phase}`}
-              initial={{ scale: currentScale * 0.8, opacity: 0.3 }}
-              animate={{ scale: currentScale * 1.5, opacity: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: phase === 'Inhale' ? inhale : exhale, ease: 'easeOut' }}
-              className="absolute w-24 h-24 rounded-full border border-accent/30 pointer-events-none"
+              className="absolute w-28 h-28 rounded-full border-2 border-accent/35 pointer-events-none"
+              style={{ transformOrigin: 'center center' }}
+              animate={{ scale: [0.85, 2.2], opacity: [0.55, 0] }}
+              transition={{ duration: Math.max(inhale, 3), repeat: Infinity, ease: 'easeOut', repeatDelay: 0 }}
             />
-          )}
-        </AnimatePresence>
+            <motion.div
+              className="absolute w-28 h-28 rounded-full border border-accent/25 pointer-events-none"
+              style={{ transformOrigin: 'center center' }}
+              animate={{ scale: [0.85, 2.5], opacity: [0.35, 0] }}
+              transition={{ duration: Math.max(inhale, 3), repeat: Infinity, ease: 'easeOut', delay: Math.max(inhale, 3) / 2 }}
+            />
+          </>
+        )}
 
-        {/* Ambient Pulsing Aura Layer 2 (Delayed/Offset) */}
-        <AnimatePresence>
-          {isPlaying && (
-            <motion.div
-              key={`ripple-2-${phase}`}
-              initial={{ scale: currentScale * 1.0, opacity: 0.15 }}
-              animate={{ scale: currentScale * 1.9, opacity: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: phase === 'Inhale' ? inhale + 1 : exhale + 1, ease: 'easeOut' }}
-              className="absolute w-24 h-24 rounded-full border border-accent/10 pointer-events-none"
-            />
-          )}
-        </AnimatePresence>
+        {/* Rotating guide ring */}
+        {isPlaying && (
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
+            className="absolute w-32 h-32 rounded-full border border-dashed border-accent/45 pointer-events-none"
+            style={{ originX: '50%', originY: '50%' }}
+          />
+        )}
 
         {/* The Central Breathing Orb */}
         <motion.div
@@ -140,17 +140,11 @@ export default function BreathworkOrb({ weatherState, currentTheme }: Breathwork
             boxShadow: `0 0 50px ${getPhaseColor()}, inset 0 0 20px rgba(255,255,255,0.4)`
           }}
           transition={{
-            duration: 1.0, // Smooth transition between tick updates
+            duration: 1.0,
             ease: 'linear'
           }}
-          className="w-24 h-24 rounded-full bg-gradient-to-tr from-accent/70 to-[#f3efe8] flex flex-col items-center justify-center z-10 text-stone-900 select-none"
+          className="relative w-24 h-24 rounded-full bg-gradient-to-tr from-accent/70 to-[#f3efe8] flex flex-col items-center justify-center z-10 text-stone-900 select-none"
         >
-          {/* Inner particle center */}
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 15, repeat: Infinity, ease: 'linear' }}
-            className="absolute inset-2 border border-white/20 rounded-full border-dashed"
-          />
           
           <span className="font-serif text-2xl font-bold tracking-tight">
             {secondsLeft}
@@ -167,8 +161,9 @@ export default function BreathworkOrb({ weatherState, currentTheme }: Breathwork
         <div className="h-10 text-center mb-6">
           <motion.div
             key={phase}
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
             className="flex flex-col"
           >
             <span className="font-serif text-2xl font-medium tracking-wide">
