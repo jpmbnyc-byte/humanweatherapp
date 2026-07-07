@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, Volume2, Play, Pause, Square, Music, Headphones, Sliders, Edit2, Check } from 'lucide-react';
 import { PRESETS } from '../data/presets';
+import { getThemeStyles } from '../lib/theme';
 
 type TenderVoiceId = 'joan' | 'grace' | 'peter' | 'daniel';
 interface TenderVoiceProfile {
@@ -572,8 +573,8 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                 className={`transition-all duration-150 rounded px-0.5 ${
                   isCurrent
                     ? currentTheme === 'night'
-                      ? 'text-[#ffd700] font-bold bg-amber-500/20 drop-shadow-[0_0_12px_rgba(234,179,8,0.6)] scale-[1.03] inline-block'
-                      : 'text-amber-900 font-bold bg-amber-500/25 drop-shadow-[0_0_12px_rgba(217,119,6,0.4)] scale-[1.03] inline-block'
+                      ? 'text-[#CCCAFF] font-bold bg-[#8C6CD0]/20 drop-shadow-[0_0_12px_rgba(140,108,208,0.6)] scale-[1.03] inline-block'
+                      : 'text-[#46238D] font-bold bg-[#8C6CD0]/25 drop-shadow-[0_0_12px_rgba(101,68,135,0.4)] scale-[1.03] inline-block'
                     : isReading 
                       ? currentTheme === 'night' ? 'text-white/40' : 'text-zinc-400'
                       : currentTheme === 'night' ? 'text-white/80' : 'text-zinc-800'
@@ -590,27 +591,32 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
 
   // Aesthetic theme colors definitions
   const isNight = currentTheme === 'night';
+  const theme = getThemeStyles(currentTheme);
   const styles = {
-    cardBg: isNight ? 'bg-[#121214]/80 border-white/[0.08] backdrop-blur-md' : 'bg-white/75 border-sky-300/40 backdrop-blur-md shadow-lg shadow-sky-100/30',
-    innerBg: isNight ? 'bg-black/45 border-white/5' : 'bg-sky-50/50 border-sky-200/40',
-    titleText: isNight ? 'text-[#f1f5f9]' : 'text-[#0f172a]',
-    mutedText: isNight ? 'text-[#94a3b8]' : 'text-[#475569]',
-    goldText: isNight ? 'text-[#eab308]' : 'text-[#d97706]',
-    goldBorder: isNight ? 'border-[#eab308]/30' : 'border-amber-500/30',
-    badgeActive: isNight ? 'bg-[#eab308]/12 border-[#eab308] text-[#eab308]' : 'bg-amber-500/10 border-amber-500 text-amber-700 font-medium',
-    badgeInactive: isNight ? 'bg-black/20 border-white/5 text-white/40 hover:text-white/80 hover:border-white/10' : 'bg-white/40 border-sky-200/50 text-sky-800 hover:text-sky-950 hover:bg-white',
+    cardBg: theme.cardBg,
+    innerBg: theme.innerBg,
+    titleText: theme.text,
+    mutedText: theme.textMuted,
+    accentText: theme.accent,
+    accentBorder: isNight ? 'border-[#8C6CD0]/30' : 'border-[#654487]/30',
+    badgeActive: isNight
+      ? 'bg-[#8C6CD0]/12 border-[#8C6CD0] text-[#8C6CD0]'
+      : 'bg-[#8C6CD0]/10 border-[#654487] text-[#654487] font-medium',
+    badgeInactive: isNight
+      ? 'bg-black/20 border-white/5 text-white/40 hover:text-white/80 hover:border-white/10'
+      : 'bg-white/40 border-[#8C6CD0]/25 text-[#654487] hover:text-[#46238D] hover:bg-white',
   };
 
   return (
     <div 
-      className={`flex flex-col w-full max-w-4xl mx-auto p-5 sm:p-7 rounded-2xl border backdrop-blur-md relative overflow-hidden ${styles.cardBg}`}
+      className={`flex flex-col w-full max-w-4xl mx-auto p-5 sm:p-7 rounded-3xl border backdrop-blur-md relative overflow-hidden ${styles.cardBg}`}
       id="the-tender-section"
     >
       {/* Visual background subtle warm aura */}
-      <div className={`absolute top-0 right-0 w-72 h-72 rounded-full blur-3xl pointer-events-none z-0 ${isNight ? 'bg-amber-500/[0.03]' : 'bg-amber-500/[0.05]'}`} />
+      <div className={`absolute top-0 right-0 w-72 h-72 rounded-full blur-3xl pointer-events-none z-0 ${isNight ? 'bg-[#8C6CD0]/[0.04]' : 'bg-[#8C6CD0]/[0.06]'}`} />
       
       {/* 1. Header Section */}
-      <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between border-b pb-4 mb-5" style={{ borderColor: isNight ? 'rgba(196,168,74,0.1)' : 'rgba(158,130,48,0.15)' }}>
+      <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between border-b pb-4 mb-5 border-accent/10">
         <div className="text-left">
           <span className="font-mono text-[9px] tracking-widest uppercase opacity-60 block">04 — Guided Somatic Narration</span>
           <h2 className={`font-serif text-2xl font-normal tracking-wide mt-0.5 ${styles.titleText}`}>The Tender</h2>
@@ -626,7 +632,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
             stopReading(true);
             setIsEditMode(!isEditMode);
           }}
-          className={`mt-3 sm:mt-0 px-3.5 py-1.5 rounded-lg border font-mono text-[9px] uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-all ${
+          className={`mt-3 sm:mt-0 px-4 py-2 rounded-full border font-display text-[9px] uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-all ${
             isEditMode ? styles.badgeActive : styles.badgeInactive
           }`}
         >
@@ -655,7 +661,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                 key={preset.id}
                 id={`preset-tab-${preset.id}`}
                 onClick={() => handlePresetSelect(preset)}
-                className={`px-3 py-2 rounded-lg border font-sans text-xs text-left transition-all cursor-pointer ${
+                className={`px-4 py-2 rounded-full border font-sans text-xs text-left transition-all cursor-pointer ${
                   isSelected ? styles.badgeActive : styles.badgeInactive
                 }`}
               >
@@ -681,7 +687,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="absolute inset-0 bg-gold/[0.015] pointer-events-none"
+                  className="absolute inset-0 bg-accent/[0.015] pointer-events-none"
                 />
               )}
             </AnimatePresence>
@@ -689,7 +695,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
             <div>
               <div className="flex items-center justify-between border-b pb-2.5 mb-4 border-zinc-200/10" style={{ borderColor: isNight ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
                 <div className="flex items-center gap-1.5">
-                  <Headphones className={`w-3.5 h-3.5 ${styles.goldText}`} />
+                  <Headphones className={`w-3.5 h-3.5 ${styles.accentText}`} />
                   <span className={`font-mono text-[9px] uppercase tracking-widest ${styles.mutedText}`}>
                     {isEditMode ? 'Text Composer' : 'Guided Reading Sanctuary'}
                   </span>
@@ -698,9 +704,9 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                 {/* Micro soundwave pulse when speaking */}
                 {isReading && !isPaused && (
                   <span className="flex items-end gap-[1.5px] h-3">
-                    <span className="w-[1.5px] bg-amber-500 rounded-full animate-[pulse_0.5s_infinite_alternate]" style={{ height: '35%' }}></span>
-                    <span className="w-[1.5px] bg-amber-500 rounded-full animate-[pulse_0.7s_infinite_alternate_0.15s]" style={{ height: '90%' }}></span>
-                    <span className="w-[1.5px] bg-amber-500 rounded-full animate-[pulse_0.6s_infinite_alternate_0.1s]" style={{ height: '60%' }}></span>
+                    <span className="w-[1.5px] bg-[#8C6CD0] rounded-full animate-[pulse_0.5s_infinite_alternate]" style={{ height: '35%' }}></span>
+                    <span className="w-[1.5px] bg-[#8C6CD0] rounded-full animate-[pulse_0.7s_infinite_alternate_0.15s]" style={{ height: '90%' }}></span>
+                    <span className="w-[1.5px] bg-[#8C6CD0] rounded-full animate-[pulse_0.6s_infinite_alternate_0.1s]" style={{ height: '60%' }}></span>
                   </span>
                 )}
               </div>
@@ -711,7 +717,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                   <textarea
                     id="tender-custom-textarea"
                     rows={8}
-                    className={`w-full p-3 rounded-lg border text-xs sm:text-sm font-serif leading-relaxed focus:outline-none focus:border-amber-500 ${
+                    className={`w-full p-3 rounded-2xl border text-xs sm:text-sm font-serif leading-relaxed focus:outline-none focus:border-[#8C6CD0] ${
                       isNight ? 'bg-black/60 border-white/10 text-white placeholder-white/20' : 'bg-white/80 border-zinc-300 text-zinc-900 placeholder-zinc-400'
                     }`}
                     placeholder="Write or paste your custom journal writing, meditation prose, or daily reflections here..."
@@ -749,13 +755,13 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
               <div className="flex items-center gap-1.5">
                 <span className="relative flex h-2 w-2">
                   {isPreparing && (
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#9390FF] opacity-75"></span>
                   )}
                   {isReading && !isPaused && (
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   )}
                   <span className={`relative inline-flex rounded-full h-2 w-2 ${
-                    isPreparing ? 'bg-amber-400' : isReading ? (isPaused ? 'bg-amber-400' : 'bg-emerald-400') : 'bg-zinc-500'
+                    isPreparing ? 'bg-[#9390FF]' : isReading ? (isPaused ? 'bg-[#9390FF]' : 'bg-emerald-400') : 'bg-zinc-500'
                   }`}></span>
                 </span>
                 <span className="font-mono text-[8px] uppercase tracking-widest opacity-60">
@@ -770,14 +776,14 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                   id="tender-play-toggle-btn"
                   disabled={isPreparing || isEditMode || !inputText.trim()}
                   onClick={handlePlayToggle}
-                  className={`px-4 py-1.5 rounded-lg font-mono text-[9px] font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
+                  className={`px-5 py-2 rounded-full font-display text-[9px] font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
                     isReading && !isPaused
                       ? isNight 
                         ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 hover:bg-emerald-500/25'
                         : 'bg-emerald-600/15 text-emerald-800 border border-emerald-500/30 hover:bg-emerald-500/25'
                       : isNight
-                        ? 'bg-[#eab308] text-black hover:bg-[#eab308]/90 hover:scale-[1.02]'
-                        : 'bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:shadow-md hover:scale-[1.02]'
+                        ? 'bg-[#8C6CD0] text-white hover:bg-[#8C6CD0]/90 hover:scale-[1.02]'
+                        : 'bg-gradient-to-r from-[#654487] to-[#8C6CD0] text-white hover:shadow-md hover:scale-[1.02]'
                   }`}
                 >
                   {isReading && !isPaused ? (
@@ -796,7 +802,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                   id="tender-stop-btn"
                   disabled={!isReading && !isPreparing}
                   onClick={() => stopReading(true)}
-                  className={`px-3 py-1.5 border disabled:opacity-20 disabled:cursor-not-allowed rounded-lg font-mono text-[9px] font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-all ${
+                  className={`px-4 py-2 border disabled:opacity-20 disabled:cursor-not-allowed rounded-full font-display text-[9px] font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-all ${
                     isNight
                       ? 'bg-red-950/15 hover:bg-red-950/35 text-red-300 border-red-500/10'
                       : 'bg-red-50/50 hover:bg-red-100 text-red-800 border-red-200'
@@ -817,7 +823,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
           {/* Tender Voice Selection */}
           <div className={`p-4 rounded-xl border flex flex-col justify-between ${styles.innerBg}`}>
             <div className="flex items-center gap-1.5 border-b pb-2 mb-3 border-zinc-200/10" style={{ borderColor: isNight ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
-              <Sliders className={`w-3.5 h-3.5 ${styles.goldText}`} />
+              <Sliders className={`w-3.5 h-3.5 ${styles.accentText}`} />
               <span className={`font-mono text-[9px] uppercase tracking-widest ${styles.mutedText}`}>
                 Tender Voice
               </span>
@@ -834,13 +840,13 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                     className="px-2.5 py-2 rounded border transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5"
                     style={{
                       backgroundColor: isSelected 
-                        ? isNight ? 'rgba(234,179,8,0.12)' : 'rgba(217,119,6,0.12)' 
+                        ? isNight ? 'rgba(140,108,208,0.12)' : 'rgba(101,68,135,0.12)' 
                         : 'transparent',
                       borderColor: isSelected 
-                        ? isNight ? '#eab308' : '#d97706' 
+                        ? isNight ? '#8C6CD0' : '#654487' 
                         : isNight ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.1)',
                       color: isSelected 
-                        ? isNight ? '#eab308' : '#d97706' 
+                        ? isNight ? '#8C6CD0' : '#654487' 
                         : isNight ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.5)',
                     }}
                   >
@@ -858,7 +864,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
           {/* Environmental Sound Background Mixer */}
           <div className={`p-4 rounded-xl border flex flex-col justify-between ${styles.innerBg}`}>
             <div className="flex items-center gap-1.5 border-b pb-2 mb-3 border-zinc-200/10" style={{ borderColor: isNight ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
-              <Music className={`w-3.5 h-3.5 ${styles.goldText}`} />
+              <Music className={`w-3.5 h-3.5 ${styles.accentText}`} />
               <span className={`font-mono text-[9px] uppercase tracking-widest ${styles.mutedText}`}>
                 Nature Weather Backdrop
               </span>
@@ -868,10 +874,10 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
               id="tender-backdrop-select"
               value={soundEnv}
               onChange={(e: any) => setSoundEnv(e.target.value)}
-              className={`w-full px-3 py-2 border text-[11px] rounded focus:outline-none font-mono cursor-pointer mb-3.5 ${
+              className={`w-full px-3 py-2 border text-[11px] rounded-full focus:outline-none font-mono cursor-pointer mb-3.5 ${
                 isNight 
-                  ? 'bg-black/60 border-white/10 text-[#eab308] focus:border-[#eab308]' 
-                  : 'bg-white/80 border-sky-300/40 text-[#d97706] focus:border-[#d97706]'
+                  ? 'bg-black/60 border-white/10 text-[#8C6CD0] focus:border-[#8C6CD0]' 
+                  : 'bg-white/80 border-[#8C6CD0]/30 text-[#654487] focus:border-[#654487]'
               }`}
             >
               <option value="silence">Silence (Pure Narration)</option>
@@ -885,7 +891,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
             {/* Environmental Backdrop Volume Slider */}
             {soundEnv !== 'silence' ? (
               <div className={`flex items-center gap-3 px-3 py-2 rounded border ${isNight ? 'bg-black/40 border-white/5' : 'bg-white border-zinc-100'}`}>
-                <Volume2 className={`w-3.5 h-3.5 ${styles.goldText}`} />
+                <Volume2 className={`w-3.5 h-3.5 ${styles.accentText}`} />
                 <input
                   type="range"
                   min="0"
@@ -893,7 +899,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                   step="0.05"
                   value={ambientVolume}
                   onChange={(e) => setAmbientVolume(parseFloat(e.target.value))}
-                  className="flex-1 h-0.5 rounded-lg appearance-none cursor-pointer accent-amber-500 bg-amber-500/10"
+                  className="flex-1 h-0.5 rounded-lg appearance-none cursor-pointer accent-[#8C6CD0] bg-[#8C6CD0]/10"
                   id="tender-backdrop-volume"
                 />
                 <span className="font-mono text-[8px] opacity-75 w-6 text-right">
@@ -910,7 +916,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
           {/* Interactive Guided Info Box */}
           <div className={`p-4 rounded-xl border text-left ${styles.innerBg}`}>
             <div className="flex items-center gap-1.5 mb-2">
-              <Sparkles className={`w-3.5 h-3.5 ${styles.goldText}`} />
+              <Sparkles className={`w-3.5 h-3.5 ${styles.accentText}`} />
               <span className={`font-mono text-[9px] uppercase tracking-widest ${styles.mutedText}`}>
                 How it works
               </span>

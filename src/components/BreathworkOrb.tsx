@@ -83,24 +83,24 @@ export default function BreathworkOrb({ weatherState, currentTheme }: Breathwork
   // Animation configuration for Framer Motion
   const getPhaseColor = () => {
     switch (phase) {
-      case 'Inhale': return 'rgba(234,179,8,0.75)';
-      case 'Hold': return 'rgba(245,158,11,0.9)';
-      case 'Exhale': return 'rgba(234,179,8,0.45)';
-      case 'Hold Out': return 'rgba(234,179,8,0.3)';
+      case 'Inhale': return 'rgba(140,108,208,0.75)';
+      case 'Hold': return 'rgba(147,144,255,0.9)';
+      case 'Exhale': return 'rgba(140,108,208,0.45)';
+      case 'Hold Out': return 'rgba(140,108,208,0.3)';
     }
   };
 
   return (
     <div className={`flex flex-col items-center justify-center p-6 rounded-2xl border backdrop-blur-md w-full max-w-md mx-auto ${
       currentTheme === 'night' 
-        ? 'bg-[#121214]/80 border-white/[0.08]' 
-        : 'bg-white/75 border-sky-300/40 shadow-lg shadow-sky-100/30'
+        ? 'bg-[#29105A]/75 border-white/[0.06] backdrop-blur-md' 
+        : 'bg-white/80 border-[#CCCAFF]/50 backdrop-blur-md shadow-lg shadow-[#8C6CD0]/10'
     }`}
          id="breathwork-guide-orb-container">
       
       {/* Title */}
       <span className="font-mono text-[10px] tracking-widest uppercase opacity-50 mb-1">COHERENT RESPIRATION GUIDE</span>
-      <h3 className="font-serif text-lg text-gold italic mb-8">{weatherState.title} Pacing</h3>
+      <h3 className="font-serif text-lg text-accent italic mb-8">{weatherState.title} Pacing</h3>
 
       {/* Breathing Canvas Stage */}
       <div className="relative w-72 h-72 flex items-center justify-center mb-8">
@@ -114,7 +114,7 @@ export default function BreathworkOrb({ weatherState, currentTheme }: Breathwork
               animate={{ scale: currentScale * 1.5, opacity: 0 }}
               exit={{ opacity: 0 }}
               transition={{ duration: phase === 'Inhale' ? inhale : exhale, ease: 'easeOut' }}
-              className="absolute w-24 h-24 rounded-full border border-gold/30 pointer-events-none"
+              className="absolute w-24 h-24 rounded-full border border-accent/30 pointer-events-none"
             />
           )}
         </AnimatePresence>
@@ -128,7 +128,7 @@ export default function BreathworkOrb({ weatherState, currentTheme }: Breathwork
               animate={{ scale: currentScale * 1.9, opacity: 0 }}
               exit={{ opacity: 0 }}
               transition={{ duration: phase === 'Inhale' ? inhale + 1 : exhale + 1, ease: 'easeOut' }}
-              className="absolute w-24 h-24 rounded-full border border-gold/10 pointer-events-none"
+              className="absolute w-24 h-24 rounded-full border border-accent/10 pointer-events-none"
             />
           )}
         </AnimatePresence>
@@ -143,7 +143,7 @@ export default function BreathworkOrb({ weatherState, currentTheme }: Breathwork
             duration: 1.0, // Smooth transition between tick updates
             ease: 'linear'
           }}
-          className="w-24 h-24 rounded-full bg-gradient-to-tr from-gold/80 to-amber-200/90 flex flex-col items-center justify-center z-10 text-slate-950 select-none"
+          className="w-24 h-24 rounded-full bg-gradient-to-tr from-accent/80 to-[#CCCAFF]/90 flex flex-col items-center justify-center z-10 text-white select-none"
         >
           {/* Inner particle center */}
           <motion.div
@@ -189,7 +189,7 @@ export default function BreathworkOrb({ weatherState, currentTheme }: Breathwork
           <button
             id="toggle-breathwork-btn"
             onClick={() => setIsPlaying(!isPlaying)}
-            className="w-12 h-12 rounded-full border border-gold/30 flex items-center justify-center bg-gold/5 text-gold hover:bg-gold/15 transition-all duration-200 cursor-pointer"
+            className="w-12 h-12 rounded-full border border-accent/30 flex items-center justify-center bg-accent/5 text-accent hover:bg-accent/15 transition-all duration-200 cursor-pointer"
           >
             {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
           </button>
@@ -202,7 +202,7 @@ export default function BreathworkOrb({ weatherState, currentTheme }: Breathwork
               setSecondsLeft(inhale);
               setIsPlaying(true);
             }}
-            className="w-10 h-10 rounded-full border border-gold/20 flex items-center justify-center bg-transparent text-gold/60 hover:text-gold hover:bg-gold/5 transition-all duration-200 cursor-pointer"
+            className="w-10 h-10 rounded-full border border-accent/20 flex items-center justify-center bg-transparent text-accent/60 hover:text-accent hover:bg-accent/5 transition-all duration-200 cursor-pointer"
             title="Reset Respiration Cycle"
           >
             <RefreshCw className="w-4 h-4" />
@@ -210,21 +210,21 @@ export default function BreathworkOrb({ weatherState, currentTheme }: Breathwork
         </div>
 
         {/* Respiration Pattern Info Bar */}
-        <div className="w-full border-t border-gold/10 mt-6 pt-4 flex justify-around text-center">
+        <div className="w-full border-t border-accent/10 mt-6 pt-4 flex justify-around text-center">
           <div>
-            <div className="font-mono text-xs text-gold font-medium">{inhale}s</div>
+            <div className="font-mono text-xs text-accent font-medium">{inhale}s</div>
             <div className="font-mono text-[8px] uppercase tracking-wider opacity-50">Inhale</div>
           </div>
           <div>
-            <div className="font-mono text-xs text-gold font-medium">{exhale}s</div>
+            <div className="font-mono text-xs text-accent font-medium">{exhale}s</div>
             <div className="font-mono text-[8px] uppercase tracking-wider opacity-50">Exhale</div>
           </div>
           <div>
-            <div className="font-mono text-xs text-gold font-medium">{weatherState.respiratoryRatio}</div>
+            <div className="font-mono text-xs text-accent font-medium">{weatherState.respiratoryRatio}</div>
             <div className="font-mono text-[8px] uppercase tracking-wider opacity-50">Ratio</div>
           </div>
           <div>
-            <div className="font-mono text-xs text-gold font-medium">{weatherState.hrv}%</div>
+            <div className="font-mono text-xs text-accent font-medium">{weatherState.hrv}%</div>
             <div className="font-mono text-[8px] uppercase tracking-wider opacity-50">Coherence</div>
           </div>
         </div>

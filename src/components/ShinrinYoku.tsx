@@ -68,8 +68,8 @@ export default function ShinrinYoku({ currentTheme }: ShinrinYokuProps) {
   return (
     <div className={`flex flex-col w-full max-w-4xl mx-auto p-6 rounded-2xl border backdrop-blur-md relative ${
       currentTheme === 'night' 
-        ? 'bg-[#121214]/80 border-white/[0.08]' 
-        : 'bg-white/75 border-sky-300/40 shadow-lg shadow-sky-100/30'
+        ? 'bg-[#29105A]/75 border-white/[0.06] backdrop-blur-md' 
+        : 'bg-white/80 border-[#CCCAFF]/50 backdrop-blur-md shadow-lg shadow-[#8C6CD0]/10'
     }`}
          id="shinrin-yoku-section">
       
@@ -82,9 +82,9 @@ export default function ShinrinYoku({ currentTheme }: ShinrinYokuProps) {
             exit={{ opacity: 0, scale: 0.95 }}
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 pointer-events-none"
           >
-            <div className="p-8 rounded-2xl bg-[#121214] border border-[#eab308]/40 shadow-[0_0_50px_rgba(234,179,8,0.25)] text-center max-w-sm">
-              <Trees className="w-10 h-10 text-gold mx-auto mb-4 animate-bounce" />
-              <p className="font-serif text-2xl font-semibold text-gold tracking-wide italic leading-normal">
+            <div className="p-8 rounded-3xl bg-[#29105A] border border-[#8C6CD0]/40 shadow-[0_0_50px_rgba(140,108,208,0.25)] text-center max-w-sm">
+              <Trees className="w-10 h-10 text-accent mx-auto mb-4 animate-bounce" />
+              <p className="font-serif text-2xl font-semibold text-accent tracking-wide italic leading-normal">
                 "the forest is working."
               </p>
               <p className="font-mono text-[9px] uppercase tracking-widest text-white/50 mt-2">
@@ -98,7 +98,7 @@ export default function ShinrinYoku({ currentTheme }: ShinrinYokuProps) {
       {/* Header */}
       <div className="mb-6">
         <span className="font-mono text-[10px] tracking-widest uppercase opacity-50 block mb-1">08 — PHYTOTHERAPEUTIC FOREST IMMERSION</span>
-        <h2 className="font-serif text-2xl text-gold font-medium">Shinrin-Yoku Forest Bathing</h2>
+        <h2 className="font-serif text-2xl text-accent font-medium">Shinrin-Yoku Forest Bathing</h2>
         <p className="font-serif text-xs italic opacity-85 mt-1">
           Gentle forest bathing rituals designed to slow your pace, ground your attention, and welcome the restorative energy of nature.
         </p>
@@ -116,7 +116,7 @@ export default function ShinrinYoku({ currentTheme }: ShinrinYokuProps) {
               className={`p-5 rounded-xl border flex flex-col justify-between transition-all duration-300 relative ${
                 currentTheme === 'night' 
                   ? 'bg-black/35 border-white/[0.06] hover:bg-white/[0.03]' 
-                  : 'bg-sky-100/15 border-sky-200/55 hover:bg-sky-100/30 shadow-sm'
+                  : 'bg-[#CCCAFF]/20 border-[#8C6CD0]/15 hover:bg-[#CCCAFF]/35 shadow-sm'
               }`}
               id={`shinrin-card-${protocol.id}`}
             >
@@ -125,7 +125,7 @@ export default function ShinrinYoku({ currentTheme }: ShinrinYokuProps) {
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex flex-col text-left">
                     <span className="font-mono text-[8px] uppercase tracking-widest opacity-40">{protocol.number}</span>
-                    <span className="font-serif text-lg font-bold text-gold tracking-wide">{protocol.title}</span>
+                    <span className="font-serif text-lg font-bold text-accent tracking-wide">{protocol.title}</span>
                   </div>
                   
                   <span className={`font-mono text-[9px] uppercase tracking-widest px-2.5 py-1 rounded ${
@@ -138,9 +138,9 @@ export default function ShinrinYoku({ currentTheme }: ShinrinYokuProps) {
                 </div>
 
                 {/* Statistics Box */}
-                <div className="flex items-center gap-2 mb-3 px-3 py-1.5 rounded bg-gold/5 border border-gold/5">
-                  <Heart className="w-3.5 h-3.5 text-gold shrink-0 animate-pulse" />
-                  <span className="font-mono text-[10px] text-gold/90 font-medium tracking-tight">
+                <div className="flex items-center gap-2 mb-3 px-3 py-1.5 rounded bg-accent/5 border border-accent/5">
+                  <Heart className="w-3.5 h-3.5 text-accent shrink-0 animate-pulse" />
+                  <span className="font-mono text-[10px] text-accent/90 font-medium tracking-tight">
                     {protocol.stats}
                   </span>
                 </div>
@@ -153,18 +153,18 @@ export default function ShinrinYoku({ currentTheme }: ShinrinYokuProps) {
                 <div className={`p-3 rounded border text-[10px] font-mono leading-relaxed mb-5 ${
                   currentTheme === 'night' 
                     ? 'border-white/5 bg-black/40 text-slate-400' 
-                    : 'border-sky-100 bg-sky-50/50 text-sky-850'
+                    : 'border-[#CCCAFF] bg-[#CCCAFF]/30 text-[#46238D]'
                 }`}>
-                  <span className="text-gold font-bold block mb-0.5 uppercase tracking-wider text-[8px]">Measurable Biomarkers:</span>
+                  <span className="text-accent font-bold block mb-0.5 uppercase tracking-wider text-[8px]">Measurable Biomarkers:</span>
                   {protocol.biomarkers}
                 </div>
               </div>
 
               {/* Progress & Session Tracker Row */}
-              <div className="border-t border-gold/10 pt-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+              <div className="border-t border-accent/10 pt-4 flex flex-col sm:flex-row justify-between items-center gap-3">
                 <div className="flex flex-col items-start">
                   <span className="font-mono text-[8px] uppercase tracking-widest opacity-40">Session checklist</span>
-                  <span className="font-serif text-[11px] italic text-gold">
+                  <span className="font-serif text-[11px] italic text-accent">
                     {completedCount === 4 ? 'Protocol fully integrated' : `${completedCount} of 4 sessions logged`}
                   </span>
                 </div>
@@ -180,8 +180,8 @@ export default function ShinrinYoku({ currentTheme }: ShinrinYokuProps) {
                       whileTap={{ scale: 0.9 }}
                       className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all cursor-pointer ${
                         checked 
-                          ? currentTheme === 'night' ? 'bg-[#eab308] border-[#eab308] text-black shadow-md shadow-amber-500/10' : 'bg-[#d97706] border-[#d97706] text-white shadow-md shadow-amber-500/10'
-                          : currentTheme === 'night' ? 'bg-transparent border-[#eab308]/30 text-[#eab308]' : 'bg-transparent border-sky-300/60 text-sky-800 hover:border-sky-400'
+                          ? currentTheme === 'night' ? 'bg-[#8C6CD0] border-[#8C6CD0] text-black shadow-md shadow-[#8C6CD0]/10' : 'bg-[#654487] border-[#654487] text-white shadow-md shadow-[#8C6CD0]/10'
+                          : currentTheme === 'night' ? 'bg-transparent border-[#8C6CD0]/30 text-[#8C6CD0]' : 'bg-transparent border-[#8C6CD0]/35 text-[#654487] hover:border-[#8C6CD0]/50'
                       }`}
                       title={`Mark session ${index + 1} completed`}
                     >
@@ -197,7 +197,7 @@ export default function ShinrinYoku({ currentTheme }: ShinrinYokuProps) {
                     <button
                       id={`reset-shinrin-btn-${protocol.id}`}
                       onClick={() => handleResetProtocol(protocol.id)}
-                      className="p-1 text-gold/40 hover:text-gold transition-colors ml-1 cursor-pointer"
+                      className="p-1 text-accent/40 hover:text-accent transition-colors ml-1 cursor-pointer"
                       title="Reset protocol progress"
                     >
                       <RefreshCw className="w-3.5 h-3.5" />

@@ -14,15 +14,15 @@ export default function LightTherapy({ currentTheme }: LightTherapyProps) {
   return (
     <div className={`flex flex-col w-full max-w-4xl mx-auto p-6 rounded-2xl border backdrop-blur-md ${
       currentTheme === 'night' 
-        ? 'bg-[#121214]/80 border-white/[0.08]' 
-        : 'bg-white/75 border-sky-300/40 shadow-lg shadow-sky-100/30'
+        ? 'bg-[#29105A]/75 border-white/[0.06] backdrop-blur-md' 
+        : 'bg-white/80 border-[#CCCAFF]/50 backdrop-blur-md shadow-lg shadow-[#8C6CD0]/10'
     }`}
          id="light-therapy-section">
       
       {/* Header */}
       <div className="mb-6">
         <span className="font-mono text-[10px] tracking-widest uppercase opacity-50 block mb-1">06 — CHROMATHERAPY WINDOWS</span>
-        <h2 className="font-serif text-2xl text-gold font-medium">Light Therapy</h2>
+        <h2 className="font-serif text-2xl text-accent font-medium">Light Therapy</h2>
         <p className="font-serif text-xs italic opacity-85 mt-1">
           Immerse yourself in gentle, full-screen color washes designed to support your natural circadian rhythms and peace of mind.
         </p>
@@ -37,7 +37,7 @@ export default function LightTherapy({ currentTheme }: LightTherapyProps) {
             className={`p-5 rounded-xl border flex flex-col justify-between transition-all duration-300 relative overflow-hidden group cursor-pointer ${
               currentTheme === 'night'
                 ? 'bg-black/35 border-white/[0.06] hover:bg-white/[0.03]'
-                : 'bg-sky-100/15 border-sky-200/55 hover:bg-sky-100/30 shadow-sm'
+                : 'bg-[#CCCAFF]/20 border-[#8C6CD0]/15 hover:bg-[#CCCAFF]/35 shadow-sm'
             }`}
             onClick={() => setActiveMode(mode)}
             id={`light-card-${mode.id}`}
@@ -50,7 +50,7 @@ export default function LightTherapy({ currentTheme }: LightTherapyProps) {
 
             <div>
               <div className="flex justify-between items-center mb-3">
-                <span className="font-mono text-[9px] uppercase tracking-widest px-2.5 py-0.5 rounded-full border border-gold/15 bg-gold/5 text-gold">
+                <span className="font-mono text-[9px] uppercase tracking-widest px-2.5 py-0.5 rounded-full border border-accent/15 bg-accent/5 text-accent">
                   {mode.label}
                 </span>
                 
@@ -61,15 +61,15 @@ export default function LightTherapy({ currentTheme }: LightTherapyProps) {
                 />
               </div>
 
-              <h3 className="font-serif text-lg font-medium text-gold mb-1">{mode.name}</h3>
+              <h3 className="font-serif text-lg font-medium text-accent mb-1">{mode.name}</h3>
               <p className="font-serif text-xs opacity-85 italic mb-3 leading-relaxed">{mode.description}</p>
-              <p className="font-serif text-[11px] opacity-65 leading-relaxed border-t border-gold/10 pt-2.5">
+              <p className="font-serif text-[11px] opacity-65 leading-relaxed border-t border-accent/10 pt-2.5">
                 {mode.benefits}
               </p>
             </div>
 
             <div className="mt-4 pt-3 flex justify-end">
-              <button className="text-gold/80 hover:text-gold flex items-center gap-1 text-[11px] font-mono tracking-wider">
+              <button className="text-accent/80 hover:text-accent flex items-center gap-1 text-[11px] font-mono tracking-wider">
                 <Eye className="w-3.5 h-3.5" /> ENTER IMMERSION
               </button>
             </div>

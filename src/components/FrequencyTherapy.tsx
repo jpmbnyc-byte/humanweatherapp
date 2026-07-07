@@ -146,8 +146,8 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
   return (
     <div className={`flex flex-col w-full max-w-4xl mx-auto p-6 rounded-2xl border backdrop-blur-md ${
       currentTheme === 'night' 
-        ? 'bg-[#121214]/80 border-white/[0.08]' 
-        : 'bg-white/75 border-sky-300/40 shadow-lg shadow-sky-100/30'
+        ? 'bg-[#29105A]/75 border-white/[0.06] backdrop-blur-md' 
+        : 'bg-white/80 border-[#CCCAFF]/50 backdrop-blur-md shadow-lg shadow-[#8C6CD0]/10'
     }`}
          id="frequency-therapy-section">
       
@@ -155,15 +155,15 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
           <span className="font-mono text-[10px] tracking-widest uppercase opacity-50 block mb-1">05 — NEURAL REGULATION</span>
-          <h2 className="font-serif text-2xl text-gold font-medium">Frequency Therapy</h2>
+          <h2 className="font-serif text-2xl text-accent font-medium">Frequency Therapy</h2>
           <p className="font-serif text-xs italic opacity-85 mt-1">
             Restorative sound waves synthesized in real time to gently clear mental static and support neural harmony.
           </p>
         </div>
 
         {/* Global Volume & Quick Controls */}
-        <div className="flex items-center gap-3 bg-black/30 px-4 py-2.5 rounded-full border border-gold/15">
-          <Volume2 className="w-4 h-4 text-gold/80" />
+        <div className="flex items-center gap-3 bg-black/30 px-4 py-2.5 rounded-full border border-accent/15">
+          <Volume2 className="w-4 h-4 text-accent/80" />
           <input
             type="range"
             min="0"
@@ -171,7 +171,7 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
             step="0.05"
             value={volume}
             onChange={(e) => setVolume(parseFloat(e.target.value))}
-            className="w-24 h-1 bg-gold/15 rounded-lg appearance-none cursor-pointer accent-gold focus:outline-none"
+            className="w-24 h-1 bg-accent/15 rounded-lg appearance-none cursor-pointer accent-accent focus:outline-none"
             id="freq-volume-slider"
           />
           {isPlaying && (
@@ -190,10 +190,10 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
       </div>
 
       {/* Headphone Advisory Alert */}
-      <div className="flex items-start gap-2.5 p-3 rounded-lg bg-gold/5 border border-gold/10 mb-6 text-xs text-gold/90">
+      <div className="flex items-start gap-2.5 p-3 rounded-lg bg-accent/5 border border-accent/10 mb-6 text-xs text-accent/90">
         <Headphones className="w-4 h-4 mt-0.5 shrink-0" />
         <p className="font-serif italic leading-relaxed">
-          <strong className="font-mono text-[10px] uppercase tracking-wider not-italic mr-1 text-gold">Note:</strong> 
+          <strong className="font-mono text-[10px] uppercase tracking-wider not-italic mr-1 text-accent">Note:</strong> 
           Binaural frequencies (Delta, Theta, Alpha, Beta) require stereo headphones. The left and right channels output distinct, slightly separated frequencies, allowing your brain to naturally perceive the differential beat.
         </p>
       </div>
@@ -209,11 +209,11 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
               className={`relative p-5 rounded-xl border flex flex-col justify-between cursor-pointer transition-all duration-300 ${
                 isActive 
                   ? currentTheme === 'night' 
-                    ? 'bg-amber-500/10 border-amber-400 shadow-[0_0_20px_rgba(234,179,8,0.15)]' 
-                    : 'bg-amber-500/10 border-amber-500 shadow-[0_0_20px_rgba(217,119,6,0.15)]'
+                    ? 'bg-[#8C6CD0]/10 border-[#9390FF] shadow-[0_0_20px_rgba(140,108,208,0.2)]' 
+                    : 'bg-[#8C6CD0]/10 border-[#654487] shadow-[0_0_20px_rgba(101,68,135,0.2)]'
                   : currentTheme === 'night'
                     ? 'bg-black/35 border-white/[0.06] hover:bg-white/[0.03]'
-                    : 'bg-sky-100/15 border-sky-200/55 hover:bg-sky-100/30'
+                    : 'bg-[#CCCAFF]/20 border-[#8C6CD0]/15 hover:bg-[#CCCAFF]/35'
               }`}
               onClick={() => handleToneClick(tone)}
               id={`freq-card-${tone.id}`}
@@ -223,20 +223,20 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
                   <span className={`font-mono text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full border ${
                     tone.type === 'binaural' 
                       ? 'border-purple-500/30 bg-purple-500/5 text-purple-400' 
-                      : 'border-amber-500/30 bg-amber-500/5 text-amber-400'
+                      : 'bg-[#8C6CD0]/30 bg-[#8C6CD0]/5 text-[#9390FF]'
                   }`}>
                     {tone.type}
                   </span>
                   
                   {isActive && (
                     <span className="flex h-2 w-2 relative">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gold opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-gold"></span>
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
                     </span>
                   )}
                 </div>
 
-                <h3 className="font-serif text-lg font-medium text-gold leading-tight mb-1">
+                <h3 className="font-serif text-lg font-medium text-accent leading-tight mb-1">
                   {tone.name}
                 </h3>
                 <h4 className="font-serif text-xs italic opacity-80 mb-2 leading-snug">
@@ -248,12 +248,12 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
               </div>
 
               {/* Waveform Visualization Overlay (for active cards) */}
-              <div className="mt-4 pt-4 border-t border-gold/10 flex items-center justify-between">
+              <div className="mt-4 pt-4 border-t border-accent/10 flex items-center justify-between">
                 <span className="font-mono text-[9px] opacity-40 uppercase">
                   {tone.hz} Hz
                 </span>
                 
-                <button className="text-gold/80 hover:text-gold flex items-center gap-1 text-xs font-mono">
+                <button className="text-accent/80 hover:text-accent flex items-center gap-1 text-xs font-mono">
                   {isActive ? (
                     <>
                       <Square className="w-3 h-3 fill-current" /> STOP
@@ -273,7 +273,7 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
                     <motion.path
                       d="M0 5 Q 25 1, 50 5 T 100 5"
                       fill="transparent"
-                      stroke={currentTheme === 'night' ? '#eab308' : '#d97706'}
+                      stroke={currentTheme === 'night' ? '#8C6CD0' : '#654487'}
                       strokeWidth="2"
                       animate={{
                         d: [

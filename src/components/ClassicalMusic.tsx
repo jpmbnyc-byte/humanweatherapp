@@ -155,8 +155,8 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
   return (
     <div className={`flex flex-col w-full max-w-4xl mx-auto p-6 rounded-2xl border backdrop-blur-md ${
       currentTheme === 'night' 
-        ? 'bg-[#121214]/80 border-white/[0.08]' 
-        : 'bg-white/75 border-sky-300/40 shadow-lg shadow-sky-100/30'
+        ? 'bg-[#29105A]/75 border-white/[0.06] backdrop-blur-md' 
+        : 'bg-white/80 border-[#CCCAFF]/50 backdrop-blur-md shadow-lg shadow-[#8C6CD0]/10'
     }`}
          id="classical-music-section">
       
@@ -164,15 +164,15 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
           <span className="font-mono text-[10px] tracking-widest uppercase opacity-50 block mb-1">07 — CONTEMPLATIVE CHORDS</span>
-          <h2 className="font-serif text-2xl text-gold font-medium">Classical Music Immersion</h2>
+          <h2 className="font-serif text-2xl text-accent font-medium">Classical Music Immersion</h2>
           <p className="font-serif text-xs italic opacity-85 mt-1">
             Six timeless arrangements selected to gently soothe your nervous system, quiet the mind, and restore inner balance.
           </p>
         </div>
 
         {/* Volume */}
-        <div className="flex items-center gap-3 bg-black/30 px-4 py-2.5 rounded-full border border-gold/15">
-          <Volume2 className="w-4 h-4 text-gold/80" />
+        <div className="flex items-center gap-3 bg-black/30 px-4 py-2.5 rounded-full border border-accent/15">
+          <Volume2 className="w-4 h-4 text-accent/80" />
           <input
             type="range"
             min="0"
@@ -180,7 +180,7 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
             step="0.05"
             value={volume}
             onChange={(e) => setVolume(parseFloat(e.target.value))}
-            className="w-24 h-1 bg-gold/15 rounded-lg appearance-none cursor-pointer accent-gold focus:outline-none"
+            className="w-24 h-1 bg-accent/15 rounded-lg appearance-none cursor-pointer accent-accent focus:outline-none"
             id="classical-volume-slider"
           />
           {isPlaying && (
@@ -208,11 +208,11 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
               className={`p-5 rounded-xl border flex flex-col justify-between relative overflow-hidden transition-all duration-300 ${
                 isActive 
                   ? currentTheme === 'night' 
-                    ? 'bg-amber-500/10 border-amber-400 shadow-[0_0_20px_rgba(234,179,8,0.15)]' 
-                    : 'bg-amber-500/10 border-amber-500 shadow-[0_0_20px_rgba(217,119,6,0.15)]'
+                    ? 'bg-[#8C6CD0]/10 border-[#9390FF] shadow-[0_0_20px_rgba(140,108,208,0.2)]' 
+                    : 'bg-[#8C6CD0]/10 border-[#654487] shadow-[0_0_20px_rgba(101,68,135,0.2)]'
                   : currentTheme === 'night'
                     ? 'bg-black/35 border-white/[0.06] hover:bg-white/[0.03]'
-                    : 'bg-sky-100/15 border-sky-200/55 hover:bg-sky-100/30 shadow-sm'
+                    : 'bg-[#CCCAFF]/20 border-[#8C6CD0]/15 hover:bg-[#CCCAFF]/35 shadow-sm'
               }`}
               id={`classical-piece-${piece.id}`}
             >
@@ -223,17 +223,17 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
                     <span className="font-mono text-[8px] uppercase tracking-widest opacity-40">Composer</span>
                     <span className={`font-serif text-sm font-semibold tracking-wide ${currentTheme === 'night' ? 'text-white' : 'text-slate-800'}`}>{piece.composer}</span>
                   </div>
-                  <span className="font-mono text-[9px] uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-gold/5 text-gold/80 border border-gold/10">
+                  <span className="font-mono text-[9px] uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-accent/5 text-accent/80 border border-accent/10">
                     {piece.weatherState}
                   </span>
                 </div>
 
-                <h3 className="font-serif text-xl font-medium text-gold mb-1">{piece.title}</h3>
+                <h3 className="font-serif text-xl font-medium text-accent mb-1">{piece.title}</h3>
                 <p className="font-serif text-xs italic opacity-85 mb-3 leading-relaxed">"{piece.description}"</p>
                 
                 {/* Scientific Reason */}
-                <div className="p-3 rounded bg-black/40 border border-gold/5 text-[11px] leading-relaxed text-gold/75 font-serif italic mb-4">
-                  <span className="font-mono text-[9px] uppercase tracking-widest not-italic font-semibold text-gold block mb-1">
+                <div className="p-3 rounded bg-black/40 border border-accent/5 text-[11px] leading-relaxed text-accent/75 font-serif italic mb-4">
+                  <span className="font-mono text-[9px] uppercase tracking-widest not-italic font-semibold text-accent block mb-1">
                     Neurological Rationale:
                   </span>
                   {piece.explanation}
@@ -241,7 +241,7 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
               </div>
 
               {/* Quick Actions */}
-              <div className="flex items-center justify-between mt-auto border-t border-gold/10 pt-3">
+              <div className="flex items-center justify-between mt-auto border-t border-accent/10 pt-3">
                 {/* Live Ambient Synthesis */}
                 <button
                   id={`play-classical-ambient-btn-${piece.id}`}
@@ -249,11 +249,11 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-mono tracking-wider transition-all cursor-pointer ${
                     isActive 
                       ? currentTheme === 'night'
-                        ? 'bg-[#eab308] border-[#eab308] text-black hover:bg-[#eab308]/90 font-medium'
-                        : 'bg-gradient-to-r from-amber-400 to-amber-500 border-amber-300 text-slate-900 shadow-md shadow-amber-500/10 font-medium'
+                        ? 'bg-[#8C6CD0] border-[#8C6CD0] text-black hover:bg-[#8C6CD0]/90 font-medium'
+                        : 'bg-gradient-to-r from-[#654487] to-[#8C6CD0] border-[#8C6CD0] text-slate-900 shadow-md shadow-[#8C6CD0]/10 font-medium'
                       : currentTheme === 'night'
                         ? 'bg-black/20 border-white/5 text-white/40 hover:text-white/80 hover:border-white/10'
-                        : 'bg-sky-100/40 border-sky-200/50 text-sky-800 hover:text-sky-950 hover:bg-white hover:border-sky-300 shadow-sm'
+                        : 'bg-white/50 border-[#8C6CD0]/25 text-[#654487] hover:text-[#46238D] hover:bg-white hover:border-[#8C6CD0]/40 shadow-sm'
                   }`}
                 >
                   {isActive ? (
@@ -272,7 +272,7 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
                   href={piece.youtubeUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-[11px] font-mono text-gold/60 hover:text-gold transition-colors"
+                  className="flex items-center gap-1 text-[11px] font-mono text-accent/60 hover:text-accent transition-colors"
                 >
                   FULL RECORDING <ExternalLink className="w-3 h-3" />
                 </a>

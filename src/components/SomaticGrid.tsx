@@ -204,14 +204,14 @@ export default function SomaticGrid({ onStateChange, currentTheme }: SomaticGrid
         onTouchEnd={() => setIsDrawing(false)}
         className={`grid grid-cols-8 gap-1.5 p-3 rounded-2xl border backdrop-blur-md transition-all duration-300 w-full aspect-square relative ${
           currentTheme === 'night' 
-            ? 'bg-[#121214]/80 border-white/[0.08]' 
-            : 'bg-white/75 border-sky-300/40 shadow-lg shadow-sky-100/30'
+            ? 'bg-[#29105A]/75 border-white/[0.06] backdrop-blur-md' 
+            : 'bg-white/80 border-[#CCCAFF]/50 backdrop-blur-md shadow-lg shadow-[#8C6CD0]/10'
         }`}
         style={{
           touchAction: 'pan-y',
           boxShadow: currentTheme === 'night' 
             ? '0 10px 30px -10px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255,255,255,0.03)' 
-            : '0 10px 30px -10px rgba(14, 165, 233, 0.08)'
+            : '0 10px 30px -10px rgba(140, 108, 208, 0.08)'
         }}
       >
         {grid.map((row, rIdx) => 
@@ -228,19 +228,19 @@ export default function SomaticGrid({ onStateChange, currentTheme }: SomaticGrid
                 style={{
                   touchAction: 'pan-y',
                   backgroundColor: active 
-                    ? currentTheme === 'night' ? '#eab308' : '#d97706' 
+                    ? currentTheme === 'night' ? '#8C6CD0' : '#654487' 
                     : currentTheme === 'night' 
                       ? 'rgba(255,255,255,0.02)' 
-                      : 'rgba(14, 165, 233, 0.03)',
+                      : 'rgba(140, 108, 208, 0.05)',
                   border: active 
-                    ? currentTheme === 'night' ? '1px solid #eab308' : '1px solid #d97706' 
+                    ? currentTheme === 'night' ? '1px solid #8C6CD0' : '1px solid #654487' 
                     : currentTheme === 'night' 
                       ? '1px solid rgba(255,255,255,0.05)' 
-                      : '1px solid rgba(14, 165, 233, 0.1)',
+                      : '1px solid rgba(140, 108, 208, 0.15)',
                   boxShadow: active 
                     ? currentTheme === 'night'
-                      ? '0 0 14px rgba(234,179,8,0.8), inset 0 0 4px rgba(255,255,255,0.4)' 
-                      : '0 0 14px rgba(217,119,6,0.6), inset 0 0 4px rgba(255,255,255,0.5)' 
+                      ? '0 0 14px rgba(140,108,208,0.8), inset 0 0 4px rgba(255,255,255,0.4)' 
+                      : '0 0 14px rgba(101,68,135,0.6), inset 0 0 4px rgba(255,255,255,0.5)' 
                     : 'none'
                 }}
               >
@@ -280,8 +280,8 @@ export default function SomaticGrid({ onStateChange, currentTheme }: SomaticGrid
               whileTap={{ scale: 0.98 }}
               className={`px-3 py-1.5 rounded-full text-xs font-mono transition-all duration-200 border cursor-pointer ${
                 currentTheme === 'night'
-                  ? 'bg-amber-500/5 border-white/[0.08] text-gray-300 hover:text-white hover:bg-amber-500/10'
-                  : 'bg-white/60 border-sky-300/40 text-sky-950 hover:bg-white hover:border-sky-300 shadow-sm'
+                  ? 'bg-[#8C6CD0]/5 border-white/[0.08] text-[#CCCAFF]/70 hover:text-white hover:bg-[#8C6CD0]/10'
+                  : 'bg-white/60 border-[#8C6CD0]/25 text-[#46238D] hover:bg-white hover:border-[#8C6CD0]/40 shadow-sm'
               }`}
               title={path.description}
             >

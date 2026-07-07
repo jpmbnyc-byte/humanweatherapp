@@ -93,7 +93,7 @@ export default function SolarRay({ currentTheme }: SolarRayProps) {
 
   if (!solarData) {
     return (
-      <div className="flex justify-center items-center py-12 text-gold font-serif italic">
+      <div className="flex justify-center items-center py-12 text-accent font-serif italic">
         Calculating solar vectors...
       </div>
     );
@@ -228,8 +228,8 @@ export default function SolarRay({ currentTheme }: SolarRayProps) {
   return (
     <div className={`flex flex-col w-full max-w-4xl mx-auto p-6 rounded-2xl border backdrop-blur-md ${
       currentTheme === 'night' 
-        ? 'bg-[#121214]/80 border-white/[0.08]' 
-        : 'bg-white/75 border-sky-300/40 shadow-lg shadow-sky-100/30'
+        ? 'bg-[#29105A]/75 border-white/[0.06] backdrop-blur-md' 
+        : 'bg-white/80 border-[#CCCAFF]/50 backdrop-blur-md shadow-lg shadow-[#8C6CD0]/10'
     }`}
          id="solar-ray-therapy-section">
       
@@ -237,7 +237,7 @@ export default function SolarRay({ currentTheme }: SolarRayProps) {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
           <span className="font-mono text-[10px] tracking-widest uppercase opacity-50 block mb-1">09 — CIRCADIAN SUNLIGHT ALIGNMENT</span>
-          <h2 className="font-serif text-2xl text-gold font-medium">Solar Ray Therapy</h2>
+          <h2 className="font-serif text-2xl text-accent font-medium">Solar Ray Therapy</h2>
           <p className="font-serif text-xs italic opacity-85 mt-1">
             Align with the sun's natural cycles. Track solar angles, UV light ranges, and healing windows computed for your local time.
           </p>
@@ -245,7 +245,7 @@ export default function SolarRay({ currentTheme }: SolarRayProps) {
 
         {/* Location Display */}
         <div className="flex flex-col items-end shrink-0">
-          <div className="flex items-center gap-1.5 text-xs text-gold">
+          <div className="flex items-center gap-1.5 text-xs text-accent">
             <MapPin className="w-3.5 h-3.5" />
             <span className="font-serif italic font-medium">{city}</span>
           </div>
@@ -264,16 +264,16 @@ export default function SolarRay({ currentTheme }: SolarRayProps) {
           onChange={(e) => setManualCityInput(e.target.value)}
           className={`flex-1 px-3 py-1.5 rounded-lg border text-xs sm:text-sm focus:outline-none ${
             currentTheme === 'night'
-              ? 'border-gold/20 bg-black/40 text-white placeholder-gold/30 focus:border-gold/50'
-              : 'border-sky-300/60 bg-white/85 text-slate-800 placeholder-slate-400 focus:border-sky-500 shadow-inner'
+              ? 'border-accent/20 bg-black/40 text-white placeholder-gold/30 focus:border-accent/50'
+              : 'border-[#8C6CD0]/40 bg-white/85 text-slate-800 placeholder-slate-400 focus:border-[#8C6CD0] shadow-inner'
           }`}
         />
         <button
           type="submit"
           className={`px-3 py-1.5 border rounded-lg font-mono text-xs uppercase tracking-wider cursor-pointer transition-all ${
             currentTheme === 'night'
-              ? 'bg-gold/10 hover:bg-gold/20 border-gold/30 text-gold'
-              : 'bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/30 text-amber-800 font-medium'
+              ? 'bg-accent/10 hover:bg-accent/20 border-accent/30 text-accent'
+              : 'bg-[#8C6CD0]/10 hover:bg-[#8C6CD0]/20 border-[#8C6CD0]/30 text-[#654487] font-medium'
           }`}
         >
           Override
@@ -289,14 +289,14 @@ export default function SolarRay({ currentTheme }: SolarRayProps) {
             exit={{ opacity: 0, y: -10 }}
             className={`flex items-start gap-2.5 p-4 rounded-xl border mb-6 ${
               currentTheme === 'night'
-                ? 'bg-gold/10 border-gold/30'
-                : 'bg-amber-500/10 border-amber-500/30 shadow-sm'
+                ? 'bg-accent/10 border-accent/30'
+                : 'bg-[#8C6CD0]/10 border-[#654487]/30 shadow-sm'
             }`}
             id="active-solar-alert"
           >
-            <AlertCircle className="w-5 h-5 text-gold mt-0.5 shrink-0 animate-pulse" />
+            <AlertCircle className="w-5 h-5 text-accent mt-0.5 shrink-0 animate-pulse" />
             <div>
-              <h4 className="font-serif text-sm sm:text-base font-semibold text-gold uppercase tracking-wide">
+              <h4 className="font-serif text-sm sm:text-base font-semibold text-accent uppercase tracking-wide">
                 Step outside now.
               </h4>
               <p className={`font-serif text-xs sm:text-sm italic leading-relaxed mt-1 ${
@@ -316,9 +316,9 @@ export default function SolarRay({ currentTheme }: SolarRayProps) {
         <div className={`p-5 rounded-xl border flex flex-col items-center justify-between min-h-[220px] ${
           currentTheme === 'night' 
             ? 'bg-black/35 border-white/[0.06]' 
-            : 'bg-sky-100/15 border-sky-200/55 shadow-sm'
+            : 'bg-[#CCCAFF]/20 border-[#8C6CD0]/15 shadow-sm'
         }`}>
-          <span className="font-mono text-xs uppercase tracking-widest text-gold font-semibold self-start">Live Sun Arc</span>
+          <span className="font-mono text-xs uppercase tracking-widest text-accent font-semibold self-start">Live Sun Arc</span>
           
           {/* SVG Sun Tracker */}
           <div className="w-full max-w-[180px] h-32 relative">
@@ -364,8 +364,8 @@ export default function SolarRay({ currentTheme }: SolarRayProps) {
                 cx={sunPos.x}
                 cy={sunPos.y}
                 r="6"
-                fill={currentTheme === 'night' ? '#eab308' : '#d97706'}
-                filter={`drop-shadow(0px 0px 8px ${currentTheme === 'night' ? '#eab308' : '#d97706'})`}
+                fill={currentTheme === 'night' ? '#8C6CD0' : '#654487'}
+                filter={`drop-shadow(0px 0px 8px ${currentTheme === 'night' ? '#8C6CD0' : '#654487'})`}
                 animate={{
                   r: [6, 7.5, 6]
                 }}
@@ -382,7 +382,7 @@ export default function SolarRay({ currentTheme }: SolarRayProps) {
               <span className={`font-mono text-2xl font-bold tracking-tighter ${currentTheme === 'night' ? 'text-white' : 'text-slate-800'}`}>
                 {solarData.altitude.toFixed(1)}°
               </span>
-              <span className="font-mono text-[10px] uppercase tracking-widest text-gold font-bold">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-accent font-bold">
                 Altitude
               </span>
             </div>
@@ -395,33 +395,33 @@ export default function SolarRay({ currentTheme }: SolarRayProps) {
         <div className={`p-5 rounded-xl border flex flex-col justify-between min-h-[220px] ${
           currentTheme === 'night' 
             ? 'bg-black/35 border-white/[0.06]' 
-            : 'bg-sky-100/15 border-sky-200/55 shadow-sm'
+            : 'bg-[#CCCAFF]/20 border-[#8C6CD0]/15 shadow-sm'
         }`}>
-          <span className="font-mono text-xs uppercase tracking-widest text-gold font-semibold">Astrological Metrics</span>
+          <span className="font-mono text-xs uppercase tracking-widest text-accent font-semibold">Astrological Metrics</span>
           
           <div className="flex flex-col gap-3.5 my-4">
             {/* Sunrise */}
             <div className={`flex justify-between items-center border-b pb-2 ${currentTheme === 'night' ? 'border-white/5' : 'border-slate-100'}`}>
               <span className={`font-serif text-xs sm:text-sm ${currentTheme === 'night' ? 'text-slate-300' : 'text-slate-700'}`}>Sunrise Today</span>
-              <span className="font-mono text-xs sm:text-sm font-semibold text-gold">{solarData.sunrise}</span>
+              <span className="font-mono text-xs sm:text-sm font-semibold text-accent">{solarData.sunrise}</span>
             </div>
             
             {/* Solar Noon */}
             <div className={`flex justify-between items-center border-b pb-2 ${currentTheme === 'night' ? 'border-white/5' : 'border-slate-100'}`}>
               <span className={`font-serif text-xs sm:text-sm ${currentTheme === 'night' ? 'text-slate-300' : 'text-slate-700'}`}>Solar Noon</span>
-              <span className="font-mono text-xs sm:text-sm font-semibold text-gold">{solarData.noon}</span>
+              <span className="font-mono text-xs sm:text-sm font-semibold text-accent">{solarData.noon}</span>
             </div>
 
             {/* Sunset */}
             <div className={`flex justify-between items-center border-b pb-2 ${currentTheme === 'night' ? 'border-white/5' : 'border-slate-100'}`}>
               <span className={`font-serif text-xs sm:text-sm ${currentTheme === 'night' ? 'text-slate-300' : 'text-slate-700'}`}>Sunset Today</span>
-              <span className="font-mono text-xs sm:text-sm font-semibold text-gold">{solarData.sunset}</span>
+              <span className="font-mono text-xs sm:text-sm font-semibold text-accent">{solarData.sunset}</span>
             </div>
 
             {/* UV-B Window status */}
             <div className="flex justify-between items-center pt-1">
               <span className={`font-serif text-xs sm:text-sm ${currentTheme === 'night' ? 'text-slate-300' : 'text-slate-700'}`}>UV-B Synthesis Window</span>
-              <span className="font-mono text-xs sm:text-sm font-semibold text-gold">
+              <span className="font-mono text-xs sm:text-sm font-semibold text-accent">
                 {solarData.uvbStart && solarData.uvbEnd 
                   ? `${solarData.uvbStart} – ${solarData.uvbEnd}`
                   : 'Unavailable today'}
@@ -436,16 +436,16 @@ export default function SolarRay({ currentTheme }: SolarRayProps) {
         <div className={`p-5 rounded-xl border flex flex-col justify-between min-h-[220px] ${
           currentTheme === 'night' 
             ? 'bg-black/35 border-white/[0.06]' 
-            : 'bg-sky-100/15 border-sky-200/55 shadow-sm'
+            : 'bg-[#CCCAFF]/20 border-[#8C6CD0]/15 shadow-sm'
         }`}>
-          <span className="font-mono text-xs uppercase tracking-widest text-gold font-semibold">Now Active Ray</span>
+          <span className="font-mono text-xs uppercase tracking-widest text-accent font-semibold">Now Active Ray</span>
           
           <div className="my-auto flex flex-col items-center text-center py-2">
-            <Sun className="w-10 h-10 text-gold mb-3 animate-spin-slow" style={{ animationDuration: '40s' }} />
+            <Sun className="w-10 h-10 text-accent mb-3 animate-spin-slow" style={{ animationDuration: '40s' }} />
             <h3 className={`font-serif text-sm sm:text-base font-semibold mb-1 ${currentTheme === 'night' ? 'text-white' : 'text-slate-800'}`}>
               {solarData.activeRay}
             </h3>
-            <p className="font-serif text-[11px] leading-relaxed text-gold/75 italic px-2">
+            <p className="font-serif text-[11px] leading-relaxed text-accent/75 italic px-2">
               {solarData.isUvbActive 
                 ? 'Synthesizing vitamin D. Protect skin if exposure exceeds 20 minutes.'
                 : 'Safe light exposure window. Highly recommended for ocular circadian resetting.'}
@@ -472,23 +472,23 @@ export default function SolarRay({ currentTheme }: SolarRayProps) {
                 className={`p-4 rounded-xl border flex flex-col justify-between transition-all ${
                   currentTheme === 'night' 
                     ? 'bg-black/35 border-white/[0.06]' 
-                    : 'bg-sky-100/15 border-sky-200/55 shadow-sm'
+                    : 'bg-[#CCCAFF]/20 border-[#8C6CD0]/15 shadow-sm'
                 }`}
                 style={{
                   borderLeft: status === 'NOW' 
-                    ? `3px solid ${currentTheme === 'night' ? '#eab308' : '#d97706'}` 
+                    ? `3px solid ${currentTheme === 'night' ? '#8C6CD0' : '#654487'}` 
                     : undefined
                 }}
               >
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-mono text-xs sm:text-sm font-bold text-gold">{gram.time}</span>
+                    <span className="font-mono text-xs sm:text-sm font-bold text-accent">{gram.time}</span>
                     
                     {/* Status badge */}
                     <div className="flex items-center gap-1">
                       {status === 'NOW' && (
-                        <span className="flex items-center gap-1 font-mono text-[10px] font-bold text-gold bg-gold/10 px-2 py-0.5 rounded-full border border-gold/30">
-                          <span className="h-1.5 w-1.5 rounded-full bg-gold animate-ping"></span>
+                        <span className="flex items-center gap-1 font-mono text-[10px] font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-full border border-accent/30">
+                          <span className="h-1.5 w-1.5 rounded-full bg-accent animate-ping"></span>
                           ● NOW
                         </span>
                       )}
