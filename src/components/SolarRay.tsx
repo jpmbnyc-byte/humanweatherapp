@@ -119,7 +119,8 @@ export default function SolarRay({ currentTheme }: SolarRayProps) {
 
     if (currentDec >= riseDec && currentDec <= setDec) {
       // Daytime arc
-      const progress = (currentDec - riseDec) / (setDec - riseDec);
+      const span = setDec - riseDec;
+      const progress = span > 0 ? (currentDec - riseDec) / span : 0.5; // guard div-by-zero (polar / --:-- times)
       const angle = Math.PI * (1 - progress); // 180 degrees down to 0 degrees
       const x = 100 + 80 * Math.cos(angle);
       const y = 80 - 60 * Math.sin(angle); // Parabolic rise
@@ -139,7 +140,13 @@ export default function SolarRay({ currentTheme }: SolarRayProps) {
     }
   };
 
-  const sunPos = getSunCoordinates();
+  const rawSunPos = getSunCoordinates();
+  // Clamp to finite values so the SVG never receives NaN coordinates.
+  const sunPos = {
+    x: Number.isFinite(rawSunPos.x) ? rawSunPos.x : 100,
+    y: Number.isFinite(rawSunPos.y) ? rawSunPos.y : 80,
+    below: rawSunPos.below,
+  };
 
   // Create Daily Solar Weathergrams with real calculated times
   const parseDecimalToTimeString = (dec: number) => {
@@ -359,16 +366,16 @@ export default function SolarRay({ currentTheme }: SolarRayProps) {
               <text x="12" y="93" fill={currentTheme === 'night' ? 'rgba(255,255,255,0.45)' : 'rgba(15, 23, 42, 0.55)'} fontSize="8" fontFamily="monospace" textAnchor="middle">RISE</text>
               <text x="188" y="93" fill={currentTheme === 'night' ? 'rgba(255,255,255,0.45)' : 'rgba(15, 23, 42, 0.55)'} fontSize="8" fontFamily="monospace" textAnchor="middle">SET</text>
 
-              {/* The Sun Dot */}
+              {/* The Sun Dot — pulse via transform scale (never animate the `r` attribute,
+                  which framer-motion can tween to `undefined` and throw). */}
               <motion.circle
                 cx={sunPos.x}
                 cy={sunPos.y}
-                r="6"
+                r={6}
                 fill={currentTheme === 'night' ? '#eab308' : '#d97706'}
                 filter={`drop-shadow(0px 0px 8px ${currentTheme === 'night' ? '#eab308' : '#d97706'})`}
-                animate={{
-                  r: [6, 7.5, 6]
-                }}
+                style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+                animate={{ scale: [1, 1.25, 1] }}
                 transition={{
                   duration: 4,
                   repeat: Infinity,

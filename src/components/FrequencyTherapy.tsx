@@ -266,25 +266,26 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
                 </button>
               </div>
 
-              {/* Animated waveform visual feedback on card when active */}
+              {/* Audio-activity indicator (equalizer bars) while a tone plays. Animates
+                  transform scaleY only — never the SVG `d` attribute, which framer-motion
+                  could tween to `undefined` and throw. Purely decorative; the binaural /
+                  solfeggio output above is the actual playback. */}
               {isActive && (
-                <div className="absolute inset-x-0 bottom-0 h-1 overflow-hidden rounded-b-xl opacity-60">
-                  <svg className="w-full h-full" viewBox="0 0 100 10" preserveAspectRatio="none">
-                    <motion.path
-                      d="M0 5 Q 25 1, 50 5 T 100 5"
-                      fill="transparent"
-                      stroke={currentTheme === 'night' ? '#eab308' : '#d97706'}
-                      strokeWidth="2"
-                      animate={{
-                        d: [
-                          "M0 5 Q 25 1, 50 5 T 100 5",
-                          "M0 5 Q 25 9, 50 5 T 100 5",
-                          "M0 5 Q 25 1, 50 5 T 100 5"
-                        ]
+                <div className="absolute inset-x-0 bottom-0 flex items-end justify-center gap-[3px] h-1.5 overflow-hidden rounded-b-xl opacity-70 pointer-events-none">
+                  {Array.from({ length: 20 }).map((_, i) => (
+                    <motion.span
+                      key={i}
+                      className="flex-1 h-full origin-bottom rounded-full"
+                      style={{ backgroundColor: currentTheme === 'night' ? '#eab308' : '#d97706' }}
+                      animate={{ scaleY: [0.25, 1, 0.5, 0.85, 0.25] }}
+                      transition={{
+                        duration: tone.type === 'binaural' ? 0.8 : 1.5,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                        delay: (i % 10) * 0.06,
                       }}
-                      transition={{ duration: tone.type === 'binaural' ? 0.3 : 1.2, repeat: Infinity, ease: 'linear' }}
                     />
-                  </svg>
+                  ))}
                 </div>
               )}
             </motion.div>

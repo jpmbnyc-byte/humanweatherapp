@@ -7,10 +7,9 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
-import { reportLovableError } from "../lib/lovable-error-reporting";
 
 function NotFoundComponent() {
   return (
@@ -37,9 +36,6 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
-  useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
-  }, [error]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -79,18 +75,30 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Human Weather App" },
       { name: "description", content: "Tracking the emotional climate." },
-      { name: "author", content: "Lovable" },
+      { name: "author", content: "Human Weather" },
       { property: "og:title", content: "Human Weather App" },
       { property: "og:description", content: "Tracking the emotional climate." },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:site", content: "@PBWYWORLDWIDE" },
       { name: "twitter:title", content: "Human Weather App" },
       { name: "twitter:description", content: "Tracking the emotional climate." },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/Pp3cGsUtaJRNfvToOZt1zOOuAmk2/social-images/social-1782761956593-IMG_4540.webp" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/Pp3cGsUtaJRNfvToOZt1zOOuAmk2/social-images/social-1782761956593-IMG_4540.webp" },
+      // Self-hosted social card. Drop the exported banner at `public/og.png` (1200×630)
+      // and it is served at `/og.png`. Use an absolute URL here if a fixed production
+      // domain is known (some scrapers don't resolve relative OG image paths).
+      { property: "og:image", content: "/og.png" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { name: "twitter:image", content: "/og.png" },
     ],
     links: [
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      {
+        // HW three-font discipline (HW_HARNESS.md §7.2): Cormorant Garamond + IBM Plex Mono.
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=IBM+Plex+Mono:wght@400;500;600&display=swap",
+      },
       {
         rel: "stylesheet",
         href: appCss,
