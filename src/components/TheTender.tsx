@@ -3,12 +3,14 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, Volume2, Play, Pause, Square, Music, Headphones, Sliders, Edit2, Check } from 'lucide-react';
 import { PRESETS } from '../data/presets';
 import { getThemeStyles } from '../lib/theme';
-import {
-  generateSpeech,
-  subscribeKokoroLoad,
-  type KokoroLoadState,
-  type KokoroVoiceId,
-} from '../lib/kokoro';
+
+type KokoroVoiceId = 'af_heart' | 'af_bella' | 'am_michael' | 'bm_daniel';
+
+type KokoroLoadState = {
+  status: 'idle' | 'loading' | 'ready' | 'error';
+  progress: number;
+  message: string;
+};
 
 type TenderVoiceId = 'joan' | 'grace' | 'peter' | 'daniel';
 
@@ -45,6 +47,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const [isEditMode, setIsEditMode] = useState(false);
   const [kokoroLoad, setKokoroLoad] = useState<KokoroLoadState>({ status: 'idle', progress: 0, message: '' });
   const [genProgress, setGenProgress] = useState<string | null>(null);
+  const unsubscribeKokoroRef = useRef<(() => void) | null>(null);
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const noiseSourceRef = useRef<AudioBufferSourceNode | null>(null);
@@ -56,10 +59,9 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const sessionRef = useRef(0);
   const wordsRef = useRef<string[]>([]);
 
-  useEffect(() => subscribeKokoroLoad(setKokoroLoad), []);
-
   useEffect(() => {
     return () => {
+      unsubscribeKokoroRef.current?.();
       stopReading(true);
       if (audioCtxRef.current) audioCtxRef.current.close().catch(() => {});
     };
@@ -271,7 +273,11 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     setGenProgress('Loading voice engine…');
 
     try {
-      const raw = await generateSpeech(
+      const kokoro = await import('../lib/kokoro');
+      unsubscribeKokoroRef.current?.();
+      unsubscribeKokoroRef.current = kokoro.subscribeKokoroLoad(setKokoroLoad);
+
+      const raw = await kokoro.generateSpeech(
         textSrc,
         profile.kokoroVoice,
         profile.speed,

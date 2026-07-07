@@ -1,18 +1,33 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import SomaticGrid from './components/SomaticGrid';
 import BreathworkOrb from './components/BreathworkOrb';
-import FrequencyTherapy from './components/FrequencyTherapy';
-import LightTherapy from './components/LightTherapy';
-import ClassicalMusic from './components/ClassicalMusic';
-import ShinrinYoku from './components/ShinrinYoku';
-import SolarRay from './components/SolarRay';
-import TheTender from './components/TheTender';
 import MountainBackground from './components/MountainBackground';
+import TabSkeleton from './components/TabSkeleton';
 import { WEATHER_STATES } from './data';
 import { WeatherState } from './types';
 import { getThemeStyles } from './lib/theme';
 import { Sun, Moon } from 'lucide-react';
+
+const FrequencyTherapy = lazy(() => import('./components/FrequencyTherapy'));
+const LightTherapy = lazy(() => import('./components/LightTherapy'));
+const ClassicalMusic = lazy(() => import('./components/ClassicalMusic'));
+const SolarRay = lazy(() => import('./components/SolarRay'));
+const ShinrinYoku = lazy(() => import('./components/ShinrinYoku'));
+const TheTender = lazy(() => import('./components/TheTender'));
+
+function prefetchTab(tab: 'therapy' | 'rhythms' | 'tender') {
+  if (tab === 'therapy') {
+    void import('./components/FrequencyTherapy');
+    void import('./components/LightTherapy');
+    void import('./components/ClassicalMusic');
+  } else if (tab === 'rhythms') {
+    void import('./components/SolarRay');
+    void import('./components/ShinrinYoku');
+  } else {
+    void import('./components/TheTender');
+  }
+}
 
 const getThemeForNow = (): 'day' | 'night' => {
   const h = new Date().getHours();
@@ -112,6 +127,8 @@ export default function App() {
                 key={id}
                 id={`tab-${id}-btn`}
                 onClick={() => setActiveTab(id)}
+                onMouseEnter={() => { if (id !== 'somatic') prefetchTab(id); }}
+                onFocus={() => { if (id !== 'somatic') prefetchTab(id); }}
                 whileTap={{ scale: 0.98 }}
                 layout
                 className={`flex-1 min-w-[calc(50%-4px)] sm:min-w-0 px-5 py-3 rounded-xl text-xs font-sans font-medium tracking-wide border transition-colors cursor-pointer ${
@@ -200,9 +217,11 @@ export default function App() {
                 transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
                 className="flex flex-col gap-8 md:gap-10"
               >
-                <FrequencyTherapy currentTheme={currentTheme} />
-                <LightTherapy currentTheme={currentTheme} />
-                <ClassicalMusic currentTheme={currentTheme} />
+                <Suspense fallback={<TabSkeleton isNight={isNight} />}>
+                  <FrequencyTherapy currentTheme={currentTheme} />
+                  <LightTherapy currentTheme={currentTheme} />
+                  <ClassicalMusic currentTheme={currentTheme} />
+                </Suspense>
               </motion.div>
             )}
 
@@ -215,8 +234,10 @@ export default function App() {
                 transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
                 className="flex flex-col gap-8 md:gap-10"
               >
-                <SolarRay currentTheme={currentTheme} />
-                <ShinrinYoku currentTheme={currentTheme} />
+                <Suspense fallback={<TabSkeleton isNight={isNight} />}>
+                  <SolarRay currentTheme={currentTheme} />
+                  <ShinrinYoku currentTheme={currentTheme} />
+                </Suspense>
               </motion.div>
             )}
 
@@ -229,7 +250,9 @@ export default function App() {
                 transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
                 className="w-full"
               >
-                <TheTender currentTheme={currentTheme} />
+                <Suspense fallback={<TabSkeleton isNight={isNight} />}>
+                  <TheTender currentTheme={currentTheme} />
+                </Suspense>
               </motion.div>
             )}
 

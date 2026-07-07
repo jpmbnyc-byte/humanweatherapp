@@ -8,8 +8,18 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 export default defineConfig({
   tanstackStart: {
-    // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
-    // nitro/vite builds from this
     server: { entry: "server" },
+  },
+  vite: {
+    ssr: {
+      external: ["kokoro-js", "@huggingface/transformers", "phonemizer", "onnxruntime-web"],
+    },
+    build: {
+      modulePreload: {
+        // Don't preload Kokoro chunks — only fetch when user taps Listen
+        resolveDependencies: (_filename, deps) =>
+          deps.filter(dep => !dep.includes("kokoro") && !dep.includes("transformers")),
+      },
+    },
   },
 });
