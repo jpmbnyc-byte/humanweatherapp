@@ -16,16 +16,24 @@ const SolarRay = lazy(() => import('./components/SolarRay'));
 const ShinrinYoku = lazy(() => import('./components/ShinrinYoku'));
 const TheTender = lazy(() => import('./components/TheTender'));
 
-function prefetchTab(tab: 'therapy' | 'rhythms' | 'tender') {
-  if (tab === 'therapy') {
-    void import('./components/FrequencyTherapy');
-    void import('./components/LightTherapy');
-    void import('./components/ClassicalMusic');
-  } else if (tab === 'rhythms') {
-    void import('./components/SolarRay');
-    void import('./components/ShinrinYoku');
+/** Prefetch tab chunks only when browser is idle — never competes with paint/interaction. */
+function prefetchTabWhenIdle(tab: 'therapy' | 'rhythms' | 'tender') {
+  const run = () => {
+    if (tab === 'therapy') {
+      void import('./components/FrequencyTherapy');
+      void import('./components/LightTherapy');
+      void import('./components/ClassicalMusic');
+    } else if (tab === 'rhythms') {
+      void import('./components/SolarRay');
+      void import('./components/ShinrinYoku');
+    } else {
+      void import('./components/TheTender');
+    }
+  };
+  if (typeof requestIdleCallback !== 'undefined') {
+    requestIdleCallback(run, { timeout: 2000 });
   } else {
-    void import('./components/TheTender');
+    setTimeout(run, 300);
   }
 }
 
@@ -127,8 +135,8 @@ export default function App() {
                 key={id}
                 id={`tab-${id}-btn`}
                 onClick={() => setActiveTab(id)}
-                onMouseEnter={() => { if (id !== 'somatic') prefetchTab(id); }}
-                onFocus={() => { if (id !== 'somatic') prefetchTab(id); }}
+                onMouseEnter={() => { if (id !== 'somatic') prefetchTabWhenIdle(id); }}
+                onFocus={() => { if (id !== 'somatic') prefetchTabWhenIdle(id); }}
                 whileTap={{ scale: 0.98 }}
                 layout
                 className={`flex-1 min-w-[calc(50%-4px)] sm:min-w-0 px-5 py-3.5 rounded-xl text-sm font-sans font-medium tracking-wide border transition-colors cursor-pointer ${

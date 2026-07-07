@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, startTransition } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, Volume2, Play, Pause, Square, Music, Headphones, Sliders, Edit2, Check, Info } from 'lucide-react';
 import { PRESETS } from '../data/presets';
@@ -6,7 +6,6 @@ import { getThemeStyles } from '../lib/theme';
 import {
   TENDER_VOICES,
   getVoiceProfile,
-  fetchNarrationAudio,
   type TenderVoiceId,
   type TtsEngine,
 } from '../lib/voices';
@@ -54,6 +53,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const narrationRef = useRef<HTMLAudioElement | null>(null);
   const blobUrlRef = useRef<string | null>(null);
   const sessionRef = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
 
   const isReading = phase === 'reading';
   const isPaused = phase === 'paused';
@@ -61,6 +61,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
 
   useEffect(() => {
     return () => {
+      abortRef.current?.abort();
       stopReading(true);
       if (audioCtxRef.current) audioCtxRef.current.close().catch(() => {});
     };
@@ -169,6 +170,8 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   };
 
   const stopReading = (stopAmbient = true) => {
+    abortRef.current?.abort();
+    abortRef.current = null;
     stopNarration();
     setPhase('idle');
     setSpeechError(null);
@@ -182,15 +185,28 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     const profile = getVoiceProfile(voiceId);
     const words = textSrc.split(/\s+/).filter(Boolean);
 
+    abortRef.current?.abort();
+    const abort = new AbortController();
+    abortRef.current = abort;
+
     setSpeechError(null);
     setPhase('preparing');
     setProgressMessage(`Connecting to voice server for ${profile.name}…`);
 
-    const result = await fetchNarrationAudio(textSrc, profile, msg => {
-      if (sessionRef.current === session) setProgressMessage(msg);
-    });
+    const { fetchNarrationAudio } = await import('../lib/voices-client');
 
-    if (sessionRef.current !== session) return;
+    const result = await fetchNarrationAudio(
+      textSrc,
+      profile,
+      msg => {
+        if (sessionRef.current === session) {
+          startTransition(() => setProgressMessage(msg));
+        }
+      },
+      abort.signal,
+    );
+
+    if (sessionRef.current !== session || abort.signal.aborted) return;
 
     if (!result.ok || !result.blob) {
       setSpeechError(result.error ?? 'Could not generate voice. Please try again.');
