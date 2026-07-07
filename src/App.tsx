@@ -57,33 +57,42 @@ export default function App() {
     setActiveCoordinates(coords);
   }, []);
 
-  // Theme styling definitions
+  // Theme styling definitions — warm-darkness palette (HW_HARNESS.md §7.1/§7.2):
+  // dusk, not dashboard. Night is the deep field; day is a warmer, dawn-lit dusk.
+  // Both stay warm-dark so no screen could be mistaken for a cool-blue meditation app.
   const isNight = currentTheme === 'night';
   const themeStyles = {
-    bg: isNight 
-      ? 'bg-gradient-to-b from-[#050505] via-[#0c0c0e] to-[#020202]' 
-      : 'bg-gradient-to-b from-[#7dd3fc] via-[#f0f9ff] to-[#fef08a]/30',
-    text: isNight ? 'text-[#f1f5f9]' : 'text-[#0f172a]',
-    textMuted: isNight ? 'text-[#94a3b8]' : 'text-[#475569]',
-    gold: isNight ? 'text-[#eab308]' : 'text-[#d97706]',
-    border: isNight ? 'border-white/[0.08]' : 'border-sky-300/40',
-    cardBg: isNight ? 'bg-[#121214]/80 border-white/[0.06] backdrop-blur-md' : 'bg-white/75 border-white/40 backdrop-blur-md shadow-lg shadow-sky-100/30',
-    tabActive: isNight ? 'bg-[#eab308] text-black border-[#eab308]' : 'bg-gradient-to-r from-amber-400 to-amber-500 text-slate-900 border-amber-300 shadow-md shadow-amber-500/10 font-medium',
-    tabInactive: isNight ? 'bg-black/25 hover:bg-[#eab308]/5 text-gray-400 border-transparent' : 'bg-sky-100/40 hover:bg-white text-sky-950 border-transparent',
+    bg: isNight
+      ? 'bg-gradient-to-b from-[#0c0a08] via-[#14100e] to-[#0c0a08]'
+      : 'bg-gradient-to-b from-[#1d1713] via-[#14100e] to-[#0c0a08]',
+    text: 'text-[#efe6d8]',
+    textMuted: 'text-[#b8ae9e]',
+    gold: 'text-[#c9a96a]',
+    border: isNight ? 'border-[#efe6d8]/[0.10]' : 'border-[#c9a96a]/20',
+    cardBg: isNight
+      ? 'bg-[#1d1713]/80 border-[#efe6d8]/[0.08] backdrop-blur-md'
+      : 'bg-[#1d1713]/70 border-[#c9a96a]/15 backdrop-blur-md shadow-lg shadow-black/30',
+    tabActive: isNight
+      ? 'bg-[#c9a96a] text-[#14100e] border-[#c9a96a]'
+      : 'bg-gradient-to-r from-[#c9a96a] to-[#a99060] text-[#14100e] border-[#c9a96a] shadow-md shadow-[#c9a96a]/10 font-medium',
+    tabInactive: isNight
+      ? 'bg-black/25 hover:bg-[#c9a96a]/10 text-[#b8ae9e] border-transparent'
+      : 'bg-black/20 hover:bg-[#c9a96a]/10 text-[#b8ae9e] border-transparent',
   };
 
   return (
     <div className={`min-h-screen w-full flex flex-col ${themeStyles.bg} ${themeStyles.text} theme-transition relative overflow-x-hidden`} id="app-root-container">
       
-      {/* Immersive Atmospheric Ambient Glow backing (Golden sun-colored ambience shining through) */}
+      {/* Immersive atmospheric wash — the sky behind the instrument. Warm candle/dawn
+          gold radial, low-opacity, sitting behind content (HW_HARNESS.md §7.2). */}
       <div 
         className="fixed top-[-50px] right-[10%] w-[500px] h-[500px] rounded-full blur-[120px] pointer-events-none z-0 transition-all duration-700"
         style={{
           transform: 'translateZ(0)',
           willChange: 'opacity',
           background: isNight 
-            ? 'radial-gradient(circle, rgba(234,179,8,0.04) 0%, rgba(5,5,5,0) 70%)' 
-            : 'radial-gradient(circle, rgba(253,224,71,0.6) 0%, rgba(245,158,11,0.3) 40%, rgba(186,230,253,0) 75%)'
+            ? 'radial-gradient(circle, rgba(201,169,106,0.05) 0%, rgba(12,10,8,0) 70%)' 
+            : 'radial-gradient(circle, rgba(201,169,106,0.14) 0%, rgba(138,110,82,0.06) 45%, rgba(12,10,8,0) 75%)'
         }}
       />
       
@@ -93,7 +102,7 @@ export default function App() {
           style={{
             transform: 'translateZ(0)',
             willChange: 'opacity',
-            background: 'radial-gradient(circle, rgba(253,224,71,0.35) 0%, rgba(251,191,36,0.1) 50%, rgba(186,230,253,0) 80%)',
+            background: 'radial-gradient(circle, rgba(169,144,96,0.12) 0%, rgba(138,110,82,0.05) 50%, rgba(12,10,8,0) 80%)',
             animationDuration: '10s'
           }}
         />
@@ -212,14 +221,14 @@ export default function App() {
                 <SomaticGrid onStateChange={handleStateChange} currentTheme={currentTheme} />
               </div>
 
-              {/* Col Right (Spatial climate analysis & Breathwork orb) */}
+              {/* Col Right (Current Conditions + Breathwork orb) */}
               <div className="lg:col-span-7 flex flex-col gap-6 w-full">
-                {/* Real-time spatial pattern analysis Card */}
+                {/* Current Conditions card — atmospheric output of the grid mapping (HW_HARNESS.md §2) */}
                 <div className={`p-6 rounded-2xl border ${themeStyles.border} ${themeStyles.cardBg} backdrop-blur-md relative`}
                      id="weather-reading-card">
                   
                   <span className="font-mono text-[9px] uppercase tracking-widest opacity-50 block mb-1">
-                    02 — Real-time somatic reading
+                    02 — Current Conditions
                   </span>
                   
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
