@@ -36,6 +36,17 @@ async function loadVoiceEngine(onProgress?: (pct: number) => void): Promise<any>
     kokoroLoading = (async () => {
       const mod: any = await import(/* @vite-ignore */ KOKORO_CDN);
       const KokoroTTS = mod.KokoroTTS ?? mod.default?.KokoroTTS;
+      // Run onnxruntime inference in a Web Worker (off the main thread) so generation
+      // never blocks/freezes the UI — the foundation of butter-smooth playback. Requires
+      // cross-origin isolation (COOP/COEP headers in vite.config.ts) for SharedArrayBuffer.
+      try {
+        const env = mod.env ?? mod.default?.env;
+        if (env?.backends?.onnx?.wasm) {
+          env.backends.onnx.wasm.proxy = true;
+        }
+      } catch {
+        /* proxy is an optimization; fall through if unavailable */
+      }
       const engine = await KokoroTTS.from_pretrained(KOKORO_MODEL, {
         dtype: 'q8', // ~86MB quantized — best size/quality balance for mobile
         device: 'wasm', // ship wasm default; WebGPU is inconsistent on iOS/Safari
@@ -451,6 +462,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
           setIsPaused(false);
         }, remaining * 1000 + 200);
       } catch (err: any) {
+        console.error('[tender] voice engine failed:', err);
         if (ttsSessionIdRef.current !== session) return;
         setLoadProgress(null);
         setSpeechError(err?.message || 'voice-failed');
