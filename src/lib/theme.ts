@@ -30,7 +30,8 @@ export function getThemeStyles(theme: AppTheme) {
       : 'bg-[#faf8f5]',
     text: isNight ? 'text-[#f5f0e8]' : 'text-[#2c2824]',
     textMuted: isNight ? 'text-[#a8a096]' : 'text-[#6b6560]',
-    accent: isNight ? 'text-[#d4b85a]' : 'text-[#b8956b]',
+    accent: isNight ? 'text-[#d4b85a]' : 'text-[#8a6f2e]',
+    accentBody: isNight ? 'text-[#d4b85a]' : 'text-[#2c2824]',
     border: isNight ? 'border-white/[0.07]' : 'border-stone-300/50',
     cardBg: isNight
       ? 'bg-[#1e1c18]/90 border-white/[0.06]'
@@ -49,7 +50,7 @@ export function getThemeStyles(theme: AppTheme) {
       : 'bg-[#c4a044]/10 border-[#c4a044]/35 text-[#8a6f2e]',
     pillInactive: isNight
       ? 'bg-transparent border-white/10 text-[#a8a096] hover:border-[#d4b05a]/25 hover:text-[#d4b85a]'
-      : 'bg-transparent border-stone-300/50 text-[#6b6560] hover:border-[#c4a044]/35 hover:text-[#8a6f2e]',
+      : 'bg-transparent border-stone-300/50 text-[#6b6560] hover:border-stone-400/60 hover:text-[#2c2824]',
     accentHex: getAccentHex(theme),
     accentLightHex: getAccentLightHex(theme),
   };

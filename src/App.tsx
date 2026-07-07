@@ -84,7 +84,7 @@ export default function App() {
             <h1 className="font-serif text-4xl md:text-5xl font-medium tracking-tight leading-[1.1]">
               Human <span className="italic text-accent">Weather</span>
             </h1>
-            <p className="font-sans text-base md:text-lg italic opacity-65 mt-4 leading-relaxed">
+            <p className="font-sans text-lg md:text-xl italic opacity-70 mt-4 leading-relaxed">
               What is your weather right now?
             </p>
           </div>
@@ -131,7 +131,7 @@ export default function App() {
                 onFocus={() => { if (id !== 'somatic') prefetchTab(id); }}
                 whileTap={{ scale: 0.98 }}
                 layout
-                className={`flex-1 min-w-[calc(50%-4px)] sm:min-w-0 px-5 py-3 rounded-xl text-xs font-sans font-medium tracking-wide border transition-colors cursor-pointer ${
+                className={`flex-1 min-w-[calc(50%-4px)] sm:min-w-0 px-5 py-3.5 rounded-xl text-sm font-sans font-medium tracking-wide border transition-colors cursor-pointer ${
                   activeTab === id ? themeStyles.tabActive : themeStyles.tabInactive
                 }`}
               >
@@ -162,30 +162,30 @@ export default function App() {
                   <div className={`p-8 md:p-10 rounded-2xl border ${themeStyles.border} ${themeStyles.cardBg}`}
                        id="weather-reading-card">
 
-                    <span className="font-mono text-[9px] uppercase tracking-widest opacity-40 block mb-4">
+                    <span className="font-mono text-xs uppercase tracking-widest opacity-40 block mb-4">
                       Real-time somatic reading
                     </span>
 
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
-                      <h2 className="font-serif text-2xl md:text-3xl font-medium text-accent tracking-tight leading-snug">
+                      <h2 className={`font-serif text-2xl md:text-3xl font-medium tracking-tight leading-snug ${isNight ? 'text-accent' : 'text-[#2c2824]'}`}>
                         {activeWeather.title}
                       </h2>
-                      <div className="flex items-center gap-1.5 font-mono text-[10px] shrink-0">
+                      <div className="flex items-center gap-1.5 font-mono text-xs shrink-0">
                         <span className="opacity-60 uppercase">HRV Coherence:</span>
-                        <strong className="text-accent">{activeWeather.hrv}%</strong>
+                        <strong className={isNight ? 'text-accent' : 'text-[#2c2824]'}>{activeWeather.hrv}%</strong>
                       </div>
                     </div>
 
-                    <h4 className="font-sans text-sm italic opacity-80 mb-5 border-b border-accent/10 pb-4 leading-relaxed">
+                    <h4 className="font-sans text-base md:text-lg italic opacity-80 mb-5 border-b border-accent/10 pb-4 leading-relaxed">
                       {activeWeather.subtitle}
                     </h4>
 
-                    <p className="font-sans text-base leading-[1.75] mb-8 max-w-prose">
+                    <p className="font-sans text-base md:text-lg leading-[1.75] mb-8 max-w-prose">
                       {activeWeather.description}
                     </p>
 
-                    <div className="p-5 md:p-6 rounded-xl border border-accent/15 bg-accent/[0.03] font-serif text-base italic text-foreground/80 mb-8 leading-relaxed">
-                      <span className="font-mono text-[9px] uppercase tracking-widest not-italic text-accent/70 block mb-2">
+                    <div className="p-5 md:p-6 rounded-xl border border-accent/15 bg-accent/[0.03] font-serif text-base md:text-lg italic text-foreground mb-8 leading-relaxed">
+                      <span className="font-mono text-xs uppercase tracking-widest not-italic opacity-60 block mb-2">
                         Physical guidance
                       </span>
                       "{activeWeather.guidanceText}"
@@ -193,12 +193,12 @@ export default function App() {
 
                     <div className="grid grid-cols-2 gap-6 border-t border-accent/10 pt-6 text-left">
                       <div>
-                        <span className="font-mono text-[9px] uppercase tracking-widest opacity-40 block mb-1">Clinical Index</span>
-                        <span className="font-mono text-[10px] opacity-80">{activeWeather.clinicalIndex}</span>
+                        <span className="font-mono text-xs uppercase tracking-widest opacity-40 block mb-1">Clinical Index</span>
+                        <span className="font-mono text-sm opacity-80">{activeWeather.clinicalIndex}</span>
                       </div>
                       <div>
-                        <span className="font-mono text-[9px] uppercase tracking-widest opacity-40 block mb-1">Respiratory Ratio</span>
-                        <span className="font-mono text-[10px] opacity-80">{activeWeather.respiratoryRatio} (Inhale:Exhale)</span>
+                        <span className="font-mono text-xs uppercase tracking-widest opacity-40 block mb-1">Respiratory Ratio</span>
+                        <span className="font-mono text-sm opacity-80">{activeWeather.respiratoryRatio} (Inhale:Exhale)</span>
                       </div>
                     </div>
                   </div>
@@ -262,16 +262,16 @@ export default function App() {
         {/* Footer */}
         <footer className={`w-full py-10 md:py-12 border-t ${themeStyles.border} mt-6`} id="app-footer">
           <div className="max-w-sm mx-auto text-center mb-8 px-4">
-            <p className="font-serif text-sm italic opacity-50 mb-1">With gratitude</p>
-            <p className="font-serif text-base md:text-lg italic leading-snug opacity-75">
+            <p className="font-serif text-base italic opacity-50 mb-1">With gratitude</p>
+            <p className="font-serif text-lg md:text-xl italic leading-snug opacity-75">
               Listen to your body's weather with curiosity and care.
             </p>
           </div>
 
-          <div className={`flex flex-col sm:flex-row justify-between items-center gap-4 text-[10px] font-mono tracking-widest uppercase ${themeStyles.textMuted}`}>
+          <div className={`flex flex-col sm:flex-row justify-between items-center gap-4 text-xs font-mono tracking-widest uppercase ${themeStyles.textMuted}`}>
             <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
               <span>Human Weather © 2026 · Weathergram™ Studio</span>
-              <span className="opacity-50 mt-1.5 normal-case tracking-normal font-sans text-xs italic">Peer-reviewed clinical somatics system</span>
+              <span className="opacity-50 mt-1.5 normal-case tracking-normal font-sans text-sm italic">Peer-reviewed clinical somatics system</span>
             </div>
             <div className="flex gap-4 opacity-80">
               <a href="https://humanweather.app" className="hover:text-accent transition-colors">humanweather.app</a>
