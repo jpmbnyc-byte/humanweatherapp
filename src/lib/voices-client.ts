@@ -37,13 +37,15 @@ export async function fetchNarrationAudio(
 
     if (!res.ok) {
       let message = 'Voice service unavailable.';
+      let fallback: 'browser' | undefined;
       try {
         const json = await res.json();
         message = json.error ?? json.message ?? message;
+        if (json.fallback === 'browser') fallback = 'browser';
       } catch {
         message = (await res.text().catch(() => '')) || message;
       }
-      return { ok: false, error: message };
+      return { ok: false, error: message, fallback };
     }
 
     engine = (res.headers.get('X-TTS-Engine') as TtsEngine | null) ?? 'kokoro';

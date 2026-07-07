@@ -3,6 +3,21 @@ import { createFileRoute } from '@tanstack/react-router';
 const KOKORO_VOICES = new Set(['af_heart', 'af_bella', 'am_michael', 'bm_daniel']);
 const OPENAI_VOICES = new Set(['shimmer', 'nova', 'onyx', 'echo', 'alloy', 'coral', 'fable', 'sage']);
 
+const VOICE_INSTRUCTIONS: Record<string, string> = {
+  shimmer:
+    'Speak as a warm, grounded woman. Unhurried, gentle, with soft breath and a reassuring cadence.',
+  nova:
+    'Speak as a gentle, airy woman with a light, luminous tone. Slow, tender, contemplative pacing.',
+  onyx:
+    'Speak as a deep, anchored man with a resonant baritone. Slow, deliberate, monk-like stillness.',
+  echo:
+    'Speak as a resonant, measured man — thoughtful narrator with clear diction and gentle warmth.',
+};
+
+function getEnv(key: string): string | undefined {
+  return process.env[key];
+}
+
 async function fetchKokoroSpeech(
   baseUrl: string,
   text: string,
@@ -10,8 +25,7 @@ async function fetchKokoroSpeech(
   speed: number,
   apiKey?: string,
 ): Promise<Response> {
-  const url = `${baseUrl.replace(/\/$/, '')}/v1/audio/speech`;
-  return fetch(url, {
+  return fetch(`${baseUrl.replace(/\/$/, '')}/v1/audio/speech`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -32,6 +46,7 @@ async function fetchStudioSpeech(
   voice: string,
   apiKey: string,
 ): Promise<Response> {
+  const instructions = VOICE_INSTRUCTIONS[voice];
   return fetch('https://ai.gateway.lovable.dev/v1/audio/speech', {
     method: 'POST',
     headers: {
@@ -43,6 +58,7 @@ async function fetchStudioSpeech(
       input: text,
       voice,
       response_format: 'mp3',
+      ...(instructions ? { instructions } : {}),
     }),
   });
 }
@@ -69,11 +85,31 @@ export const Route = createFileRoute('/api/tts')({
           return Response.json({ error: 'Unknown voice.' }, { status: 400 });
         }
 
-        const kokoroUrl = process.env.KOKORO_API_URL;
-        const kokoroKey = process.env.KOKORO_API_KEY;
-        const lovableKey = process.env.LOVABLE_API_KEY;
+        const lovableKey = getEnv('LOVABLE_API_KEY');
+        const kokoroUrl = getEnv('KOKORO_API_URL');
+        const kokoroKey = getEnv('KOKORO_API_KEY');
 
-        // 1. Kokoro server API — model lives on server, client receives audio only
+        // 1. Lovable studio TTS — works on deployed Lovable apps without extra setup
+        if (lovableKey && OPENAI_VOICES.has(openAiVoice)) {
+          try {
+            const upstream = await fetchStudioSpeech(text, openAiVoice, lovableKey);
+            if (upstream.ok && upstream.body) {
+              return new Response(upstream.body, {
+                headers: {
+                  'Content-Type': upstream.headers.get('Content-Type') || 'audio/mpeg',
+                  'X-TTS-Engine': 'studio',
+                  'Cache-Control': 'no-store',
+                },
+              });
+            }
+            const errBody = await upstream.text().catch(() => '');
+            console.warn('Studio TTS error:', upstream.status, errBody);
+          } catch (err) {
+            console.warn('Studio TTS unreachable:', err);
+          }
+        }
+
+        // 2. Optional Kokoro server when KOKORO_API_URL is configured
         if (kokoroUrl) {
           try {
             const upstream = await fetchKokoroSpeech(kokoroUrl, text, voice, speed, kokoroKey);
@@ -93,30 +129,13 @@ export const Route = createFileRoute('/api/tts')({
           }
         }
 
-        // 2. Studio fallback — still server-side, no client download
-        if (lovableKey && OPENAI_VOICES.has(openAiVoice)) {
-          try {
-            const upstream = await fetchStudioSpeech(text, openAiVoice, lovableKey);
-            if (upstream.ok && upstream.body) {
-              return new Response(upstream.body, {
-                headers: {
-                  'Content-Type': upstream.headers.get('Content-Type') || 'audio/mpeg',
-                  'X-TTS-Engine': 'studio',
-                  'Cache-Control': 'no-store',
-                },
-              });
-            }
-          } catch (err) {
-            console.warn('Studio TTS unreachable:', err);
-          }
-        }
-
         return Response.json(
           {
-            error: kokoroUrl
-              ? 'Voice server is temporarily unavailable. Please try again.'
-              : 'Human voices are not configured yet. Set KOKORO_API_URL to a Kokoro FastAPI server (see README).',
+            error: lovableKey || kokoroUrl
+              ? 'Voice service is temporarily unavailable. Please try again in a moment.'
+              : 'Human voice narration requires deployment with Lovable AI enabled, or a Kokoro server URL configured.',
             code: 'TTS_UNAVAILABLE',
+            fallback: 'browser',
           },
           { status: 503 },
         );

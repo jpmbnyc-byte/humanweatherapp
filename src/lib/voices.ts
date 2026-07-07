@@ -74,11 +74,12 @@ export function chunkText(text: string, maxChars = 900): string[] {
   return chunks.length ? chunks : [text.trim()];
 }
 
-export type TtsEngine = 'kokoro' | 'studio' | 'unavailable';
+export type TtsEngine = 'kokoro' | 'studio' | 'browser' | 'unavailable';
 
 export interface TtsApiResult {
   ok: boolean;
   engine?: TtsEngine;
   blob?: Blob;
   error?: string;
+  fallback?: 'browser';
 }

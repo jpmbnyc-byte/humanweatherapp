@@ -12,6 +12,24 @@ import {
 
 type NarrationPhase = 'idle' | 'preparing' | 'reading' | 'paused' | 'error';
 
+function pickBrowserVoice(preferFemale: boolean): SpeechSynthesisVoice | null {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return null;
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) return null;
+  const en = voices.filter(v => v.lang.startsWith('en'));
+  const pool = en.length ? en : voices;
+  const scored = pool.map(v => {
+    const name = v.name.toLowerCase();
+    let score = 0;
+    if (preferFemale && /female|samantha|victoria|karen|moira|fiona|zira|susan|kate|emily|ava|allison|siri|aria/.test(name)) score += 10;
+    if (!preferFemale && /male|daniel|alex|fred|david|mark|james|tom|aaron|nathan|matthew|gordon/.test(name)) score += 10;
+    if (v.default) score += 1;
+    return { v, score };
+  });
+  scored.sort((a, b) => b.score - a.score);
+  return scored[0]?.v ?? pool[0];
+}
+
 function getStatusMessage(
   phase: NarrationPhase,
   voiceName: string,
@@ -22,12 +40,19 @@ function getStatusMessage(
   if (phase === 'error' && error) return error;
   if (phase === 'preparing') return progress ?? `Preparing ${voiceName}'s voice…`;
   if (phase === 'reading') {
-    return engine === 'kokoro'
-      ? `${voiceName} is reading with a human Kokoro voice. Words highlight as they're spoken.`
-      : `${voiceName} is reading aloud. Words highlight as they're spoken.`;
+    if (engine === 'browser') {
+      return `${voiceName} is reading with your device's built-in voice.`;
+    }
+    if (engine === 'studio') {
+      return `${voiceName} is reading with a human studio voice. Words highlight as they're spoken.`;
+    }
+    if (engine === 'kokoro') {
+      return `${voiceName} is reading with a human Kokoro voice. Words highlight as they're spoken.`;
+    }
+    return `${voiceName} is reading aloud. Words highlight as they're spoken.`;
   }
   if (phase === 'paused') return "Paused. Tap Resume when you're ready to continue.";
-  return 'Human voices run on our server — nothing downloads to your device. Tap Listen when you\'re ready.';
+  return 'Tap Listen for human voice narration — generated on the server, nothing downloads to your device.';
 }
 
 interface TheTenderProps {
@@ -54,6 +79,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const blobUrlRef = useRef<string | null>(null);
   const sessionRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
+  const browserSessionRef = useRef(0);
 
   const isReading = phase === 'reading';
   const isPaused = phase === 'paused';
@@ -65,6 +91,14 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
       stopReading(true);
       if (audioCtxRef.current) audioCtxRef.current.close().catch(() => {});
     };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    const load = () => window.speechSynthesis.getVoices();
+    load();
+    window.speechSynthesis.addEventListener('voiceschanged', load);
+    return () => window.speechSynthesis.removeEventListener('voiceschanged', load);
   }, []);
 
   useEffect(() => {
@@ -169,15 +203,74 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     }
   };
 
+  const stopBrowserSpeech = () => {
+    browserSessionRef.current += 1;
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+  };
+
   const stopReading = (stopAmbient = true) => {
     abortRef.current?.abort();
     abortRef.current = null;
+    stopBrowserSpeech();
     stopNarration();
     setPhase('idle');
     setSpeechError(null);
     setProgressMessage(null);
     setActiveEngine(null);
     if (stopAmbient) stopSoundEnvironment();
+  };
+
+  const playBrowserNarration = (textSrc: string, voiceId: TenderVoiceId) => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) {
+      setSpeechError('This browser does not support spoken narration.');
+      setPhase('error');
+      return;
+    }
+
+    const profile = getVoiceProfile(voiceId);
+    const session = ++browserSessionRef.current;
+    stopBrowserSpeech();
+
+    setActiveEngine('browser');
+    setPhase('preparing');
+    setProgressMessage(`Using your device's narrator for ${profile.name}…`);
+
+    const utterance = new SpeechSynthesisUtterance(textSrc);
+    utterance.lang = 'en-US';
+    utterance.rate = profile.id === 'peter' || profile.id === 'daniel' ? 0.85 : 0.9;
+    utterance.pitch = profile.id === 'grace' ? 1.05 : profile.id === 'peter' ? 0.78 : 0.95;
+    const voice = pickBrowserVoice(profile.id === 'joan' || profile.id === 'grace');
+    if (voice) utterance.voice = voice;
+
+    utterance.onstart = () => {
+      if (browserSessionRef.current !== session) return;
+      setProgressMessage(null);
+      setPhase('reading');
+    };
+
+    utterance.onboundary = (ev) => {
+      if (browserSessionRef.current !== session) return;
+      const prefix = textSrc.slice(0, ev.charIndex);
+      setCurrentWordIndex(prefix.trim().split(/\s+/).filter(Boolean).length);
+    };
+
+    utterance.onend = () => {
+      if (browserSessionRef.current !== session) return;
+      setPhase('idle');
+      setCurrentWordIndex(-1);
+      setActiveEngine(null);
+    };
+
+    utterance.onerror = (ev) => {
+      if (browserSessionRef.current !== session) return;
+      if (ev.error === 'interrupted' || ev.error === 'canceled') return;
+      setSpeechError('Device voice failed. Tap Listen to try again.');
+      setPhase('error');
+    };
+
+    window.speechSynthesis.speak(utterance);
   };
 
   const playNarration = async (textSrc: string, voiceId: TenderVoiceId) => {
@@ -209,13 +302,17 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     if (sessionRef.current !== session || abort.signal.aborted) return;
 
     if (!result.ok || !result.blob) {
+      if (result.fallback === 'browser') {
+        playBrowserNarration(textSrc, voiceId);
+        return;
+      }
       setSpeechError(result.error ?? 'Could not generate voice. Please try again.');
       setPhase('error');
       setProgressMessage(null);
       return;
     }
 
-    setActiveEngine(result.engine ?? 'kokoro');
+    setActiveEngine(result.engine ?? 'studio');
     revokeBlobUrl();
     const url = URL.createObjectURL(result.blob);
     blobUrlRef.current = url;
@@ -253,6 +350,18 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   };
 
   const handlePlayToggle = () => {
+    if (activeEngine === 'browser') {
+      if (typeof window === 'undefined' || !window.speechSynthesis) return;
+      if (isPaused) {
+        window.speechSynthesis.resume();
+        setPhase('reading');
+      } else if (isReading) {
+        window.speechSynthesis.pause();
+        setPhase('paused');
+      }
+      return;
+    }
+
     const audio = narrationRef.current;
     if (isReading || isPaused) {
       if (!audio) return;
@@ -350,7 +459,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
           <span className="font-mono text-xs tracking-widest uppercase opacity-50 block">Guided narration</span>
           <h2 className={`font-serif text-2xl md:text-3xl font-normal tracking-wide mt-1 ${styles.titleText}`}>The Tender</h2>
           <p className={`font-sans text-sm md:text-base mt-1 ${styles.mutedText}`}>
-            Human Kokoro voices — generated on the server, played instantly
+            Human studio voices — generated on the server when you tap Listen
           </p>
         </div>
         <button
@@ -541,7 +650,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
               })}
             </div>
             <p className="font-sans text-sm text-left opacity-70 mt-3 leading-relaxed">
-              Four human Kokoro voices. Audio is made on the server and streamed to you — your device never downloads the model.
+              Four human voices. On Lovable, studio narration works automatically — no downloads, no setup.
             </p>
           </div>
 
@@ -589,7 +698,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
               <span className={`font-mono text-xs uppercase tracking-widest ${styles.mutedText}`}>How it works</span>
             </div>
             <p className="font-sans text-sm md:text-base leading-relaxed opacity-80">
-              Like Kokoro Web&apos;s API mode: the 82M voice model runs on a server. When you tap Listen, we generate audio there and play it here — human quality, no model download on your phone or laptop.
+              When you tap Listen, a human voice is generated on the server and played here instantly. If the studio is unavailable locally, your device's narrator is used instead.
             </p>
           </div>
         </div>
