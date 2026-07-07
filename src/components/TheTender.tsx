@@ -8,45 +8,67 @@ interface TenderVoiceProfile {
   id: TenderVoiceId;
   name: string;
   descriptor: string;
-  // OpenAI TTS voice (routed through Lovable AI Gateway)
-  ttsVoice: 'shimmer' | 'nova' | 'onyx' | 'echo' | 'alloy' | 'sage' | 'coral' | 'ballad';
-  // Natural-language steering for tone/pacing
-  instructions: string;
+  // kokoro-js voice id + speed — the entire KiKi voice system (HW_HARNESS.md §6).
+  // Placeholder ids/speeds from the Kokoro Voice Protocol; swap after casting.
+  kokoroId: string;
+  speed: number;
 }
 const TENDER_VOICES: TenderVoiceProfile[] = [
-  {
-    id: 'joan',
-    name: 'Joan',
-    descriptor: 'Warm · Grounded',
-    ttsVoice: 'shimmer',
-    instructions:
-      'Speak as a warm, grounded woman in her early 40s. Unhurried, gentle, with soft breath and a low, reassuring cadence. Meditative pauses between sentences.',
-  },
-  {
-    id: 'grace',
-    name: 'Grace',
-    descriptor: 'Gentle · Airy',
-    ttsVoice: 'nova',
-    instructions:
-      'Speak as a gentle, airy woman with a light, luminous tone. Slow, tender, contemplative pacing, as if reading a poem aloud in a candlelit room.',
-  },
-  {
-    id: 'peter',
-    name: 'Peter',
-    descriptor: 'Deep · Anchored',
-    ttsVoice: 'onyx',
-    instructions:
-      'Speak as a deep, anchored man with a resonant baritone. Slow, deliberate, monk-like. Long, calm breaths. Convey stillness and gravity.',
-  },
-  {
-    id: 'daniel',
-    name: 'Daniel',
-    descriptor: 'Resonant · Measured',
-    ttsVoice: 'echo',
-    instructions:
-      'Speak as a resonant, measured man — a thoughtful narrator with clear diction, gentle warmth and a reflective, unhurried tempo.',
-  },
+  { id: 'joan', name: 'Joan', descriptor: 'Warm · Grounded', kokoroId: 'af_heart', speed: 0.88 },
+  { id: 'grace', name: 'Grace', descriptor: 'Gentle · Airy', kokoroId: 'af_nicole', speed: 0.85 },
+  { id: 'peter', name: 'Peter', descriptor: 'Deep · Anchored', kokoroId: 'bm_george', speed: 0.92 },
+  { id: 'daniel', name: 'Daniel', descriptor: 'Resonant · Measured', kokoroId: 'am_michael', speed: 0.9 },
 ];
+
+// ---- Kokoro voice engine (offline, perpetual, owned — HW_HARNESS.md §6 / Kokoro Voice Protocol) ----
+// Pinned per the protocol: freeze the library + model revision, never `@latest`.
+const KOKORO_CDN = 'https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/+esm';
+const KOKORO_MODEL = 'onnx-community/Kokoro-82M-v1.0-ONNX';
+
+// Module-level singletons so the ~86MB model loads once per session and is reused
+// across mounts (the browser also Cache-Storage-caches it for instant offline reloads).
+let kokoroEngine: any = null;
+let kokoroLoading: Promise<any> | null = null;
+
+async function loadVoiceEngine(onProgress?: (pct: number) => void): Promise<any> {
+  if (kokoroEngine) return kokoroEngine;
+  if (!kokoroLoading) {
+    kokoroLoading = (async () => {
+      const mod: any = await import(/* @vite-ignore */ KOKORO_CDN);
+      const KokoroTTS = mod.KokoroTTS ?? mod.default?.KokoroTTS;
+      const engine = await KokoroTTS.from_pretrained(KOKORO_MODEL, {
+        dtype: 'q8', // ~86MB quantized — best size/quality balance for mobile
+        device: 'wasm', // ship wasm default; WebGPU is inconsistent on iOS/Safari
+        progress_callback: (info: any) => {
+          if (info && typeof info.progress === 'number') onProgress?.(Math.round(info.progress));
+        },
+      });
+      kokoroEngine = engine;
+      return engine;
+    })();
+  }
+  try {
+    return await kokoroLoading;
+  } catch (e) {
+    kokoroLoading = null; // allow retry after a failed load
+    throw e;
+  }
+}
+
+// Escape hatch (Protocol §3.3): clear the transformers.js model cache + reset the engine.
+async function resetVoiceEngine(): Promise<void> {
+  kokoroEngine = null;
+  kokoroLoading = null;
+  try {
+    if (typeof caches !== 'undefined') {
+      for (const key of await caches.keys()) {
+        if (/transformers|kokoro|onnx|huggingface/i.test(key)) await caches.delete(key);
+      }
+    }
+  } catch {
+    /* best-effort */
+  }
+}
 
 interface TheTenderProps {
   currentTheme: 'day' | 'night';
@@ -61,6 +83,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const [isPaused, setIsPaused] = useState(false);
   const [isPreparing, setIsPreparing] = useState(false);
   const [speechError, setSpeechError] = useState<string | null>(null);
+  const [loadProgress, setLoadProgress] = useState<number | null>(null);
   const [currentWordIndex, setCurrentWordIndex] = useState(-1);
   const [ambientVolume, setAmbientVolume] = useState(0.4);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -72,8 +95,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const cricketTimerRef = useRef<any>(null);
   const speakTimeoutRef = useRef<any>(null);
 
-  // AI TTS streaming refs
-  const ttsAbortRef = useRef<AbortController | null>(null);
+  // Kokoro playback refs
   const ttsGainRef = useRef<GainNode | null>(null);
   const ttsSourcesRef = useRef<AudioBufferSourceNode[]>([]);
   const ttsPlayheadRef = useRef<number>(0);
@@ -288,33 +310,27 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const getVoiceProfile = (id: TenderVoiceId): TenderVoiceProfile =>
     TENDER_VOICES.find(v => v.id === id) || TENDER_VOICES[0];
 
-  // ---- Lovable AI streaming TTS ----
+  // ---- Kokoro in-browser TTS (offline, perpetual — HW_HARNESS.md §6 / Kokoro Voice Protocol) ----
 
-  // Split into chunks that stay well under the model input cap and start at sentence boundaries
-  const chunkForTTS = (text: string, maxChars = 900): string[] => {
-    const sentences = text.match(/[^.!?\n]+[.!?]?[\n]?|\n+/g) ?? [text];
-    const chunks: string[] = [];
-    let current = '';
-    const flush = () => { if (current.trim()) chunks.push(current.trim()); current = ''; };
-    for (const s of sentences) {
-      if (s.length > maxChars) {
-        flush();
-        for (let i = 0; i < s.length; i += maxChars) chunks.push(s.slice(i, i + maxChars));
-        continue;
-      }
-      if (current.length + s.length > maxChars) flush();
-      current += s;
-    }
-    flush();
-    return chunks;
+  // Split prose into sentence-sized chunks so we can generate sentence n+1 while n plays.
+  const chunkForTTS = (text: string): string[] => {
+    const matches = text.match(/[^.!?\n]+[.!?]+["']?|\S[^.!?\n]*(?=\n|$)/g);
+    const chunks = (matches ?? [text]).map(s => s.trim()).filter(Boolean);
+    return chunks.length ? chunks : [text.trim()];
   };
+
+  // Edge-case pronunciation pre-processing — fix at the input, never in the prose (Protocol §2.5).
+  const preprocessProse = (text: string): string =>
+    text
+      .replace(/\u2026/g, ', ') // ellipsis → a breath
+      .replace(/\s*\u2014\s*/g, ', ') // em dash → a breath
+      .replace(/\bJn\b/g, 'John')
+      .replace(/\bPs\b/g, 'Psalm')
+      .replace(/\s+/g, ' ')
+      .trim();
 
   const teardownTts = () => {
     ttsSessionIdRef.current += 1;
-    if (ttsAbortRef.current) {
-      try { ttsAbortRef.current.abort(); } catch {}
-      ttsAbortRef.current = null;
-    }
     for (const src of ttsSourcesRef.current) {
       try { src.stop(); } catch {}
       try { src.disconnect(); } catch {}
@@ -327,91 +343,33 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     ttsPlayheadRef.current = 0;
   };
 
-  const streamTtsChunk = async (
+  // Queue a decoded mono buffer gaplessly against the shared playhead. A 0.2s lead-in on the
+  // first buffer absorbs generation jitter; every later sentence is scheduled exactly where the
+  // previous one ends, so playback is butter-smooth with no clicks or gaps between sentences.
+  const scheduleAudio = (
     ctx: AudioContext,
     gain: GainNode,
     session: number,
-    text: string,
-    voice: string,
-    instructions: string,
-    abort: AbortController,
-    onFirstAudio: () => void,
-  ): Promise<void> => {
-    const res = await fetch('/api/tts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, voice, instructions }),
-      signal: abort.signal,
-    });
-    if (!res.ok || !res.body) {
-      const msg = await res.text().catch(() => '');
-      throw new Error(msg || `TTS request failed (${res.status})`);
-    }
-
-    const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
-    let buffer = '';
-    let pending = new Uint8Array(0);
-    let firstEmitted = false;
-
-    const emitPcm = (incoming: Uint8Array) => {
-      if (ttsSessionIdRef.current !== session) return;
-      const bytes = new Uint8Array(pending.length + incoming.length);
-      bytes.set(pending);
-      bytes.set(incoming, pending.length);
-      const usable = bytes.length - (bytes.length % 2);
-      pending = bytes.slice(usable);
-      if (usable === 0) return;
-      const samples = new Int16Array(bytes.buffer, 0, usable / 2);
-      const floats = Float32Array.from(samples, s => s / 32768);
-      const buf = ctx.createBuffer(1, floats.length, 24000);
-      buf.copyToChannel(floats, 0);
-      const src = ctx.createBufferSource();
-      src.buffer = buf;
-      src.connect(gain);
-      if (ttsPlayheadRef.current === 0) {
-        ttsPlayheadRef.current = ctx.currentTime + 0.08;
-      } else {
-        ttsPlayheadRef.current = Math.max(ttsPlayheadRef.current, ctx.currentTime);
-      }
-      src.start(ttsPlayheadRef.current);
-      ttsPlayheadRef.current += buf.duration;
-      ttsSourcesRef.current.push(src);
-      src.onended = () => {
-        ttsSourcesRef.current = ttsSourcesRef.current.filter(x => x !== src);
-        try { src.disconnect(); } catch {}
-      };
-      if (!firstEmitted) {
-        firstEmitted = true;
-        onFirstAudio();
-      }
+    samples: Float32Array,
+    sampleRate: number,
+  ) => {
+    if (ttsSessionIdRef.current !== session || !samples?.length) return;
+    const buf = ctx.createBuffer(1, samples.length, sampleRate);
+    buf.copyToChannel(samples instanceof Float32Array ? samples : Float32Array.from(samples), 0);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(gain);
+    const startAt =
+      ttsPlayheadRef.current === 0
+        ? ctx.currentTime + 0.2
+        : Math.max(ttsPlayheadRef.current, ctx.currentTime);
+    src.start(startAt);
+    ttsPlayheadRef.current = startAt + buf.duration;
+    ttsSourcesRef.current.push(src);
+    src.onended = () => {
+      ttsSourcesRef.current = ttsSourcesRef.current.filter(x => x !== src);
+      try { src.disconnect(); } catch {}
     };
-
-    const handleEvent = (data: string) => {
-      if (!data) return;
-      let payload: any;
-      try { payload = JSON.parse(data); } catch { return; }
-      if (payload?.type !== 'speech.audio.delta' || !payload.audio) return;
-      const binary = atob(payload.audio);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      emitPcm(bytes);
-    };
-
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      if (ttsSessionIdRef.current !== session) { try { reader.cancel(); } catch {} return; }
-      buffer += value;
-      let idx: number;
-      while ((idx = buffer.indexOf('\n\n')) !== -1) {
-        const block = buffer.slice(0, idx);
-        buffer = buffer.slice(idx + 2);
-        for (const line of block.split('\n')) {
-          if (line.startsWith('data: ')) handleEvent(line.slice(6));
-          else if (line.startsWith('data:')) handleEvent(line.slice(5).trim());
-        }
-      }
-    }
   };
 
   const handleStartReading = (
@@ -433,7 +391,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
 
     if (!audioCtxRef.current) {
       try {
-        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
       } catch (e: any) {
         setSpeechError(e?.message || 'audio-init-failed');
         setIsPreparing(false);
@@ -441,6 +399,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
       }
     }
     const ctx = audioCtxRef.current;
+    // Resume within the user gesture (iOS autoplay policy — Protocol §2.2).
     const ensureRunning = ctx.state === 'suspended' ? ctx.resume().catch(() => {}) : Promise.resolve();
 
     const gain = ctx.createGain();
@@ -449,39 +408,64 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     ttsGainRef.current = gain;
     ttsPlayheadRef.current = 0;
 
-    const abort = new AbortController();
-    ttsAbortRef.current = abort;
     const session = ++ttsSessionIdRef.current;
 
     const run = async () => {
       await ensureRunning;
       try {
-        const chunks = chunkForTTS(textSrc);
-        for (const chunk of chunks) {
+        // Lazy-load the engine on first tap (Protocol §1.2) — cached & offline thereafter.
+        const engine = await loadVoiceEngine(pct => {
+          if (ttsSessionIdRef.current === session) setLoadProgress(pct);
+        });
+        if (ttsSessionIdRef.current !== session) return;
+        setLoadProgress(null);
+
+        const sentences = chunkForTTS(preprocessProse(textSrc));
+        // Generate the first sentence, then generate n+1 while n plays (Protocol §1.4).
+        let nextGen: Promise<any> = engine.generate(sentences[0], {
+          voice: profile.kokoroId,
+          speed: profile.speed,
+        });
+        for (let i = 0; i < sentences.length; i++) {
           if (ttsSessionIdRef.current !== session) return;
-          await streamTtsChunk(ctx, gain, session, chunk, profile.ttsVoice, profile.instructions, abort, () => {
-            if (ttsSessionIdRef.current !== session) return;
+          const audio: any = await nextGen;
+          if (i + 1 < sentences.length) {
+            nextGen = engine.generate(sentences[i + 1], { voice: profile.kokoroId, speed: profile.speed });
+          }
+          if (ttsSessionIdRef.current !== session) return;
+          const samples: Float32Array = audio?.audio ?? audio?.data ?? audio;
+          const sampleRate: number = audio?.sampling_rate ?? audio?.sampleRate ?? 24000;
+          scheduleAudio(ctx, gain, session, samples, sampleRate);
+          if (i === 0) {
             setIsPreparing(false);
             setIsReading(true);
-          });
+          }
         }
         if (ttsSessionIdRef.current !== session) return;
-        // Wait for scheduled audio to finish
+        // Resolve the reading state once the last scheduled buffer has finished playing.
         const remaining = Math.max(0, ttsPlayheadRef.current - ctx.currentTime);
-        setTimeout(() => {
+        speakTimeoutRef.current = setTimeout(() => {
           if (ttsSessionIdRef.current !== session) return;
           setIsReading(false);
           setIsPreparing(false);
           setIsPaused(false);
         }, remaining * 1000 + 200);
       } catch (err: any) {
-        if (abort.signal.aborted || ttsSessionIdRef.current !== session) return;
-        setSpeechError(err?.message || 'tts-failed');
+        if (ttsSessionIdRef.current !== session) return;
+        setLoadProgress(null);
+        setSpeechError(err?.message || 'voice-failed');
         setIsReading(false);
         setIsPreparing(false);
       }
     };
     void run();
+  };
+
+  const handleRedownloadVoices = async () => {
+    stopReading(true);
+    setSpeechError(null);
+    setLoadProgress(null);
+    await resetVoiceEngine();
   };
 
   const handlePauseToggle = () => {
@@ -735,10 +719,17 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
               </div>
             </div>
 
+            {/* One-time download notice */}
+            {isPreparing && loadProgress !== null && (
+              <div className="mt-4 p-2.5 bg-amber-950/15 border border-amber-500/15 rounded-lg text-[10px] font-mono text-amber-300 leading-normal">
+                Preparing the voice — one-time download (~86MB), {loadProgress}%. Works fully offline after this.
+              </div>
+            )}
+
             {/* Diagnostics Warnings */}
             {speechError && (
               <div className="mt-4 p-2.5 bg-red-950/15 border border-red-500/10 rounded-lg text-[10px] font-mono text-red-300 leading-normal">
-                ⚠️ Voice familiarization note: Browser restricted speaking. Click the button below to allow speech audio.
+                ⚠️ The voice couldn't load. Check your connection for the first-time download, or use “Re-download voices” below.
               </div>
             )}
 
@@ -759,7 +750,15 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                   }`}></span>
                 </span>
                 <span className="font-mono text-[8px] uppercase tracking-widest opacity-60">
-                  {isPreparing ? 'Loading Voice' : isReading ? (isPaused ? 'Narrator Paused' : 'Narrating') : 'Ready'}
+                  {isPreparing
+                    ? loadProgress !== null
+                      ? `Preparing Voice · ${loadProgress}%`
+                      : 'Preparing Voice'
+                    : isReading
+                      ? isPaused
+                        ? 'Narrator Paused'
+                        : 'Narrating'
+                      : 'Ready'}
                 </span>
               </div>
 
@@ -851,7 +850,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
               })}
             </div>
             <p className="font-sans text-[9.5px] italic text-left opacity-60 mt-2">
-              Studio-grade AI voiceovers via Lovable AI. Each narrator reads the selected prose live with its own timbre, cadence and breath.
+              Perpetual in-browser voices via Kokoro (kokoro-js). No API, no keys — each narrator reads the selected prose live, offline after a one-time download.
             </p>
           </div>
 
@@ -916,8 +915,16 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
               </span>
             </div>
             <p className="font-sans text-[10px] leading-relaxed opacity-75">
-              The somatic narrator engine uses your operating system's native text-to-speech API to narrate contemplative prose. As you listen, our local Web Audio synthesizes real-time natural frequency backdrops, smoothly ducking in volume to keep the voice clean, warm, and comforting.
+              The narrator runs entirely in your browser via Kokoro — the ~86MB voice model downloads once, is cached, and then works fully offline with no API or keys. Sentences are generated ahead and scheduled gaplessly through Web Audio, which also ducks the ambient backdrop to keep the voice clean and warm.
             </p>
+            <button
+              id="tender-redownload-voices-btn"
+              onClick={handleRedownloadVoices}
+              className={`mt-3 w-full px-3 py-1.5 rounded-lg border font-mono text-[9px] uppercase tracking-wider cursor-pointer transition-all ${styles.badgeInactive}`}
+              title="Clear the cached voice model and re-download on next Listen"
+            >
+              Re-download voices
+            </button>
           </div>
 
         </div>
