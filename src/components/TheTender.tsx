@@ -6,7 +6,6 @@ import { getThemeStyles } from '../lib/theme';
 import {
   TENDER_VOICES,
   getVoiceProfile,
-  chunkText,
   type TenderVoiceId,
 } from '../lib/voices';
 
@@ -24,7 +23,7 @@ function getStatusMessage(
     return `${voiceName} is reading with a human Kokoro voice. Words highlight as they're spoken.`;
   }
   if (phase === 'paused') return "Paused. Tap Resume when you're ready to continue.";
-  return 'Tap Listen for human voice narration. Voices load once on first use, then stay ready.';
+  return 'Tap Listen. The voice prepares on first use, then works offline.';
 }
 
 interface TheTenderProps {
@@ -211,8 +210,6 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const playNarration = async (textSrc: string, voiceId: TenderVoiceId) => {
     const session = ++sessionRef.current;
     const profile = getVoiceProfile(voiceId);
-    const allWords = textSrc.split(/\s+/).filter(Boolean);
-    const chunks = chunkText(textSrc);
 
     abortRef.current?.abort();
     const abort = new AbortController();
@@ -220,54 +217,34 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
 
     setSpeechError(null);
     setPhase('preparing');
-    setProgressMessage(`Loading human voice for ${profile.name}…`);
+    setProgressMessage(`Preparing ${profile.name}'s voice…`);
 
     try {
-      const { generateKokoroSpeech } = await import('../lib/kokoro');
+      const { readProse } = await import('../lib/readProse');
 
-      const blobs: Blob[] = [];
-      for (let i = 0; i < chunks.length; i++) {
-        if (sessionRef.current !== session || abort.signal.aborted) return;
+      await readProse({
+        text: textSrc,
+        profile,
+        signal: abort.signal,
+        onProgress: progress => {
+          if (sessionRef.current !== session) return;
+          startTransition(() => setProgressMessage(progress.message));
+        },
+        onSpeaking: () => {
+          if (sessionRef.current !== session) return;
+          setPhase('reading');
+          setProgressMessage(null);
+        },
+        playBlob: async (blob, sentence, wordOffset) => {
+          if (sessionRef.current !== session || abort.signal.aborted) return;
 
-        if (chunks.length > 1) {
-          startTransition(() =>
-            setProgressMessage(`Generating part ${i + 1} of ${chunks.length}…`),
-          );
-        }
+          const url = URL.createObjectURL(blob);
+          blobUrlsRef.current.push(url);
+          const chunkWords = sentence.split(/\s+/).filter(Boolean);
 
-        const blob = await generateKokoroSpeech(
-          chunks[i],
-          profile.kokoroVoice,
-          profile.speed,
-          progress => {
-            if (sessionRef.current === session) {
-              startTransition(() => setProgressMessage(progress.status));
-            }
-          },
-          abort.signal,
-        );
-        blobs.push(blob);
-      }
-
-      if (sessionRef.current !== session || abort.signal.aborted) return;
-
-      revokeBlobUrls();
-      const urls = blobs.map(blob => {
-        const url = URL.createObjectURL(blob);
-        blobUrlsRef.current.push(url);
-        return url;
+          await playAudioUrl(url, chunkWords, wordOffset, session);
+        },
       });
-
-      setProgressMessage(null);
-      setPhase('reading');
-
-      let wordOffset = 0;
-      for (let i = 0; i < urls.length; i++) {
-        if (sessionRef.current !== session || abort.signal.aborted) return;
-        const chunkWords = chunks[i].split(/\s+/).filter(Boolean);
-        await playAudioUrl(urls[i], chunkWords, wordOffset, session);
-        wordOffset += chunkWords.length;
-      }
 
       if (sessionRef.current !== session) return;
       setPhase('idle');
@@ -278,8 +255,13 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
       if (err instanceof DOMException && err.name === 'AbortError') return;
 
       console.error('Kokoro narration failed:', err);
+      const { resetKokoroEngine } = await import('../lib/readProse');
+      resetKokoroEngine();
+      const detail = err instanceof Error ? err.message : 'Unknown error';
       setSpeechError(
-        'Human voice could not load. Check your connection for the first use, then try Listen again.',
+        detail.includes('network') || detail.includes('fetch')
+          ? 'The voice could not load. Try again, or read this passage silently.'
+          : `The voice could not load. Try again, or read this passage silently. (${detail})`,
       );
       setPhase('error');
       setProgressMessage(null);

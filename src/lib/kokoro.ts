@@ -14,13 +14,6 @@ export type KokoroLoadProgress = {
   status: string;
 };
 
-function getDevice(): 'webgpu' | 'wasm' {
-  if (typeof navigator !== 'undefined' && 'gpu' in navigator) {
-    return 'webgpu';
-  }
-  return 'wasm';
-}
-
 /** Lazy singleton — Kokoro loads only on first Listen tap, never on page open. */
 export async function getKokoroTts(
   onProgress?: (progress: KokoroLoadProgress) => void,
@@ -28,17 +21,18 @@ export async function getKokoroTts(
   if (!loadPromise) {
     loadPromise = (async () => {
       const { KokoroTTS } = await import('kokoro-js');
-      const device = getDevice();
+
       onProgress?.({
         loaded: 0,
         total: 1,
         percent: 0,
-        status: `Loading human voice engine (${device === 'webgpu' ? 'GPU' : 'CPU'})…`,
+        status: 'Preparing the voice — one-time download.',
       });
 
+      // WASM/q8 is the most reliable path across browsers and VMs.
       return KokoroTTS.from_pretrained(MODEL_ID, {
-        dtype: device === 'webgpu' ? 'fp32' : 'q8',
-        device,
+        dtype: 'q8',
+        device: 'wasm',
         progress_callback: data => {
           if (!data.total) return;
           const percent = Math.min(100, Math.round((data.loaded / data.total) * 100));
@@ -46,10 +40,10 @@ export async function getKokoroTts(
             loaded: data.loaded,
             total: data.total,
             percent,
-            status:
-              percent < 100
-                ? `Loading human voices… ${percent}%`
-                : 'Human voices ready — generating speech…',
+        status:
+          percent < 100
+            ? `Preparing the voice — ${percent}%`
+            : 'Voice ready — preparing speech…',
           });
         },
       });
@@ -86,5 +80,14 @@ export async function generateKokoroSpeech(
   });
 
   const raw = await tts.generate(text, { voice, speed });
-  return raw.toBlob();
+  const blob = raw.toBlob();
+  if (!blob.size) {
+    throw new Error('Voice generation returned empty audio.');
+  }
+  return blob;
+}
+
+/** Reset cached engine (e.g. after a failed load). */
+export function resetKokoroEngine() {
+  loadPromise = null;
 }

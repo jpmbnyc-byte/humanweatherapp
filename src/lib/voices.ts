@@ -1,5 +1,5 @@
-/** Maps Tender personas to Kokoro voice IDs. */
-export type KokoroVoiceId = 'af_heart' | 'af_bella' | 'am_michael' | 'bm_daniel';
+/** Maps Tender personas to Kokoro voice IDs — KIKI_VOICES per HW_HARNESS §6. */
+export type KokoroVoiceId = 'af_heart' | 'af_nicole' | 'am_michael' | 'bm_george';
 
 export type TenderVoiceId = 'joan' | 'grace' | 'peter' | 'daniel';
 
@@ -11,33 +11,34 @@ export interface TenderVoiceProfile {
   speed: number;
 }
 
+/** KIKI_VOICES — swap IDs after in-app audition; config-only change. */
 export const TENDER_VOICES: TenderVoiceProfile[] = [
   {
     id: 'joan',
     name: 'Joan',
     descriptor: 'Warm · grounded',
     kokoroVoice: 'af_heart',
-    speed: 0.92,
+    speed: 0.88,
   },
   {
     id: 'grace',
     name: 'Grace',
     descriptor: 'Gentle · airy',
-    kokoroVoice: 'af_bella',
-    speed: 0.88,
+    kokoroVoice: 'af_nicole',
+    speed: 0.85,
   },
   {
     id: 'peter',
     name: 'Peter',
     descriptor: 'Deep · anchored',
-    kokoroVoice: 'am_michael',
-    speed: 0.85,
+    kokoroVoice: 'bm_george',
+    speed: 0.92,
   },
   {
     id: 'daniel',
     name: 'Daniel',
     descriptor: 'Resonant · measured',
-    kokoroVoice: 'bm_daniel',
+    kokoroVoice: 'am_michael',
     speed: 0.9,
   },
 ];
@@ -46,24 +47,9 @@ export function getVoiceProfile(id: TenderVoiceId): TenderVoiceProfile {
   return TENDER_VOICES.find(v => v.id === id) ?? TENDER_VOICES[0];
 }
 
-/** Split long prose at sentence boundaries for Kokoro generation. */
-export function chunkText(text: string, maxChars = 450): string[] {
-  const sentences = text.match(/[^.!?\n]+[.!?]?[\n]?|\n+/g) ?? [text];
-  const chunks: string[] = [];
-  let current = '';
-  const flush = () => {
-    if (current.trim()) chunks.push(current.trim());
-    current = '';
-  };
-  for (const s of sentences) {
-    if (s.length > maxChars) {
-      flush();
-      for (let i = 0; i < s.length; i += maxChars) chunks.push(s.slice(i, i + maxChars));
-      continue;
-    }
-    if (current.length + s.length > maxChars) flush();
-    current += s;
-  }
-  flush();
-  return chunks.length ? chunks : [text.trim()];
+/** Split prose into sentences for pipelined Kokoro playback (§6). */
+export function splitSentences(text: string): string[] {
+  const parts = text.match(/[^.!?\n]+[.!?]+|\n+/g) ?? [text];
+  const sentences = parts.map(s => s.trim()).filter(Boolean);
+  return sentences.length ? sentences : [text.trim()];
 }
