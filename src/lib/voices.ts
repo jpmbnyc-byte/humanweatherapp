@@ -59,5 +59,5 @@ export function warmVoiceEngine(): void {
   else setTimeout(run, 400);
 }
 
-export { subscribeKokoroLoadProgress, getKokoroLoadState } from './kokoro';
-export type { KokoroLoadProgress } from './kokoro';
+export { subscribeKokoroLoadProgress, getKokoroLoadState } from './kokoroWorkerClient';
+export type { KokoroLoadProgress } from './kokoroWorkerClient';

@@ -55,6 +55,9 @@ export default function App() {
 
   useEffect(() => {
     setMotionReady(true);
+    const run = () => void import('./lib/voices').then(m => m.warmVoiceEngine());
+    if (typeof requestIdleCallback !== 'undefined') requestIdleCallback(run, { timeout: 1500 });
+    else setTimeout(run, 400);
   }, []);
 
   useEffect(() => {
