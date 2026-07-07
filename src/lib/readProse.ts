@@ -8,22 +8,30 @@ export type NarrationControls = {
   stop: () => void;
 };
 
+export type ReadProseStatus = {
+  phase: 'loading' | 'generating' | 'playing';
+  percent?: number;
+  label: string;
+};
+
 export type ReadProseOptions = {
   text: string;
   profile: TenderVoiceProfile;
   signal?: AbortSignal;
+  onStatus?: (status: ReadProseStatus) => void;
   onStart?: (controls: NarrationControls) => void;
   onWordIndex?: (index: number) => void;
 };
 
 /**
  * Pipelined gapless narration — generate chunk n+1 while n plays.
- * No status callbacks; UI stays quiet.
+ * Reports load/generate progress via onStatus; UI clears when speech starts.
  */
 export async function readProse({
   text,
   profile,
   signal,
+  onStatus,
   onStart,
   onWordIndex,
 }: ReadProseOptions): Promise<void> {
@@ -40,10 +48,30 @@ export async function readProse({
     stop: () => queue.stop(),
   };
 
-  // Engine load + first chunk generation in parallel
+  onStatus?.({
+    phase: 'loading',
+    percent: 0,
+    label: 'Preparing the voice — one-time download.',
+  });
+
+  let sawFullLoad = false;
+
   const [, firstBlob] = await Promise.all([
-    getKokoroTts(),
-    generateKokoroSpeech(chunks[0], profile.kokoroVoice, profile.speed, signal),
+    getKokoroTts(progress => {
+      onStatus?.({
+        phase: progress.percent >= 100 ? 'generating' : 'loading',
+        percent: progress.percent,
+        label: progress.status,
+      });
+      if (progress.percent >= 100) sawFullLoad = true;
+    }),
+    (async () => {
+      const blob = await generateKokoroSpeech(chunks[0], profile.kokoroVoice, profile.speed, signal);
+      if (!sawFullLoad) {
+        onStatus?.({ phase: 'generating', label: 'Voice ready — preparing speech…' });
+      }
+      return blob;
+    })(),
   ]);
 
   if (signal?.aborted) {
@@ -52,6 +80,7 @@ export async function readProse({
   }
 
   onStart?.(controls);
+  onStatus?.({ phase: 'playing', label: '' });
 
   let wordOffset = 0;
   let nextGen: Promise<Blob> | null = null;

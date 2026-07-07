@@ -6,6 +6,10 @@ type KokoroModule = typeof import('kokoro-js');
 type KokoroInstance = Awaited<ReturnType<KokoroModule['KokoroTTS']['from_pretrained']>>;
 
 let loadPromise: Promise<KokoroInstance> | null = null;
+let loadState: 'idle' | 'loading' | 'ready' = 'idle';
+let lastProgress: KokoroLoadProgress | null = null;
+
+const progressListeners = new Set<(progress: KokoroLoadProgress) => void>();
 
 export type KokoroLoadProgress = {
   loaded: number;
@@ -14,7 +18,33 @@ export type KokoroLoadProgress = {
   status: string;
 };
 
-/** Lazy singleton — Kokoro loads only on first Listen tap, never on page open. */
+function notifyProgress(progress: KokoroLoadProgress) {
+  lastProgress = progress;
+  for (const listener of progressListeners) {
+    try {
+      listener(progress);
+    } catch {
+      /* listener cleanup */
+    }
+  }
+}
+
+/** Subscribe to model download progress — includes in-flight warm loads. */
+export function subscribeKokoroLoadProgress(
+  listener: (progress: KokoroLoadProgress) => void,
+): () => void {
+  progressListeners.add(listener);
+  if (lastProgress && loadState === 'loading') {
+    listener(lastProgress);
+  }
+  return () => progressListeners.delete(listener);
+}
+
+export function getKokoroLoadState(): 'idle' | 'loading' | 'ready' {
+  return loadState;
+}
+
+/** Lazy singleton — Kokoro loads on first Listen tap or background warm. */
 export async function getKokoroTts(
   onProgress?: (progress: KokoroLoadProgress) => void,
 ): Promise<KokoroInstance> {
@@ -22,24 +52,30 @@ export async function getKokoroTts(
     throw new Error('Kokoro runs in the browser only.');
   }
 
+  let unsubscribe: (() => void) | undefined;
+  if (onProgress) {
+    unsubscribe = subscribeKokoroLoadProgress(onProgress);
+  }
+
   if (!loadPromise) {
+    loadState = 'loading';
     loadPromise = (async () => {
       const { KokoroTTS } = await import('kokoro-js');
 
-      onProgress?.({
+      notifyProgress({
         loaded: 0,
         total: 1,
         percent: 0,
         status: 'Preparing the voice — one-time download.',
       });
 
-      return KokoroTTS.from_pretrained(MODEL_ID, {
+      const instance = await KokoroTTS.from_pretrained(MODEL_ID, {
         dtype: 'q8',
         device: 'wasm',
         progress_callback: data => {
           if (!data.total) return;
           const percent = Math.min(100, Math.round((data.loaded / data.total) * 100));
-          onProgress?.({
+          notifyProgress({
             loaded: data.loaded,
             total: data.total,
             percent,
@@ -50,13 +86,22 @@ export async function getKokoroTts(
           });
         },
       });
+
+      loadState = 'ready';
+      return instance;
     })().catch(err => {
       loadPromise = null;
+      loadState = 'idle';
+      lastProgress = null;
       throw err;
     });
   }
 
-  return loadPromise;
+  try {
+    return await loadPromise;
+  } finally {
+    unsubscribe?.();
+  }
 }
 
 export async function generateKokoroSpeech(
@@ -84,4 +129,6 @@ export async function generateKokoroSpeech(
 
 export function resetKokoroEngine() {
   loadPromise = null;
+  loadState = 'idle';
+  lastProgress = null;
 }

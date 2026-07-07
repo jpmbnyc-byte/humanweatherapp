@@ -7,11 +7,13 @@ import {
   TENDER_VOICES,
   getVoiceProfile,
   warmVoiceEngine,
+  subscribeKokoroLoadProgress,
+  getKokoroLoadState,
   type TenderVoiceId,
 } from '../lib/voices';
 import type { NarrationControls } from '../lib/readProse';
 
-type Phase = 'idle' | 'live' | 'paused' | 'error';
+type Phase = 'idle' | 'loading' | 'live' | 'paused' | 'error';
 
 interface TheTenderProps {
   currentTheme: 'day' | 'night';
@@ -23,6 +25,9 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const [tenderVoice, setTenderVoice] = useState<TenderVoiceId>('joan');
   const [phase, setPhase] = useState<Phase>('idle');
   const [speechError, setSpeechError] = useState<string | null>(null);
+  const [loadPercent, setLoadPercent] = useState(0);
+  const [loadLabel, setLoadLabel] = useState('');
+  const [warmLoading, setWarmLoading] = useState(false);
   const [currentWordIndex, setCurrentWordIndex] = useState(-1);
   const [ambientVolume, setAmbientVolume] = useState(0.4);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -36,11 +41,35 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
 
   const isLive = phase === 'live';
   const isPaused = phase === 'paused';
+  const isLoading = phase === 'loading';
   const isActive = isLive || isPaused;
+  const showLoadStatus = isLoading || (phase === 'idle' && warmLoading);
 
   useEffect(() => {
     warmVoiceEngine();
+
+    const syncWarmState = () => setWarmLoading(getKokoroLoadState() === 'loading');
+    syncWarmState();
+
+    const unsub = subscribeKokoroLoadProgress(progress => {
+      if (getKokoroLoadState() === 'loading') {
+        setWarmLoading(true);
+        setLoadPercent(progress.percent);
+        setLoadLabel(progress.status);
+      }
+    });
+
+    const onReady = () => {
+      if (getKokoroLoadState() === 'ready') {
+        setWarmLoading(false);
+        setLoadPercent(0);
+        setLoadLabel('');
+      }
+    };
+    void import('../lib/kokoro').then(m => m.getKokoroTts().then(onReady).catch(() => {}));
+
     return () => {
+      unsub();
       abortRef.current?.abort();
       controlsRef.current?.stop();
       stopSoundEnvironment();
@@ -132,6 +161,8 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     controlsRef.current = null;
     setPhase('idle');
     setSpeechError(null);
+    setLoadPercent(0);
+    setLoadLabel('');
     setCurrentWordIndex(-1);
     if (stopAmbient) stopSoundEnvironment();
   };
@@ -143,7 +174,9 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     abortRef.current = abort;
 
     setSpeechError(null);
-    setPhase('live');
+    setPhase('loading');
+    setLoadPercent(getKokoroLoadState() === 'ready' ? 0 : 0);
+    setLoadLabel(getKokoroLoadState() === 'ready' ? 'Preparing speech…' : 'Preparing the voice — one-time download.');
     setCurrentWordIndex(-1);
 
     try {
@@ -152,8 +185,23 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
         text: textSrc,
         profile,
         signal: abort.signal,
+        onStatus: status => {
+          if (sessionRef.current !== session) return;
+          if (status.phase === 'playing') {
+            setLoadPercent(0);
+            setLoadLabel('');
+            return;
+          }
+          setLoadPercent(status.percent ?? 0);
+          setLoadLabel(status.label);
+        },
         onStart: controls => {
-          if (sessionRef.current === session) controlsRef.current = controls;
+          if (sessionRef.current === session) {
+            controlsRef.current = controls;
+            setPhase('live');
+            setLoadPercent(0);
+            setLoadLabel('');
+          }
         },
         onWordIndex: idx => {
           if (sessionRef.current === session) setCurrentWordIndex(idx);
@@ -350,6 +398,31 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
               )}
             </div>
 
+            {showLoadStatus && (
+              <div className="mb-3" aria-busy="true">
+                <p
+                  className={`hw-caption font-mono text-xs mb-1.5 ${isNight ? 'text-white/55' : 'text-stone-500'}`}
+                  aria-live="polite"
+                  role="status"
+                >
+                  {loadLabel || 'Preparing the voice…'}
+                </p>
+                <div
+                  className={`h-0.5 w-full rounded-full overflow-hidden ${isNight ? 'bg-white/10' : 'bg-stone-200'}`}
+                  role="progressbar"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={loadPercent}
+                  aria-label="Voice preparation progress"
+                >
+                  <div
+                    className="h-full bg-[#d4b05a] transition-[width] duration-200 ease-out"
+                    style={{ width: `${loadPercent}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
             {phase === 'error' && (
               <p className="text-red-400/90 text-sm mb-3" role="alert">{speechError}</p>
             )}
@@ -357,15 +430,18 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
             <div className="flex gap-2 justify-end border-t border-accent/10 pt-4">
               <button
                 id="tender-play-toggle-btn"
-                disabled={isEditMode || !inputText.trim()}
+                disabled={isEditMode || !inputText.trim() || isLoading}
                 onClick={handlePlayToggle}
                 className={`px-5 py-2.5 rounded-full hw-btn-label flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-30 ${
                   isLive
                     ? isNight ? 'text-emerald-400 border border-emerald-500/30' : 'text-emerald-800 border border-emerald-500/40'
-                    : isNight ? 'bg-[#d4b05a] text-white' : 'bg-[#2c2824] text-white'
+                    : isLoading
+                      ? isNight ? 'text-white/50 border border-white/10' : 'text-stone-500 border border-stone-200'
+                      : isNight ? 'bg-[#d4b05a] text-white' : 'bg-[#2c2824] text-white'
                 }`}
               >
-                {isLive ? <><Pause className="w-3.5 h-3.5 fill-current" /> Pause</> :
+                {isLoading ? <>Preparing…</> :
+                  isLive ? <><Pause className="w-3.5 h-3.5 fill-current" /> Pause</> :
                   isPaused ? <><Play className="w-3.5 h-3.5 fill-current" /> Resume</> :
                   <><Play className="w-3.5 h-3.5 fill-current" /> Listen</>}
               </button>

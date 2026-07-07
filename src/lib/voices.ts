@@ -58,3 +58,6 @@ export function warmVoiceEngine(): void {
   if (typeof requestIdleCallback !== 'undefined') requestIdleCallback(run, { timeout: 2000 });
   else setTimeout(run, 400);
 }
+
+export { subscribeKokoroLoadProgress, getKokoroLoadState } from './kokoro';
+export type { KokoroLoadProgress } from './kokoro';
