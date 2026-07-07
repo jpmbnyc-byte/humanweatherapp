@@ -154,7 +154,7 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
       {/* Section Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
-          <span className="font-mono text-[10px] tracking-widest uppercase opacity-50 block mb-1">05 — NEURAL REGULATION</span>
+          <span className="font-mono text-[10px] tracking-widest uppercase opacity-50 block mb-1">Sound therapy</span>
           <h2 className="font-serif text-2xl text-accent font-medium">Frequency Therapy</h2>
           <p className="font-serif text-xs italic opacity-85 mt-1">
             Restorative sound waves synthesized in real time to gently clear mental static and support neural harmony.

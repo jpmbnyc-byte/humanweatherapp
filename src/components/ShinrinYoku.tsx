@@ -97,7 +97,7 @@ export default function ShinrinYoku({ currentTheme }: ShinrinYokuProps) {
 
       {/* Header */}
       <div className="mb-6">
-        <span className="font-mono text-[10px] tracking-widest uppercase opacity-50 block mb-1">08 — PHYTOTHERAPEUTIC FOREST IMMERSION</span>
+        <span className="font-mono text-[10px] tracking-widest uppercase opacity-50 block mb-1">Forest bathing</span>
         <h2 className="font-serif text-2xl text-accent font-medium">Shinrin-Yoku Forest Bathing</h2>
         <p className="font-serif text-xs italic opacity-85 mt-1">
           Gentle forest bathing rituals designed to slow your pace, ground your attention, and welcome the restorative energy of nature.

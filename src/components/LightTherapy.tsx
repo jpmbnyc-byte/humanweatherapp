@@ -21,7 +21,7 @@ export default function LightTherapy({ currentTheme }: LightTherapyProps) {
       
       {/* Header */}
       <div className="mb-6">
-        <span className="font-mono text-[10px] tracking-widest uppercase opacity-50 block mb-1">06 — CHROMATHERAPY WINDOWS</span>
+        <span className="font-mono text-[10px] tracking-widest uppercase opacity-50 block mb-1">Light therapy</span>
         <h2 className="font-serif text-2xl text-accent font-medium">Light Therapy</h2>
         <p className="font-serif text-xs italic opacity-85 mt-1">
           Immerse yourself in gentle, full-screen color washes designed to support your natural circadian rhythms and peace of mind.

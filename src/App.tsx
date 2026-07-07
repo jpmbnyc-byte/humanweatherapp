@@ -63,7 +63,7 @@ export default function App() {
       <div className="relative z-10 flex flex-col flex-1 w-full max-w-5xl mx-auto px-6 md:px-10 lg:px-12">
 
         {/* Header */}
-        <header className={`w-full py-10 md:py-14 flex items-center justify-between border-b ${themeStyles.border}`} id="app-header">
+        <header className={`w-full py-8 md:py-10 flex items-center justify-between border-b ${themeStyles.border}`} id="app-header">
           <div className="flex flex-col text-left max-w-md">
             <span className="font-mono text-[9px] tracking-[0.25em] uppercase opacity-40 mb-3">human weather</span>
             <h1 className="font-serif text-4xl md:text-5xl font-medium tracking-tight leading-[1.1]">
@@ -100,7 +100,7 @@ export default function App() {
         </header>
 
         {/* Navigation */}
-        <nav className="w-full mt-12 md:mt-16" id="app-navigation-bar">
+        <nav className="w-full mt-8 md:mt-10" id="app-navigation-bar">
           <div className={`flex flex-wrap gap-1 p-1 rounded-2xl border ${themeStyles.border} ${isNight ? 'bg-black/15' : 'bg-white/50'}`}>
             {([
               ['somatic', 'Somatic Map'],
@@ -125,7 +125,7 @@ export default function App() {
         </nav>
 
         {/* Main views */}
-        <main className="flex-1 w-full py-14 md:py-20" id="app-main-view">
+        <main className="flex-1 w-full py-10 md:py-12" id="app-main-view">
           <AnimatePresence mode="wait">
 
             {activeTab === 'somatic' && (
@@ -135,7 +135,7 @@ export default function App() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -12 }}
                 transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-                className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start"
+                className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start"
               >
                 <div className="lg:col-span-5 flex flex-col items-center">
                   <SomaticGrid onStateChange={handleStateChange} currentTheme={currentTheme} />
@@ -198,7 +198,7 @@ export default function App() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -12 }}
                 transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-                className="flex flex-col gap-12 md:gap-16"
+                className="flex flex-col gap-8 md:gap-10"
               >
                 <FrequencyTherapy currentTheme={currentTheme} />
                 <LightTherapy currentTheme={currentTheme} />
@@ -213,7 +213,7 @@ export default function App() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -12 }}
                 transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-                className="flex flex-col gap-12 md:gap-16"
+                className="flex flex-col gap-8 md:gap-10"
               >
                 <SolarRay currentTheme={currentTheme} />
                 <ShinrinYoku currentTheme={currentTheme} />
@@ -237,10 +237,11 @@ export default function App() {
         </main>
 
         {/* Footer */}
-        <footer className={`w-full py-16 md:py-20 border-t ${themeStyles.border} mt-8`} id="app-footer">
-          <div className="max-w-xl mx-auto text-center mb-14 px-4">
-            <p className="font-serif text-lg md:text-xl italic leading-relaxed opacity-80">
-              With gratitude — may you listen to your body's weather with curiosity and care.
+        <footer className={`w-full py-10 md:py-12 border-t ${themeStyles.border} mt-6`} id="app-footer">
+          <div className="max-w-sm mx-auto text-center mb-8 px-4">
+            <p className="font-serif text-sm italic opacity-50 mb-1">With gratitude</p>
+            <p className="font-serif text-base md:text-lg italic leading-snug opacity-75">
+              Listen to your body's weather with curiosity and care.
             </p>
           </div>
 

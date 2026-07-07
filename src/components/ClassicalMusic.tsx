@@ -163,7 +163,7 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
-          <span className="font-mono text-[10px] tracking-widest uppercase opacity-50 block mb-1">07 — CONTEMPLATIVE CHORDS</span>
+          <span className="font-mono text-[10px] tracking-widest uppercase opacity-50 block mb-1">Contemplative music</span>
           <h2 className="font-serif text-2xl text-accent font-medium">Classical Music Immersion</h2>
           <p className="font-serif text-xs italic opacity-85 mt-1">
             Six timeless arrangements selected to gently soothe your nervous system, quiet the mind, and restore inner balance.

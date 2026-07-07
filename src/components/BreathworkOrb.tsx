@@ -99,7 +99,7 @@ export default function BreathworkOrb({ weatherState, currentTheme }: Breathwork
          id="breathwork-guide-orb-container">
       
       {/* Title */}
-      <span className="font-mono text-[10px] tracking-widest uppercase opacity-50 mb-1">COHERENT RESPIRATION GUIDE</span>
+      <span className="font-mono text-[10px] tracking-widest uppercase opacity-50 mb-1">Breath guide</span>
       <h3 className="font-serif text-lg text-accent italic mb-8">{weatherState.title} Pacing</h3>
 
       {/* Breathing Canvas Stage */}

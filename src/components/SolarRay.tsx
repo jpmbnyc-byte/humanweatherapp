@@ -236,7 +236,7 @@ export default function SolarRay({ currentTheme }: SolarRayProps) {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
-          <span className="font-mono text-[10px] tracking-widest uppercase opacity-50 block mb-1">09 — CIRCADIAN SUNLIGHT ALIGNMENT</span>
+          <span className="font-mono text-[10px] tracking-widest uppercase opacity-50 block mb-1">Circadian sunlight</span>
           <h2 className="font-serif text-2xl text-accent font-medium">Solar Ray Therapy</h2>
           <p className="font-serif text-xs italic opacity-85 mt-1">
             Align with the sun's natural cycles. Track solar angles, UV light ranges, and healing windows computed for your local time.
