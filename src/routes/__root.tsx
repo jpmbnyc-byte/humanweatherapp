@@ -79,12 +79,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: "Human Weather App" },
       { property: "og:description", content: "Tracking the emotional climate." },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
+      { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@PBWYWORLDWIDE" },
       { name: "twitter:title", content: "Human Weather App" },
       { name: "twitter:description", content: "Tracking the emotional climate." },
-      // TODO: add a self-hosted social image (e.g. public/og.png) and reference it here
-      // as og:image / twitter:image. Removed the Lovable/GPT-Engineer-hosted image URL.
+      // Self-hosted social card. Drop the exported banner at `public/og.png` (1200×630)
+      // and it is served at `/og.png`. Use an absolute URL here if a fixed production
+      // domain is known (some scrapers don't resolve relative OG image paths).
+      { property: "og:image", content: "/og.png" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { name: "twitter:image", content: "/og.png" },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
