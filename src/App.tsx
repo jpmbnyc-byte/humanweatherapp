@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import SomaticGrid from './components/SomaticGrid';
-import BreathworkOrb from './components/BreathworkOrb';
 import MountainBackground from './components/MountainBackground';
 import TabSkeleton from './components/TabSkeleton';
 import TabErrorBoundary from './components/TabErrorBoundary';
-import { WEATHER_STATES } from './data';
+import { WEATHER_STATES } from './data/somatic';
 import { WeatherState } from './types';
 import { getThemeStyles } from './lib/theme';
 import { Sun, Moon } from 'lucide-react';
+
+const BreathworkOrb = lazy(() => import('./components/BreathworkOrb'));
 
 const FrequencyTherapy = lazy(() => import('./components/FrequencyTherapy'));
 const LightTherapy = lazy(() => import('./components/LightTherapy'));
@@ -17,7 +18,7 @@ const SolarRay = lazy(() => import('./components/SolarRay'));
 const ShinrinYoku = lazy(() => import('./components/ShinrinYoku'));
 const TheTender = lazy(() => import('./components/TheTender'));
 
-/** Prefetch tab chunks only when browser is idle — never competes with paint/interaction. */
+/** Prefetch tab chunks after navigation — never on initial paint. */
 function prefetchTabWhenIdle(tab: 'therapy' | 'rhythms' | 'tender') {
   const run = () => {
     if (tab === 'therapy') {
@@ -32,9 +33,9 @@ function prefetchTabWhenIdle(tab: 'therapy' | 'rhythms' | 'tender') {
     }
   };
   if (typeof requestIdleCallback !== 'undefined') {
-    requestIdleCallback(run, { timeout: 2000 });
+    requestIdleCallback(run, { timeout: 4000 });
   } else {
-    setTimeout(run, 300);
+    setTimeout(run, 800);
   }
 }
 
@@ -140,9 +141,10 @@ export default function App() {
               <motion.button
                 key={id}
                 id={`tab-${id}-btn`}
-                onClick={() => setActiveTab(id)}
-                onMouseEnter={() => { if (id !== 'somatic') prefetchTabWhenIdle(id); }}
-                onFocus={() => { if (id !== 'somatic') prefetchTabWhenIdle(id); }}
+                onClick={() => {
+                  if (id !== 'somatic') prefetchTabWhenIdle(id);
+                  setActiveTab(id);
+                }}
                 whileTap={{ scale: 0.98 }}
                 layout
                 className={`flex-1 min-w-[calc(50%-4px)] sm:min-w-0 px-5 py-3.5 rounded-xl text-sm font-sans font-medium tracking-wide border transition-colors cursor-pointer ${
@@ -217,7 +219,9 @@ export default function App() {
                     </div>
                   </div>
 
-                  <BreathworkOrb weatherState={activeWeather} currentTheme={currentTheme} />
+                  <Suspense fallback={<div className="h-64 animate-pulse rounded-2xl bg-accent/5" aria-hidden />}>
+                    <BreathworkOrb weatherState={activeWeather} currentTheme={currentTheme} />
+                  </Suspense>
                 </div>
               </motion.div>
             )}

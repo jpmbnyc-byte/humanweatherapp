@@ -1,5 +1,4 @@
 import type { TenderVoiceProfile } from './voices';
-import { generateKokoroSpeech, getKokoroTts, resetKokoroEngine } from './kokoro';
 import { splitSentences } from './voices';
 
 export type ReadProseProgress = {
@@ -20,7 +19,7 @@ export type ReadProseOptions = {
 
 /**
  * Sentence-chunked narration — generate sentence n+1 while n plays (HW_HARNESS §6).
- * Audio playback must be triggered from the user's tap (iOS-safe).
+ * Kokoro is dynamically imported so this module stays out of the initial bundle.
  */
 export async function readProse({
   text,
@@ -30,6 +29,11 @@ export async function readProse({
   onSpeaking,
   playBlob,
 }: ReadProseOptions): Promise<void> {
+  if (typeof window === 'undefined') {
+    throw new Error('Voice narration runs in the browser only.');
+  }
+
+  const { generateKokoroSpeech, getKokoroTts, resetKokoroEngine } = await import('./kokoro');
   const sentences = splitSentences(text);
   if (!sentences.length) return;
 
@@ -39,13 +43,10 @@ export async function readProse({
     sentenceTotal: sentences.length,
   });
 
-  // Warm the engine before first sentence generation.
   await getKokoroTts(progress => {
     onProgress?.({
       phase: 'loading',
-      message: progress.status.startsWith('Loading')
-        ? progress.status.replace('Loading human voices', 'Preparing the voice')
-        : progress.status,
+      message: progress.status,
       sentenceTotal: sentences.length,
     });
   });
@@ -57,22 +58,23 @@ export async function readProse({
     sentences[0],
     profile.kokoroVoice,
     profile.speed,
-    undefined,
     signal,
   );
 
   for (let i = 0; i < sentences.length; i++) {
     if (signal?.aborted) throw new DOMException('Cancelled.', 'AbortError');
 
-    onProgress?.({
-      phase: 'generating',
-      message:
-        sentences.length > 1
-          ? `Preparing sentence ${i + 1} of ${sentences.length}…`
-          : 'Preparing speech…',
-      sentenceIndex: i,
-      sentenceTotal: sentences.length,
-    });
+    if (i > 0) {
+      onProgress?.({
+        phase: 'generating',
+        message:
+          sentences.length > 1
+            ? `Preparing sentence ${i + 1} of ${sentences.length}…`
+            : 'Preparing speech…',
+        sentenceIndex: i,
+        sentenceTotal: sentences.length,
+      });
+    }
 
     const blob = await nextBlobPromise!;
 
@@ -81,7 +83,6 @@ export async function readProse({
         sentences[i + 1],
         profile.kokoroVoice,
         profile.speed,
-        undefined,
         signal,
       );
     } else {
@@ -104,4 +105,7 @@ export async function readProse({
   }
 }
 
-export { resetKokoroEngine };
+export async function resetKokoroEngine() {
+  const { resetKokoroEngine: reset } = await import('./kokoro');
+  reset();
+}

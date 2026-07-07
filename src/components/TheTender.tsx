@@ -31,7 +31,8 @@ interface TheTenderProps {
 }
 
 export default function TheTender({ currentTheme }: TheTenderProps) {
-  const [inputText, setInputText] = useState(PRESETS[0].text);
+  const defaultPreset = PRESETS.find(p => p.id === 'reflection') ?? PRESETS[0];
+  const [inputText, setInputText] = useState(defaultPreset.text);
   const [soundEnv, setSoundEnv] = useState<'rain' | 'forest' | 'ocean' | 'hearth' | 'crickets' | 'silence'>('silence');
   const [tenderVoice, setTenderVoice] = useState<TenderVoiceId>('joan');
   const [phase, setPhase] = useState<NarrationPhase>('idle');

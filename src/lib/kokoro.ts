@@ -18,6 +18,10 @@ export type KokoroLoadProgress = {
 export async function getKokoroTts(
   onProgress?: (progress: KokoroLoadProgress) => void,
 ): Promise<KokoroInstance> {
+  if (typeof window === 'undefined') {
+    throw new Error('Kokoro runs in the browser only.');
+  }
+
   if (!loadPromise) {
     loadPromise = (async () => {
       const { KokoroTTS } = await import('kokoro-js');
@@ -29,7 +33,6 @@ export async function getKokoroTts(
         status: 'Preparing the voice — one-time download.',
       });
 
-      // WASM/q8 is the most reliable path across browsers and VMs.
       return KokoroTTS.from_pretrained(MODEL_ID, {
         dtype: 'q8',
         device: 'wasm',
@@ -40,10 +43,10 @@ export async function getKokoroTts(
             loaded: data.loaded,
             total: data.total,
             percent,
-        status:
-          percent < 100
-            ? `Preparing the voice — ${percent}%`
-            : 'Voice ready — preparing speech…',
+            status:
+              percent < 100
+                ? `Preparing the voice — ${percent}%`
+                : 'Voice ready — preparing speech…',
           });
         },
       });
@@ -60,24 +63,16 @@ export async function generateKokoroSpeech(
   text: string,
   voice: KokoroVoiceId,
   speed: number,
-  onProgress?: (progress: KokoroLoadProgress) => void,
   signal?: AbortSignal,
 ): Promise<Blob> {
   if (signal?.aborted) {
     throw new DOMException('Cancelled.', 'AbortError');
   }
 
-  const tts = await getKokoroTts(onProgress);
+  const tts = await getKokoroTts();
   if (signal?.aborted) {
     throw new DOMException('Cancelled.', 'AbortError');
   }
-
-  onProgress?.({
-    loaded: 1,
-    total: 1,
-    percent: 100,
-    status: 'Generating human voice…',
-  });
 
   const raw = await tts.generate(text, { voice, speed });
   const blob = raw.toBlob();
@@ -87,7 +82,6 @@ export async function generateKokoroSpeech(
   return blob;
 }
 
-/** Reset cached engine (e.g. after a failed load). */
 export function resetKokoroEngine() {
   loadPromise = null;
 }

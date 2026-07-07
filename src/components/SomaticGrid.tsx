@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
-import { PATHWAYS, WEATHER_STATES } from '../data';
+import { PATHWAYS, WEATHER_STATES } from '../data/somatic';
 import { WeatherState, Pathway } from '../types';
 import { Sparkles, Trash2, HelpCircle } from 'lucide-react';
 
