@@ -212,14 +212,14 @@ export default function App() {
                 <SomaticGrid onStateChange={handleStateChange} currentTheme={currentTheme} />
               </div>
 
-              {/* Col Right (Spatial climate analysis & Breathwork orb) */}
+              {/* Col Right (Current Conditions & Breathwork orb) */}
               <div className="lg:col-span-7 flex flex-col gap-6 w-full">
-                {/* Real-time spatial pattern analysis Card */}
+                {/* Current Conditions card */}
                 <div className={`p-6 rounded-2xl border ${themeStyles.border} ${themeStyles.cardBg} backdrop-blur-md relative`}
-                     id="weather-reading-card">
+                     id="weather-conditions-card">
                   
                   <span className="font-mono text-[9px] uppercase tracking-widest opacity-50 block mb-1">
-                    02 — Real-time somatic reading
+                    02 — Current Conditions
                   </span>
                   
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">

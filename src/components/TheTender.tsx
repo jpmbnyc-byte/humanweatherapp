@@ -28,7 +28,7 @@ const TENDER_VOICES: TenderVoiceProfile[] = [
     descriptor: 'Gentle · Airy',
     ttsVoice: 'nova',
     instructions:
-      'Speak as a gentle, airy woman with a light, luminous tone. Slow, tender, contemplative pacing, as if reading a poem aloud in a candlelit room.',
+      'Speak as a gentle, airy woman with a light, luminous tone. Slow, tender, contemplative pacing, as if speaking a poem aloud in a candlelit room.',
   },
   {
     id: 'peter',
@@ -57,7 +57,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const [soundEnv, setSoundEnv] = useState<'rain' | 'forest' | 'ocean' | 'hearth' | 'crickets' | 'silence'>('silence');
   const [tenderVoice, setTenderVoice] = useState<TenderVoiceId>('joan');
   
-  const [isReading, setIsReading] = useState(false);
+  const [isNarrating, setIsNarrating] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [isPreparing, setIsPreparing] = useState(false);
   const [speechError, setSpeechError] = useState<string | null>(null);
@@ -85,14 +85,14 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      stopReading(true);
+      stopNarration(true);
       if (audioCtxRef.current) {
         audioCtxRef.current.close().catch(() => {});
       }
     };
   }, []);
 
-  // Sync volume node when ambientVolume, soundEnv, or reading states change
+  // Sync volume node when ambientVolume, soundEnv, or narration states change
   useEffect(() => {
     if (envGainNodeRef.current && audioCtxRef.current) {
       const ctx = audioCtxRef.current;
@@ -104,7 +104,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
         envGainNodeRef.current.gain.setValueAtTime(targetGain, ctx.currentTime);
       }
     }
-  }, [ambientVolume, soundEnv, isReading, isPaused, isPreparing]);
+  }, [ambientVolume, soundEnv, isNarrating, isPaused, isPreparing]);
 
   // Sync environment change
   useEffect(() => {
@@ -119,7 +119,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const getAmbientVolumeTarget = () => {
     if (soundEnv === 'silence') return 0;
     // Beautifully duck the background environment when speech narration is active
-    if (isReading && !isPaused) {
+    if (isNarrating && !isPaused) {
       return ambientVolume * 0.15; 
     }
     if (isPreparing) {
@@ -414,7 +414,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     }
   };
 
-  const handleStartReading = (
+  const handleStartNarration = (
     textToUse?: string,
     voiceOverride?: TenderVoiceId,
   ) => {
@@ -424,7 +424,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     teardownTts();
     setSpeechError(null);
     setIsPreparing(true);
-    setIsReading(false);
+    setIsNarrating(false);
     setIsPaused(false);
     setCurrentWordIndex(-1);
     setWordsList(textSrc.split(/\s+/));
@@ -462,7 +462,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
           await streamTtsChunk(ctx, gain, session, chunk, profile.ttsVoice, profile.instructions, abort, () => {
             if (ttsSessionIdRef.current !== session) return;
             setIsPreparing(false);
-            setIsReading(true);
+            setIsNarrating(true);
           });
         }
         if (ttsSessionIdRef.current !== session) return;
@@ -470,14 +470,14 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
         const remaining = Math.max(0, ttsPlayheadRef.current - ctx.currentTime);
         setTimeout(() => {
           if (ttsSessionIdRef.current !== session) return;
-          setIsReading(false);
+          setIsNarrating(false);
           setIsPreparing(false);
           setIsPaused(false);
         }, remaining * 1000 + 200);
       } catch (err: any) {
         if (abort.signal.aborted || ttsSessionIdRef.current !== session) return;
         setSpeechError(err?.message || 'tts-failed');
-        setIsReading(false);
+        setIsNarrating(false);
         setIsPreparing(false);
       }
     };
@@ -486,7 +486,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
 
   const handlePauseToggle = () => {
     const ctx = audioCtxRef.current;
-    if (!ctx || !isReading) return;
+    if (!ctx || !isNarrating) return;
     if (isPaused) {
       ctx.resume().then(() => setIsPaused(false)).catch(() => setIsPaused(false));
     } else {
@@ -495,7 +495,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   };
 
   const handlePlayToggle = () => {
-    if (isReading) {
+    if (isNarrating) {
       handlePauseToggle();
     } else {
       if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
@@ -504,11 +504,11 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
       if (soundEnv !== 'silence') {
         startSoundEnvironment(soundEnv);
       }
-      handleStartReading(inputText);
+      handleStartNarration(inputText);
     }
   };
 
-  const stopReading = (stopAmbient = true) => {
+  const stopNarration = (stopAmbient = true) => {
     if (speakTimeoutRef.current) {
       clearTimeout(speakTimeoutRef.current);
     }
@@ -516,7 +516,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
       audioCtxRef.current.resume().catch(() => {});
     }
-    setIsReading(false);
+    setIsNarrating(false);
     setIsPreparing(false);
     setIsPaused(false);
     setCurrentWordIndex(-1);
@@ -528,16 +528,16 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
 
   const handleVoiceChange = (voice: TenderVoiceId) => {
     setTenderVoice(voice);
-    if (isReading) {
-      stopReading(false);
+    if (isNarrating) {
+      stopNarration(false);
       setTimeout(() => {
-        handleStartReading(inputText, voice);
+        handleStartNarration(inputText, voice);
       }, 150);
     }
   };
 
   const handlePresetSelect = (preset: typeof PRESETS[0]) => {
-    stopReading(true);
+    stopNarration(true);
     setInputText(preset.text);
     setIsEditMode(false);
     
@@ -564,7 +564,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
               wordCounter++;
             }
             
-            const isCurrent = isReading && isWord && currentIdx === currentWordIndex;
+            const isCurrent = isNarrating && isWord && currentIdx === currentWordIndex;
             
             return (
               <span
@@ -574,7 +574,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                     ? currentTheme === 'night'
                       ? 'text-[#ffd700] font-bold bg-amber-500/20 drop-shadow-[0_0_12px_rgba(234,179,8,0.6)] scale-[1.03] inline-block'
                       : 'text-amber-900 font-bold bg-amber-500/25 drop-shadow-[0_0_12px_rgba(217,119,6,0.4)] scale-[1.03] inline-block'
-                    : isReading 
+                    : isNarrating 
                       ? currentTheme === 'night' ? 'text-white/40' : 'text-zinc-400'
                       : currentTheme === 'night' ? 'text-white/80' : 'text-zinc-800'
                 }`}
@@ -623,7 +623,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
         <button
           id="toggle-edit-mode-btn"
           onClick={() => {
-            stopReading(true);
+            stopNarration(true);
             setIsEditMode(!isEditMode);
           }}
           className={`mt-3 sm:mt-0 px-3.5 py-1.5 rounded-lg border font-mono text-[9px] uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-all ${
@@ -632,7 +632,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
         >
           {isEditMode ? (
             <>
-              <Check className="w-3 h-3" /> Reading Mode
+              <Check className="w-3 h-3" /> Listen Mode
             </>
           ) : (
             <>
@@ -670,13 +670,13 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
       {/* 3. Main Workspace Grid */}
       <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
         
-        {/* LEFT COLUMN: The Sanctuary Reader Card (Takes up 7 cols) */}
+        {/* LEFT COLUMN: The Sanctuary passage card (Takes up 7 cols) */}
         <div className="md:col-span-7 flex flex-col gap-4">
           <div className={`p-5 sm:p-6 rounded-xl border text-left flex flex-col justify-between min-h-[310px] relative overflow-hidden ${styles.innerBg}`}>
             
             {/* Visual focus aura while speaking */}
             <AnimatePresence>
-              {isReading && !isPaused && (
+              {isNarrating && !isPaused && (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -691,12 +691,12 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                 <div className="flex items-center gap-1.5">
                   <Headphones className={`w-3.5 h-3.5 ${styles.goldText}`} />
                   <span className={`font-mono text-[9px] uppercase tracking-widest ${styles.mutedText}`}>
-                    {isEditMode ? 'Text Composer' : 'Guided Reading Sanctuary'}
+                    {isEditMode ? 'Text Composer' : 'The Sanctuary'}
                   </span>
                 </div>
                 
                 {/* Micro soundwave pulse when speaking */}
-                {isReading && !isPaused && (
+                {isNarrating && !isPaused && (
                   <span className="flex items-end gap-[1.5px] h-3">
                     <span className="w-[1.5px] bg-amber-500 rounded-full animate-[pulse_0.5s_infinite_alternate]" style={{ height: '35%' }}></span>
                     <span className="w-[1.5px] bg-amber-500 rounded-full animate-[pulse_0.7s_infinite_alternate_0.15s]" style={{ height: '90%' }}></span>
@@ -717,7 +717,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                     placeholder="Write or paste your custom journal writing, meditation prose, or daily reflections here..."
                     value={inputText}
                     onChange={(e) => {
-                      stopReading(true);
+                      stopNarration(true);
                       setInputText(e.target.value);
                     }}
                   />
@@ -751,15 +751,15 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                   {isPreparing && (
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                   )}
-                  {isReading && !isPaused && (
+                  {isNarrating && !isPaused && (
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   )}
                   <span className={`relative inline-flex rounded-full h-2 w-2 ${
-                    isPreparing ? 'bg-amber-400' : isReading ? (isPaused ? 'bg-amber-400' : 'bg-emerald-400') : 'bg-zinc-500'
+                    isPreparing ? 'bg-amber-400' : isNarrating ? (isPaused ? 'bg-amber-400' : 'bg-emerald-400') : 'bg-zinc-500'
                   }`}></span>
                 </span>
                 <span className="font-mono text-[8px] uppercase tracking-widest opacity-60">
-                  {isPreparing ? 'Loading Voice' : isReading ? (isPaused ? 'Narrator Paused' : 'Narrating') : 'Ready'}
+                  {isPreparing ? 'Loading Voice' : isNarrating ? (isPaused ? 'Narrator Paused' : 'Narrating') : 'Ready'}
                 </span>
               </div>
 
@@ -771,7 +771,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                   disabled={isPreparing || isEditMode || !inputText.trim()}
                   onClick={handlePlayToggle}
                   className={`px-4 py-1.5 rounded-lg font-mono text-[9px] font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
-                    isReading && !isPaused
+                    isNarrating && !isPaused
                       ? isNight 
                         ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 hover:bg-emerald-500/25'
                         : 'bg-emerald-600/15 text-emerald-800 border border-emerald-500/30 hover:bg-emerald-500/25'
@@ -780,13 +780,13 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                         : 'bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:shadow-md hover:scale-[1.02]'
                   }`}
                 >
-                  {isReading && !isPaused ? (
+                  {isNarrating && !isPaused ? (
                     <>
                       <Pause className="w-3 h-3 fill-current" /> Pause
                     </>
                   ) : (
                     <>
-                      <Play className="w-3 h-3 fill-current translate-x-[0.5px]" /> {isReading ? 'Resume' : 'Listen'}
+                      <Play className="w-3 h-3 fill-current translate-x-[0.5px]" /> {isNarrating ? 'Resume' : 'Listen'}
                     </>
                   )}
                 </button>
@@ -794,8 +794,8 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                 {/* STOP */}
                 <button
                   id="tender-stop-btn"
-                  disabled={!isReading && !isPreparing}
-                  onClick={() => stopReading(true)}
+                  disabled={!isNarrating && !isPreparing}
+                  onClick={() => stopNarration(true)}
                   className={`px-3 py-1.5 border disabled:opacity-20 disabled:cursor-not-allowed rounded-lg font-mono text-[9px] font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-all ${
                     isNight
                       ? 'bg-red-950/15 hover:bg-red-950/35 text-red-300 border-red-500/10'
