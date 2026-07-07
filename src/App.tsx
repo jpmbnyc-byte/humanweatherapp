@@ -200,8 +200,18 @@ export default function App() {
                       {activeWeather.description}
                     </p>
 
-                    <div className="p-5 md:p-6 rounded-xl border border-accent/15 bg-accent/[0.03] font-serif text-base md:text-lg italic text-foreground mb-8 leading-relaxed">
-                      <span className="font-mono text-xs uppercase tracking-widest not-italic opacity-60 block mb-2">
+                    <div
+                      className={`p-5 md:p-6 rounded-xl border font-serif text-base md:text-lg italic mb-8 leading-relaxed ${
+                        isNight
+                          ? 'border-[#d4b05a]/20 bg-white/[0.05] text-[#f5f0e8]'
+                          : 'border-accent/15 bg-accent/[0.03] text-[#2c2824]'
+                      }`}
+                    >
+                      <span
+                        className={`font-mono text-xs uppercase tracking-widest not-italic block mb-2 ${
+                          isNight ? 'text-[#d4b85a]' : 'opacity-60'
+                        }`}
+                      >
                         Physical guidance
                       </span>
                       "{activeWeather.guidanceText}"
