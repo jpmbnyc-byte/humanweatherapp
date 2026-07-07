@@ -87,7 +87,17 @@ interface TheTenderProps {
 
 export default function TheTender({ currentTheme }: TheTenderProps) {
   const [inputText, setInputText] = useState(PRESETS[0].text);
-  const [soundEnv, setSoundEnv] = useState<'rain' | 'forest' | 'ocean' | 'hearth' | 'crickets' | 'silence'>('silence');
+  const [soundEnv, setSoundEnv] = useState<
+    | 'rain'
+    | 'forest'
+    | 'ocean'
+    | 'hearth'
+    | 'crickets'
+    | 'binaural_delta'
+    | 'binaural_theta'
+    | 'binaural_alpha'
+    | 'silence'
+  >('silence');
   const [tenderVoice, setTenderVoice] = useState<TenderVoiceId>('joan');
   
   const [isReading, setIsReading] = useState(false);
@@ -103,6 +113,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const audioCtxRef = useRef<AudioContext | null>(null);
   const noiseSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const envGainNodeRef = useRef<GainNode | null>(null);
+  const binauralOscsRef = useRef<OscillatorNode[]>([]);
   const cricketTimerRef = useRef<any>(null);
   const speakTimeoutRef = useRef<any>(null);
 
@@ -170,6 +181,13 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
       } catch (e) {}
       noiseSourceRef.current = null;
     }
+    if (binauralOscsRef.current.length) {
+      for (const osc of binauralOscsRef.current) {
+        try { osc.stop(); } catch (e) {}
+        try { osc.disconnect(); } catch (e) {}
+      }
+      binauralOscsRef.current = [];
+    }
     if (cricketTimerRef.current) {
       clearInterval(cricketTimerRef.current);
       cricketTimerRef.current = null;
@@ -202,6 +220,38 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
       envGain.gain.linearRampToValueAtTime(targetVolume, ctx.currentTime + 1.5);
       envGain.connect(ctx.destination);
       envGainNodeRef.current = envGain;
+
+      // Binaural bed: two panned sine carriers whose frequency differential is the
+      // target brainwave beat. Sits under the narration (envGain ducks while speaking),
+      // so the voice narrates inside a binaural field. Requires stereo headphones.
+      if (env === 'binaural_delta' || env === 'binaural_theta' || env === 'binaural_alpha') {
+        const offset = env === 'binaural_delta' ? 2.5 : env === 'binaural_theta' ? 6 : 10;
+        const carrier = 180; // grounding carrier frequency
+        const binGain = ctx.createGain();
+        binGain.gain.setValueAtTime(0.5, ctx.currentTime); // tame the pure tones
+        binGain.connect(envGain);
+
+        const oscL = ctx.createOscillator();
+        oscL.type = 'sine';
+        oscL.frequency.setValueAtTime(carrier, ctx.currentTime);
+        const panL = ctx.createStereoPanner();
+        panL.pan.setValueAtTime(-1, ctx.currentTime);
+        oscL.connect(panL);
+        panL.connect(binGain);
+        oscL.start();
+
+        const oscR = ctx.createOscillator();
+        oscR.type = 'sine';
+        oscR.frequency.setValueAtTime(carrier + offset, ctx.currentTime);
+        const panR = ctx.createStereoPanner();
+        panR.pan.setValueAtTime(1, ctx.currentTime);
+        oscR.connect(panR);
+        panR.connect(binGain);
+        oscR.start();
+
+        binauralOscsRef.current = [oscL, oscR];
+        return; // binaural bed only — skip the noise-based environments
+      }
 
       // Generate brown noise buffer (deep, rich natural warmth)
       const bufferSize = 2 * ctx.sampleRate;
@@ -871,7 +921,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
             <div className="flex items-center gap-1.5 border-b pb-2 mb-3 border-zinc-200/10" style={{ borderColor: isNight ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
               <Music className={`w-3.5 h-3.5 ${styles.goldText}`} />
               <span className={`font-mono text-[9px] uppercase tracking-widest ${styles.mutedText}`}>
-                Nature Weather Backdrop
+                Ambient & Binaural Bed
               </span>
             </div>
 
@@ -886,11 +936,18 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
               }`}
             >
               <option value="silence">Silence (Pure Narration)</option>
-              <option value="rain">Rain (Lowpass Brown Noise)</option>
-              <option value="forest">Forest (Pink Wind Gusts)</option>
-              <option value="ocean">Ocean (Slow Wave Swells)</option>
-              <option value="hearth">Hearth fire (Crackling embers)</option>
-              <option value="crickets">Night crickets (Sine chirping)</option>
+              <optgroup label="Nature">
+                <option value="rain">Rain (Lowpass Brown Noise)</option>
+                <option value="forest">Forest (Pink Wind Gusts)</option>
+                <option value="ocean">Ocean (Slow Wave Swells)</option>
+                <option value="hearth">Hearth fire (Crackling embers)</option>
+                <option value="crickets">Night crickets (Sine chirping)</option>
+              </optgroup>
+              <optgroup label="Binaural bed (headphones)">
+                <option value="binaural_delta">Binaural · Delta 2.5 Hz (deep rest)</option>
+                <option value="binaural_theta">Binaural · Theta 6 Hz (meditative)</option>
+                <option value="binaural_alpha">Binaural · Alpha 10 Hz (calm focus)</option>
+              </optgroup>
             </select>
 
             {/* Environmental Backdrop Volume Slider */}
@@ -927,7 +984,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
               </span>
             </div>
             <p className="font-sans text-[10px] leading-relaxed opacity-75">
-              The narrator runs entirely in your browser via Kokoro — the ~86MB voice model downloads once, is cached, and then works fully offline with no API or keys. Sentences are generated ahead and scheduled gaplessly through Web Audio, which also ducks the ambient backdrop to keep the voice clean and warm.
+              The narrator runs entirely in your browser via Kokoro — the ~86MB voice model downloads once, is cached, and then works fully offline with no API or keys. Sentences are generated ahead and scheduled gaplessly through Web Audio. Pick a nature or binaural bed above (binaural needs stereo headphones) and the voice narrates inside it — the bed automatically ducks under the narration to keep the voice clean and warm.
             </p>
             <button
               id="tender-redownload-voices-btn"
