@@ -9,6 +9,11 @@
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
 
+## Founding canon & doctrine
+
+- `HW_HARNESS.md` (repo root) — the build constitution / single source of truth (design, vocabulary, architecture, monetization, literary canon). When code and harness conflict, the harness wins.
+- `docs/founding/human-weather-founding-document.md` — the founding thesis **"On Bliss"** (Vol. I): bliss as biochemical inheritance, the four molecules, cross-species joy, the six/seven sensory gates, the daily architecture. This is the doctrinal source behind the app's purpose (harness §1 thesis; §12.4 maps *On Bliss* ↔ **THE INHERITANCE**). Treat as canon/data — quote, don't paraphrase.
+
 ## Design language — "warm darkness" (HW_HARNESS.md)
 
 `HW_HARNESS.md` (repo root) is the design + build source of truth. When code and
