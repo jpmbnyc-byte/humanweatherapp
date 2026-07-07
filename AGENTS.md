@@ -9,6 +9,44 @@
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
 
+## Design language — "warm darkness" (HW_HARNESS.md)
+
+`HW_HARNESS.md` (repo root) is the design + build source of truth. When code and
+harness conflict, the harness wins. The visual signature is **warm darkness — dusk,
+candlelight, cathedral stone; a barometer built by monks** — never a cool-blue /
+Headspace-style meditation app. Core rules for any UI work:
+
+- **Palette (§7.2):** ground = warm near-black brown (`--hw-ground #14100E`, deep
+  `#0C0A08`, raised `#1D1713`); text = warm cream (`--hw-cream #EFE6D8`, dim
+  `#B8AE9E`); accent = candle/sunrise gold (`--hw-gold #C9A96A`) used **sparingly,
+  at most once per screen**. Atmosphere washes are radial, low-opacity, behind
+  content. These live as `--hw-*` CSS custom properties in `src/styles.css`;
+  `--color-gold` maps to the gold so `text-gold`/`border-gold` utilities resolve.
+- **Typography (§7.2):** three-font discipline — **Cormorant Garamond** for Names /
+  questions / body / tender lines, **IBM Plex Mono** for designation lines,
+  Conditions data, timestamps (uppercase, letter-spaced). Loaded via `<link>` in
+  `src/routes/__root.tsx`.
+- **Vocabulary (§2):** use **Conditions / Current Conditions** (never "reading",
+  "report", "analysis"), **Observation** (not "check-in"), **Prescription** (not
+  "recommendation"), **keep a stone** (not "save"). This applies to visible copy
+  and comments, not internal identifiers/logic.
+- **Design laws (§7.0):** one thing on screen at a time; motion at breath-pace
+  (4–6s, `--hw-exhale`), dissolve not slide; near-square 2px radii (`--hw-radius`);
+  every element must pass the pulse test (does it lower or raise the reader's pulse?).
+- **Process (§7, adapted from the Calm-redesign case study,
+  https://www.rachel-quan.com/work/calm-app):** clone existing screens to learn
+  their bones → position visually against competitors → consolidate one style tile
+  → build atomically (atoms → molecules → organisms) → redesign a small named set
+  of screens against explicit heuristics (match-to-real-world, user control,
+  aesthetic-minimalist). Follow the §9 build sequence (vocab sweep → style tile →
+  atomic pass → …) rather than whole-file rewrites.
+
+Note: the app shell (`src/App.tsx`) currently uses the warm-darkness palette, but
+the interactive sub-panels (`SomaticGrid`, `BreathworkOrb`, `FrequencyTherapy`,
+`LightTherapy`, `ClassicalMusic`, `ShinrinYoku`, `SolarRay`, `TheTender`) still
+carry their own light **day-mode** palettes — night mode is fully on-theme, day
+mode is the pending follow-up.
+
 ## Cursor Cloud specific instructions
 
 - **Stack**: TanStack Start + React 19 + Vite 8, styled with Tailwind v4. Package manager is **Bun** (`bun.lock`); the startup update script runs `bun install`.
