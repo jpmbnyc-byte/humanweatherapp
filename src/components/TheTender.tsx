@@ -1,64 +1,49 @@
-import React, { useState, useEffect, useRef, startTransition } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, Volume2, Play, Pause, Square, Music, Headphones, Sliders, Edit2, Check, Info } from 'lucide-react';
+import { Volume2, Play, Pause, Square, Music, Headphones, Sliders, Edit2, Check } from 'lucide-react';
 import { PRESETS } from '../data/presets';
 import { getThemeStyles } from '../lib/theme';
 import {
   TENDER_VOICES,
   getVoiceProfile,
+  warmVoiceEngine,
   type TenderVoiceId,
 } from '../lib/voices';
+import type { NarrationControls } from '../lib/readProse';
 
-type NarrationPhase = 'idle' | 'preparing' | 'reading' | 'paused' | 'error';
-
-function getStatusMessage(
-  phase: NarrationPhase,
-  voiceName: string,
-  progress: string | null,
-  error: string | null,
-): string {
-  if (phase === 'error' && error) return error;
-  if (phase === 'preparing') return progress ?? `Preparing ${voiceName}'s voice…`;
-  if (phase === 'reading') {
-    return `${voiceName} is reading with a human Kokoro voice. Words highlight as they're spoken.`;
-  }
-  if (phase === 'paused') return "Paused. Tap Resume when you're ready to continue.";
-  return 'Tap Listen. The voice prepares on first use, then works offline.';
-}
+type Phase = 'idle' | 'live' | 'paused' | 'error';
 
 interface TheTenderProps {
   currentTheme: 'day' | 'night';
 }
 
 export default function TheTender({ currentTheme }: TheTenderProps) {
-  const defaultPreset = PRESETS.find(p => p.id === 'reflection') ?? PRESETS[0];
-  const [inputText, setInputText] = useState(defaultPreset.text);
+  const [inputText, setInputText] = useState(PRESETS[0].text);
   const [soundEnv, setSoundEnv] = useState<'rain' | 'forest' | 'ocean' | 'hearth' | 'crickets' | 'silence'>('silence');
   const [tenderVoice, setTenderVoice] = useState<TenderVoiceId>('joan');
-  const [phase, setPhase] = useState<NarrationPhase>('idle');
+  const [phase, setPhase] = useState<Phase>('idle');
   const [speechError, setSpeechError] = useState<string | null>(null);
   const [currentWordIndex, setCurrentWordIndex] = useState(-1);
   const [ambientVolume, setAmbientVolume] = useState(0.4);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [progressMessage, setProgressMessage] = useState<string | null>(null);
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const noiseSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const envGainNodeRef = useRef<GainNode | null>(null);
-  const cricketTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const narrationRef = useRef<HTMLAudioElement | null>(null);
-  const blobUrlsRef = useRef<string[]>([]);
+  const controlsRef = useRef<NarrationControls | null>(null);
   const sessionRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
 
-  const isReading = phase === 'reading';
+  const isLive = phase === 'live';
   const isPaused = phase === 'paused';
-  const isPreparing = phase === 'preparing';
+  const isActive = isLive || isPaused;
 
   useEffect(() => {
+    warmVoiceEngine();
     return () => {
       abortRef.current?.abort();
-      stopReading(true);
+      controlsRef.current?.stop();
+      stopSoundEnvironment();
       if (audioCtxRef.current) audioCtxRef.current.close().catch(() => {});
     };
   }, []);
@@ -66,12 +51,12 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   useEffect(() => {
     if (envGainNodeRef.current && audioCtxRef.current) {
       const ctx = audioCtxRef.current;
-      const targetGain = getAmbientVolumeTarget();
+      const target = getAmbientVolumeTarget();
       try {
         envGainNodeRef.current.gain.setValueAtTime(envGainNodeRef.current.gain.value, ctx.currentTime);
-        envGainNodeRef.current.gain.linearRampToValueAtTime(targetGain, ctx.currentTime + 0.6);
+        envGainNodeRef.current.gain.linearRampToValueAtTime(target, ctx.currentTime + 0.4);
       } catch {
-        envGainNodeRef.current.gain.setValueAtTime(targetGain, ctx.currentTime);
+        envGainNodeRef.current.gain.setValueAtTime(target, ctx.currentTime);
       }
     }
   }, [ambientVolume, soundEnv, phase]);
@@ -83,39 +68,15 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
 
   const getAmbientVolumeTarget = () => {
     if (soundEnv === 'silence') return 0;
-    if (isReading) return ambientVolume * 0.15;
-    if (isPreparing) return ambientVolume * 0.25;
-    return ambientVolume * 0.5;
-  };
-
-  const revokeBlobUrls = () => {
-    for (const url of blobUrlsRef.current) URL.revokeObjectURL(url);
-    blobUrlsRef.current = [];
-  };
-
-  const stopNarration = () => {
-    sessionRef.current += 1;
-    const audio = narrationRef.current;
-    if (audio) {
-      audio.onended = null;
-      audio.ontimeupdate = null;
-      audio.onerror = null;
-      audio.pause();
-      audio.src = '';
-      narrationRef.current = null;
-    }
-    revokeBlobUrls();
-    setCurrentWordIndex(-1);
+    if (isLive) return ambientVolume * 0.15;
+    if (isPaused) return ambientVolume * 0.2;
+    return ambientVolume * 0.45;
   };
 
   const stopSoundEnvironment = () => {
     if (noiseSourceRef.current) {
       try { noiseSourceRef.current.stop(); noiseSourceRef.current.disconnect(); } catch { /* noop */ }
       noiseSourceRef.current = null;
-    }
-    if (cricketTimerRef.current) {
-      clearInterval(cricketTimerRef.current);
-      cricketTimerRef.current = null;
     }
     if (envGainNodeRef.current) {
       try { envGainNodeRef.current.disconnect(); } catch { /* noop */ }
@@ -134,7 +95,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
       if (ctx.state === 'suspended') ctx.resume();
       const envGain = ctx.createGain();
       envGain.gain.setValueAtTime(0, ctx.currentTime);
-      envGain.gain.linearRampToValueAtTime(getAmbientVolumeTarget(), ctx.currentTime + 1.5);
+      envGain.gain.linearRampToValueAtTime(getAmbientVolumeTarget(), ctx.currentTime + 1);
       envGain.connect(ctx.destination);
       envGainNodeRef.current = envGain;
 
@@ -158,125 +119,74 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
       noiseSource.connect(lowpass);
       lowpass.connect(envGain);
       noiseSource.start();
-    } catch (e) {
-      console.warn('Ambient audio failed:', e);
+    } catch {
+      /* ambient optional */
     }
   };
 
   const stopReading = (stopAmbient = true) => {
+    sessionRef.current += 1;
     abortRef.current?.abort();
     abortRef.current = null;
-    stopNarration();
+    controlsRef.current?.stop();
+    controlsRef.current = null;
     setPhase('idle');
     setSpeechError(null);
-    setProgressMessage(null);
+    setCurrentWordIndex(-1);
     if (stopAmbient) stopSoundEnvironment();
   };
-
-  const playAudioUrl = (
-    url: string,
-    chunkWords: string[],
-    wordOffset: number,
-    session: number,
-  ): Promise<void> =>
-    new Promise((resolve, reject) => {
-      if (sessionRef.current !== session) {
-        resolve();
-        return;
-      }
-
-      const audio = new Audio(url);
-      narrationRef.current = audio;
-
-      audio.ontimeupdate = () => {
-        if (sessionRef.current !== session || !audio.duration) return;
-        const ratio = audio.currentTime / audio.duration;
-        const localIdx = Math.min(Math.floor(ratio * chunkWords.length), chunkWords.length - 1);
-        setCurrentWordIndex(wordOffset + localIdx);
-      };
-
-      audio.onended = () => {
-        if (sessionRef.current !== session) return;
-        resolve();
-      };
-
-      audio.onerror = () => {
-        if (sessionRef.current !== session) return;
-        reject(new Error('Playback failed'));
-      };
-
-      audio.play().catch(reject);
-    });
 
   const playNarration = async (textSrc: string, voiceId: TenderVoiceId) => {
     const session = ++sessionRef.current;
     const profile = getVoiceProfile(voiceId);
-
-    abortRef.current?.abort();
     const abort = new AbortController();
     abortRef.current = abort;
 
     setSpeechError(null);
-    setPhase('preparing');
-    setProgressMessage(`Preparing ${profile.name}'s voice…`);
+    setPhase('live');
+    setCurrentWordIndex(-1);
 
     try {
       const { readProse } = await import('../lib/readProse');
-
       await readProse({
         text: textSrc,
         profile,
         signal: abort.signal,
-        onProgress: progress => {
-          if (sessionRef.current !== session) return;
-          startTransition(() => setProgressMessage(progress.message));
+        onStart: controls => {
+          if (sessionRef.current === session) controlsRef.current = controls;
         },
-        onSpeaking: () => {
-          if (sessionRef.current !== session) return;
-          setPhase('reading');
-          setProgressMessage(null);
-        },
-        playBlob: async (blob, sentence, wordOffset) => {
-          if (sessionRef.current !== session || abort.signal.aborted) return;
-
-          const url = URL.createObjectURL(blob);
-          blobUrlsRef.current.push(url);
-          const chunkWords = sentence.split(/\s+/).filter(Boolean);
-
-          await playAudioUrl(url, chunkWords, wordOffset, session);
+        onWordIndex: idx => {
+          if (sessionRef.current === session) setCurrentWordIndex(idx);
         },
       });
 
-      if (sessionRef.current !== session) return;
-      setPhase('idle');
-      setCurrentWordIndex(-1);
-      setProgressMessage(null);
+      if (sessionRef.current === session) {
+        setPhase('idle');
+        setCurrentWordIndex(-1);
+        controlsRef.current = null;
+      }
     } catch (err) {
       if (sessionRef.current !== session || abort.signal.aborted) return;
       if (err instanceof DOMException && err.name === 'AbortError') return;
 
-      console.error('Kokoro narration failed:', err);
+      console.error('Narration failed:', err);
       const { resetKokoroEngine } = await import('../lib/readProse');
       resetKokoroEngine();
-      const detail = err instanceof Error ? err.message : 'Unknown error';
-      setSpeechError(
-        detail.includes('network') || detail.includes('fetch')
-          ? 'The voice could not load. Try again, or read this passage silently.'
-          : `The voice could not load. Try again, or read this passage silently. (${detail})`,
-      );
+      controlsRef.current = null;
+      setSpeechError('Voice unavailable — tap Listen to retry.');
       setPhase('error');
-      setProgressMessage(null);
     }
   };
 
   const handlePlayToggle = () => {
-    const audio = narrationRef.current;
-    if (isReading || isPaused) {
-      if (!audio) return;
+    if (isActive) {
+      const controls = controlsRef.current;
+      if (!controls) return;
       if (isPaused) {
-        audio.play().then(() => setPhase('reading')).catch(() => {});
+        void controls.resume();
+        setPhase('live');
       } else {
-        audio.pause();
+        controls.pause();
         setPhase('paused');
       }
       return;
@@ -290,9 +200,9 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
 
   const handleVoiceChange = (voice: TenderVoiceId) => {
     setTenderVoice(voice);
-    if (phase !== 'idle') {
+    if (isActive) {
       stopReading(false);
-      setTimeout(() => void playNarration(inputText.trim(), voice), 150);
+      setTimeout(() => void playNarration(inputText.trim(), voice), 80);
     }
   };
 
@@ -300,32 +210,29 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     stopReading(true);
     setInputText(preset.text);
     setIsEditMode(false);
-    let backdrop: typeof soundEnv = 'silence';
-    if (preset.id === 'solitude') backdrop = 'ocean';
-    if (preset.id === 'reflection') backdrop = 'rain';
-    setSoundEnv(backdrop);
+    if (preset.id === 'solitude') setSoundEnv('ocean');
+    else if (preset.id === 'reflection') setSoundEnv('rain');
+    else setSoundEnv('silence');
   };
 
-  const renderContemplativeText = () => {
-    let wordCounter = 0;
+  const renderText = () => {
+    let n = 0;
     return inputText.split('\n\n').map((paragraph, pIdx) => (
       <p key={pIdx} className="mb-4 hw-body text-left">
-        {paragraph.split(/(\s+)/).map((part, index) => {
+        {paragraph.split(/(\s+)/).map((part, i) => {
           const isWord = /\S/.test(part);
-          const currentIdx = wordCounter;
-          if (isWord) wordCounter++;
-          const isCurrent = isReading && isWord && currentIdx === currentWordIndex;
+          const idx = n;
+          if (isWord) n++;
+          const current = isLive && isWord && idx === currentWordIndex;
           return (
             <span
-              key={index}
-              className={`transition-all duration-150 rounded px-0.5 ${
-                isCurrent
-                  ? currentTheme === 'night'
-                    ? 'text-[#f3efe8] font-semibold bg-[#d4b05a]/20 inline-block'
-                    : 'text-[#2c2824] font-semibold bg-stone-200/80 inline-block'
-                  : isReading
-                    ? currentTheme === 'night' ? 'text-white/45' : 'text-stone-500'
-                    : currentTheme === 'night' ? 'text-white/85' : 'text-[#2c2824]'
+              key={i}
+              className={`transition-colors duration-100 rounded px-0.5 ${
+                current
+                  ? isNight ? 'text-[#f3efe8] bg-[#d4b05a]/25' : 'text-[#2c2824] bg-stone-200/90'
+                  : isLive
+                    ? isNight ? 'text-white/40' : 'text-stone-500'
+                    : isNight ? 'text-white/85' : 'text-[#2c2824]'
               }`}
             >
               {part}
@@ -338,9 +245,6 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
 
   const isNight = currentTheme === 'night';
   const theme = getThemeStyles(currentTheme);
-  const profile = getVoiceProfile(tenderVoice);
-  const statusMessage = getStatusMessage(phase, profile.name, progressMessage, speechError);
-
   const styles = {
     cardBg: theme.cardBg,
     innerBg: theme.innerBg,
@@ -366,9 +270,6 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
         <div className="text-left">
           <span className="hw-eyebrow block">Guided narration</span>
           <h2 className={`hw-display mt-1 ${styles.titleText}`}>The Tender</h2>
-          <p className={`font-sans text-sm mt-1 ${styles.mutedText}`}>
-            Four human Kokoro voices — loaded on demand, never generic studio speech
-          </p>
         </div>
         <button
           id="toggle-edit-mode-btn"
@@ -377,48 +278,24 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
             isEditMode ? styles.badgeActive : styles.badgeInactive
           }`}
         >
-          {isEditMode ? <><Check className="w-3.5 h-3.5" /> Reading mode</> : <><Edit2 className="w-3.5 h-3.5" /> Edit prose</>}
+          {isEditMode ? <><Check className="w-3.5 h-3.5" /> Done</> : <><Edit2 className="w-3.5 h-3.5" /> Edit</>}
         </button>
       </div>
 
-      <div
-        className={`relative z-10 mb-5 flex items-start gap-3 p-4 rounded-xl border text-left ${
-          phase === 'error'
-            ? 'bg-red-950/10 border-red-500/20'
-            : isPreparing
-              ? isNight ? 'bg-[#d4b05a]/5 border-[#d4b05a]/20' : 'bg-stone-100 border-stone-300/70'
-              : isNight ? 'bg-black/25 border-white/10' : 'bg-stone-100/80 border-stone-200/70'
-        }`}
-        role="status"
-        aria-live="polite"
-      >
-        <Info className={`w-4 h-4 mt-1 shrink-0 ${phase === 'error' ? 'text-red-400' : styles.accentText}`} />
-        <div>
-          <p className={`font-sans text-sm leading-relaxed ${phase === 'error' ? 'text-red-300' : theme.text}`}>
-            {statusMessage}
-          </p>
-          {phase === 'reading' && (
-            <p className="hw-footnote mt-1.5">Engine: Kokoro (human)</p>
-          )}
-        </div>
-      </div>
-
       <div className="relative z-10 mb-5">
-        <span className="hw-eyebrow block text-left mb-2">Presets</span>
         <div className="flex flex-wrap gap-2">
           {PRESETS.map(preset => {
-            const isSelected = !isEditMode && inputText === preset.text;
+            const selected = !isEditMode && inputText === preset.text;
             return (
               <button
                 key={preset.id}
                 id={`preset-tab-${preset.id}`}
                 onClick={() => handlePresetSelect(preset)}
-                className={`px-4 py-2.5 rounded-full border font-sans text-sm text-left transition-all cursor-pointer ${
-                  isSelected ? styles.badgeActive : styles.badgeInactive
+                className={`px-4 py-2 rounded-full border font-sans text-sm transition-all cursor-pointer ${
+                  selected ? styles.badgeActive : styles.badgeInactive
                 }`}
               >
-                <div className="font-serif font-semibold text-base">{preset.title}</div>
-                <div className="hw-meta mt-0.5">{preset.author}</div>
+                {preset.title}
               </button>
             );
           })}
@@ -426,143 +303,113 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
       </div>
 
       <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
-        <div className="md:col-span-7 flex flex-col gap-3">
-          <div className={`p-5 sm:p-6 rounded-xl border text-left flex flex-col justify-between min-h-[300px] relative overflow-hidden ${styles.innerBg}`}>
+        <div className="md:col-span-7">
+          <div className={`p-5 sm:p-6 rounded-xl border text-left flex flex-col min-h-[280px] ${styles.innerBg}`}>
             <AnimatePresence>
-              {isReading && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                  className="absolute inset-0 bg-accent/[0.015] pointer-events-none" />
+              {isLive && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 bg-accent/[0.02] pointer-events-none rounded-xl"
+                />
               )}
             </AnimatePresence>
 
-            <div>
-              <div className="flex items-center justify-between border-b pb-2.5 mb-4 border-zinc-200/10"
-                style={{ borderColor: isNight ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
-                <div className="flex items-center gap-2">
-                  <Headphones className={`w-4 h-4 ${styles.accentText}`} />
-                  <span className={`hw-eyebrow ${styles.mutedText}`}>
-                    {isEditMode ? 'Text composer' : 'Reading sanctuary'}
-                  </span>
-                </div>
-                {isReading && (
-                  <span className="flex items-end gap-[2px] h-3.5">
-                    {[0.35, 0.9, 0.6].map((h, i) => (
-                      <span key={i} className="w-[2px] bg-[#d4b05a] rounded-full animate-[pulse_0.6s_infinite_alternate]"
-                        style={{ height: `${h * 100}%`, animationDelay: `${i * 0.1}s` }} />
-                    ))}
-                  </span>
-                )}
-              </div>
-
-              <div className="max-h-[220px] overflow-y-auto pr-1 select-text scrollbar-thin">
-                {isEditMode ? (
-                  <textarea
-                    id="tender-custom-textarea"
-                    rows={8}
-                    className={`w-full p-3 rounded-2xl border hw-body focus:outline-none focus:border-stone-400 ${
-                      isNight ? 'bg-black/60 border-white/10 text-white placeholder-white/25' : 'bg-white border-stone-300 text-[#2c2824] placeholder-stone-400'
-                    }`}
-                    placeholder="Write or paste your reflection here…"
-                    value={inputText}
-                    onChange={e => { stopReading(true); setInputText(e.target.value); }}
-                  />
-                ) : inputText.trim() ? (
-                  renderContemplativeText()
-                ) : (
-                  <p className={`hw-caption ${styles.mutedText}`}>
-                    Select a preset or edit your own prose.
-                  </p>
-                )}
-              </div>
+            <div className="flex items-center justify-between border-b pb-2 mb-4 border-accent/10">
+              <Headphones className={`w-4 h-4 ${styles.accentText}`} />
+              {isLive && (
+                <span className="flex items-end gap-[2px] h-3">
+                  {[0.4, 1, 0.65].map((h, i) => (
+                    <span
+                      key={i}
+                      className="w-[2px] bg-[#d4b05a] rounded-full animate-[pulse_0.5s_ease-in-out_infinite_alternate]"
+                      style={{ height: `${h * 100}%`, animationDelay: `${i * 0.08}s` }}
+                    />
+                  ))}
+                </span>
+              )}
             </div>
 
-            <div className="border-t pt-4 mt-4 flex items-center justify-between border-zinc-200/10"
-              style={{ borderColor: isNight ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
-              <div className="flex items-center gap-2">
-                <span className="relative flex h-2.5 w-2.5">
-                  {(isPreparing || isReading) && (
-                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                      isPreparing ? 'bg-[#e8cc6a]' : 'bg-emerald-400'
-                    }`} />
-                  )}
-                  <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
-                    isPreparing ? 'bg-[#e8cc6a]' : isReading ? 'bg-emerald-400' : isPaused ? 'bg-[#e8cc6a]' : 'bg-stone-400'
-                  }`} />
-                </span>
-                <span className="hw-meta opacity-70">
-                  {isPreparing ? 'Generating…' : isReading ? 'Speaking' : isPaused ? 'Paused' : 'Ready'}
-                </span>
-              </div>
+            <div className="flex-1 max-h-[220px] overflow-y-auto pr-1 select-text scrollbar-thin mb-4">
+              {isEditMode ? (
+                <textarea
+                  id="tender-custom-textarea"
+                  rows={8}
+                  className={`w-full p-3 rounded-xl border hw-body focus:outline-none ${
+                    isNight ? 'bg-black/60 border-white/10 text-white' : 'bg-white border-stone-300 text-[#2c2824]'
+                  }`}
+                  placeholder="Write or paste your reflection…"
+                  value={inputText}
+                  onChange={e => { stopReading(true); setInputText(e.target.value); }}
+                />
+              ) : inputText.trim() ? (
+                renderText()
+              ) : (
+                <p className={`hw-caption ${styles.mutedText}`}>Choose a preset or edit your own prose.</p>
+              )}
+            </div>
 
-              <div className="flex gap-2">
-                <button
-                  id="tender-play-toggle-btn"
-                  disabled={isPreparing || isEditMode || !inputText.trim()}
-                  onClick={handlePlayToggle}
-                  className={`px-5 py-2.5 rounded-full hw-btn-label flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
-                    isReading
-                      ? isNight
-                        ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
-                        : 'bg-emerald-600/15 text-emerald-800 border border-emerald-500/30'
-                      : isNight
-                        ? 'bg-[#d4b05a] text-white hover:bg-[#d4b05a]/90'
-                        : 'bg-[#2c2824] text-white hover:bg-[#2c2824]/90'
-                  }`}
-                >
-                  {isReading ? <><Pause className="w-3.5 h-3.5 fill-current" /> Pause</> :
-                    <><Play className="w-3.5 h-3.5 fill-current" /> {isPaused ? 'Resume' : 'Listen'}</>}
-                </button>
-                <button
-                  id="tender-stop-btn"
-                  disabled={phase === 'idle'}
-                  onClick={() => stopReading(true)}
-                  className={`px-4 py-2.5 border disabled:opacity-20 disabled:cursor-not-allowed rounded-full hw-btn-label flex items-center gap-1 cursor-pointer transition-all ${
-                    isNight ? 'bg-red-950/15 text-red-300 border-red-500/10' : 'bg-red-50 text-red-800 border-red-200'
-                  }`}
-                >
-                  <Square className="w-3 h-3" /> Stop
-                </button>
-              </div>
+            {phase === 'error' && (
+              <p className="text-red-400/90 text-sm mb-3" role="alert">{speechError}</p>
+            )}
+
+            <div className="flex gap-2 justify-end border-t border-accent/10 pt-4">
+              <button
+                id="tender-play-toggle-btn"
+                disabled={isEditMode || !inputText.trim()}
+                onClick={handlePlayToggle}
+                className={`px-5 py-2.5 rounded-full hw-btn-label flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-30 ${
+                  isLive
+                    ? isNight ? 'text-emerald-400 border border-emerald-500/30' : 'text-emerald-800 border border-emerald-500/40'
+                    : isNight ? 'bg-[#d4b05a] text-white' : 'bg-[#2c2824] text-white'
+                }`}
+              >
+                {isLive ? <><Pause className="w-3.5 h-3.5 fill-current" /> Pause</> :
+                  isPaused ? <><Play className="w-3.5 h-3.5 fill-current" /> Resume</> :
+                  <><Play className="w-3.5 h-3.5 fill-current" /> Listen</>}
+              </button>
+              <button
+                id="tender-stop-btn"
+                disabled={!isActive}
+                onClick={() => stopReading(true)}
+                className={`px-4 py-2.5 rounded-full hw-btn-label border cursor-pointer transition-all disabled:opacity-20 ${
+                  isNight ? 'text-red-300/80 border-red-500/20' : 'text-red-800 border-red-200'
+                }`}
+              >
+                <Square className="w-3 h-3 inline mr-1" />Stop
+              </button>
             </div>
           </div>
         </div>
 
         <div className="md:col-span-5 flex flex-col gap-4">
-          <div className={`p-4 sm:p-5 rounded-xl border flex flex-col ${styles.innerBg}`}>
-            <div className="flex items-center gap-2 border-b pb-2.5 mb-3 border-zinc-200/10"
-              style={{ borderColor: isNight ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
+          <div className={`p-4 rounded-xl border ${styles.innerBg}`}>
+            <div className="flex items-center gap-2 mb-3">
               <Sliders className={`w-4 h-4 ${styles.accentText}`} />
               <span className={`hw-eyebrow ${styles.mutedText}`}>Voice</span>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              {TENDER_VOICES.map(v => {
-                const isSelected = tenderVoice === v.id;
-                return (
-                  <button
-                    id={`voice-custom-btn-${v.id}`}
-                    key={v.id}
-                    onClick={() => handleVoiceChange(v.id)}
-                    className="px-3 py-3 rounded-lg border transition-all cursor-pointer flex flex-col items-center justify-center gap-1"
-                    style={{
-                      backgroundColor: isSelected ? (isNight ? 'rgba(196,160,68,0.12)' : 'rgba(0,0,0,0.04)') : 'transparent',
-                      borderColor: isSelected ? (isNight ? '#d4b05a' : '#2c2824') : isNight ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.12)',
-                      color: isSelected ? (isNight ? '#d4b05a' : '#2c2824') : isNight ? 'rgba(255,255,255,0.55)' : '#6b6560',
-                    }}
-                  >
-                    <span className="font-serif text-base tracking-wide leading-tight">{v.name}</span>
-                    <span className="font-sans text-xs opacity-75">{v.descriptor}</span>
-                  </button>
-                );
-              })}
+              {TENDER_VOICES.map(v => (
+                <button
+                  id={`voice-custom-btn-${v.id}`}
+                  key={v.id}
+                  onClick={() => handleVoiceChange(v.id)}
+                  className="px-3 py-2.5 rounded-lg border transition-all cursor-pointer text-center"
+                  style={{
+                    backgroundColor: tenderVoice === v.id ? (isNight ? 'rgba(196,160,68,0.12)' : 'rgba(0,0,0,0.04)') : 'transparent',
+                    borderColor: tenderVoice === v.id ? (isNight ? '#d4b05a' : '#2c2824') : isNight ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.12)',
+                    color: tenderVoice === v.id ? (isNight ? '#d4b05a' : '#2c2824') : isNight ? 'rgba(255,255,255,0.55)' : '#6b6560',
+                  }}
+                >
+                  <span className="font-serif text-base">{v.name}</span>
+                </button>
+              ))}
             </div>
-            <p className="font-sans text-sm text-left opacity-70 mt-3 leading-relaxed">
-              Joan, Grace, Peter, and Daniel use Kokoro human voices. The engine loads once on first Listen, then stays cached.
-            </p>
           </div>
 
-          <div className={`p-4 sm:p-5 rounded-xl border flex flex-col ${styles.innerBg}`}>
-            <div className="flex items-center gap-2 border-b pb-2.5 mb-3 border-zinc-200/10"
-              style={{ borderColor: isNight ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
+          <div className={`p-4 rounded-xl border ${styles.innerBg}`}>
+            <div className="flex items-center gap-2 mb-3">
               <Music className={`w-4 h-4 ${styles.accentText}`} />
               <span className={`hw-eyebrow ${styles.mutedText}`}>Backdrop</span>
             </div>
@@ -570,42 +417,28 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
               id="tender-backdrop-select"
               value={soundEnv}
               onChange={e => setSoundEnv(e.target.value as typeof soundEnv)}
-              className={`w-full px-3 py-2.5 border text-sm rounded-full focus:outline-none font-sans cursor-pointer mb-3 ${
-                isNight ? 'bg-black/60 border-white/10 text-[#d4b05a]' : 'bg-white border-stone-300 text-[#2c2824]'
+              className={`w-full px-3 py-2 border text-sm rounded-full font-sans cursor-pointer mb-2 ${
+                isNight ? 'bg-black/60 border-white/10 text-[#d4b05a]' : 'bg-white border-stone-300'
               }`}
             >
               <option value="silence">Silence</option>
               <option value="rain">Rain</option>
               <option value="forest">Forest</option>
               <option value="ocean">Ocean</option>
-              <option value="hearth">Hearth fire</option>
-              <option value="crickets">Night crickets</option>
+              <option value="hearth">Hearth</option>
+              <option value="crickets">Crickets</option>
             </select>
-            {soundEnv !== 'silence' ? (
-              <div className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border ${isNight ? 'bg-black/40 border-white/5' : 'bg-white border-stone-200'}`}>
+            {soundEnv !== 'silence' && (
+              <div className="flex items-center gap-2">
                 <Volume2 className={`w-4 h-4 ${styles.accentText}`} />
-                <input type="range" min="0" max="1" step="0.05" value={ambientVolume}
+                <input
+                  type="range" min="0" max="1" step="0.05" value={ambientVolume}
                   onChange={e => setAmbientVolume(parseFloat(e.target.value))}
-                  className="flex-1 h-1 rounded-lg appearance-none cursor-pointer accent-[#d4b05a]"
-                  id="tender-backdrop-volume" />
-                <span className="font-mono text-xs opacity-75 w-8 text-right">{Math.round(ambientVolume * 100)}%</span>
-              </div>
-            ) : (
-              <div className={`text-center p-2.5 border rounded-lg font-sans text-sm italic ${styles.mutedText}`}
-                style={{ borderColor: isNight ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)' }}>
-                No backdrop — voice only.
+                  className="flex-1 h-1 accent-[#d4b05a] cursor-pointer"
+                  id="tender-backdrop-volume"
+                />
               </div>
             )}
-          </div>
-
-          <div className={`p-4 sm:p-5 rounded-xl border text-left ${styles.innerBg}`}>
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles className={`w-4 h-4 ${styles.accentText}`} />
-              <span className={`hw-eyebrow ${styles.mutedText}`}>How it works</span>
-            </div>
-            <p className="font-sans text-sm leading-relaxed opacity-80">
-              Kokoro runs locally in your browser — no studio APIs, no device narrator. First Listen downloads the voice model once; after that, narration starts quickly.
-            </p>
           </div>
         </div>
       </div>

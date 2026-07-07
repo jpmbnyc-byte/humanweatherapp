@@ -1,108 +1,82 @@
 import type { TenderVoiceProfile } from './voices';
-import { splitSentences } from './voices';
+import { splitIntoSpeakChunks } from './voices';
+import { NarrationQueue } from './audioQueue';
 
-export type ReadProseProgress = {
-  phase: 'loading' | 'generating' | 'speaking';
-  message: string;
-  sentenceIndex?: number;
-  sentenceTotal?: number;
+export type NarrationControls = {
+  pause: () => void;
+  resume: () => void;
+  stop: () => void;
 };
 
 export type ReadProseOptions = {
   text: string;
   profile: TenderVoiceProfile;
   signal?: AbortSignal;
-  onProgress?: (progress: ReadProseProgress) => void;
-  onSpeaking?: () => void;
-  playBlob: (blob: Blob, sentence: string, wordOffset: number) => Promise<void>;
+  onStart?: (controls: NarrationControls) => void;
+  onWordIndex?: (index: number) => void;
 };
 
 /**
- * Sentence-chunked narration — generate sentence n+1 while n plays (HW_HARNESS §6).
- * Kokoro is dynamically imported so this module stays out of the initial bundle.
+ * Pipelined gapless narration — generate chunk n+1 while n plays.
+ * No status callbacks; UI stays quiet.
  */
 export async function readProse({
   text,
   profile,
   signal,
-  onProgress,
-  onSpeaking,
-  playBlob,
+  onStart,
+  onWordIndex,
 }: ReadProseOptions): Promise<void> {
-  if (typeof window === 'undefined') {
-    throw new Error('Voice narration runs in the browser only.');
+  if (typeof window === 'undefined') throw new Error('Voice runs in browser only.');
+
+  const { generateKokoroSpeech, getKokoroTts } = await import('./kokoro');
+  const chunks = splitIntoSpeakChunks(text);
+  if (!chunks.length) return;
+
+  const queue = new NarrationQueue(onWordIndex);
+  const controls: NarrationControls = {
+    pause: () => queue.pause(),
+    resume: () => void queue.play(),
+    stop: () => queue.stop(),
+  };
+
+  // Engine load + first chunk generation in parallel
+  const [, firstBlob] = await Promise.all([
+    getKokoroTts(),
+    generateKokoroSpeech(chunks[0], profile.kokoroVoice, profile.speed, signal),
+  ]);
+
+  if (signal?.aborted) {
+    queue.stop();
+    throw new DOMException('Cancelled.', 'AbortError');
   }
 
-  const { generateKokoroSpeech, getKokoroTts, resetKokoroEngine } = await import('./kokoro');
-  const sentences = splitSentences(text);
-  if (!sentences.length) return;
-
-  onProgress?.({
-    phase: 'loading',
-    message: 'Preparing the voice — one-time download.',
-    sentenceTotal: sentences.length,
-  });
-
-  await getKokoroTts(progress => {
-    onProgress?.({
-      phase: 'loading',
-      message: progress.status,
-      sentenceTotal: sentences.length,
-    });
-  });
-
-  if (signal?.aborted) throw new DOMException('Cancelled.', 'AbortError');
+  onStart?.(controls);
 
   let wordOffset = 0;
-  let nextBlobPromise: Promise<Blob> | null = generateKokoroSpeech(
-    sentences[0],
-    profile.kokoroVoice,
-    profile.speed,
-    signal,
-  );
+  let nextGen: Promise<Blob> | null = null;
 
-  for (let i = 0; i < sentences.length; i++) {
-    if (signal?.aborted) throw new DOMException('Cancelled.', 'AbortError');
-
-    if (i > 0) {
-      onProgress?.({
-        phase: 'generating',
-        message:
-          sentences.length > 1
-            ? `Preparing sentence ${i + 1} of ${sentences.length}…`
-            : 'Preparing speech…',
-        sentenceIndex: i,
-        sentenceTotal: sentences.length,
-      });
+  for (let i = 0; i < chunks.length; i++) {
+    if (signal?.aborted) {
+      queue.stop();
+      throw new DOMException('Cancelled.', 'AbortError');
     }
 
-    const blob = await nextBlobPromise!;
+    const blob = i === 0 ? firstBlob : await nextGen!;
 
-    if (i + 1 < sentences.length) {
-      nextBlobPromise = generateKokoroSpeech(
-        sentences[i + 1],
-        profile.kokoroVoice,
-        profile.speed,
-        signal,
-      );
-    } else {
-      nextBlobPromise = null;
+    if (i + 1 < chunks.length) {
+      nextGen = generateKokoroSpeech(chunks[i + 1], profile.kokoroVoice, profile.speed, signal);
     }
 
-    if (i === 0) {
-      onSpeaking?.();
-      onProgress?.({
-        phase: 'speaking',
-        message: `${profile.name} is reading aloud.`,
-        sentenceIndex: i,
-        sentenceTotal: sentences.length,
-      });
-    }
+    const wordCount = chunks[i].split(/\s+/).filter(Boolean).length;
+    await queue.enqueue(blob, wordOffset, wordCount);
+    wordOffset += wordCount;
 
-    const sentenceWords = sentences[i].split(/\s+/).filter(Boolean).length;
-    await playBlob(blob, sentences[i], wordOffset);
-    wordOffset += sentenceWords;
+    await new Promise<void>(r => setTimeout(r, 0));
   }
+
+  await queue.waitUntilDone();
+  queue.stop();
 }
 
 export async function resetKokoroEngine() {

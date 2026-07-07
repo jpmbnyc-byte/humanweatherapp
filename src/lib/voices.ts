@@ -11,45 +11,50 @@ export interface TenderVoiceProfile {
   speed: number;
 }
 
-/** KIKI_VOICES — swap IDs after in-app audition; config-only change. */
 export const TENDER_VOICES: TenderVoiceProfile[] = [
-  {
-    id: 'joan',
-    name: 'Joan',
-    descriptor: 'Warm · grounded',
-    kokoroVoice: 'af_heart',
-    speed: 0.88,
-  },
-  {
-    id: 'grace',
-    name: 'Grace',
-    descriptor: 'Gentle · airy',
-    kokoroVoice: 'af_nicole',
-    speed: 0.85,
-  },
-  {
-    id: 'peter',
-    name: 'Peter',
-    descriptor: 'Deep · anchored',
-    kokoroVoice: 'bm_george',
-    speed: 0.92,
-  },
-  {
-    id: 'daniel',
-    name: 'Daniel',
-    descriptor: 'Resonant · measured',
-    kokoroVoice: 'am_michael',
-    speed: 0.9,
-  },
+  { id: 'joan', name: 'Joan', descriptor: 'Warm · grounded', kokoroVoice: 'af_heart', speed: 0.88 },
+  { id: 'grace', name: 'Grace', descriptor: 'Gentle · airy', kokoroVoice: 'af_nicole', speed: 0.85 },
+  { id: 'peter', name: 'Peter', descriptor: 'Deep · anchored', kokoroVoice: 'bm_george', speed: 0.92 },
+  { id: 'daniel', name: 'Daniel', descriptor: 'Resonant · measured', kokoroVoice: 'am_michael', speed: 0.9 },
 ];
 
 export function getVoiceProfile(id: TenderVoiceId): TenderVoiceProfile {
   return TENDER_VOICES.find(v => v.id === id) ?? TENDER_VOICES[0];
 }
 
-/** Split prose into sentences for pipelined Kokoro playback (§6). */
-export function splitSentences(text: string): string[] {
+function splitSentences(text: string): string[] {
   const parts = text.match(/[^.!?\n]+[.!?]+|\n+/g) ?? [text];
   const sentences = parts.map(s => s.trim()).filter(Boolean);
   return sentences.length ? sentences : [text.trim()];
+}
+
+/** Merge sentences into speak chunks — fewer round-trips, smoother flow. */
+export function splitIntoSpeakChunks(text: string, maxChars = 320): string[] {
+  const sentences = splitSentences(text);
+  const chunks: string[] = [];
+  let current = '';
+  for (const s of sentences) {
+    if (s.length > maxChars) {
+      if (current.trim()) chunks.push(current.trim());
+      current = '';
+      for (let i = 0; i < s.length; i += maxChars) chunks.push(s.slice(i, i + maxChars));
+      continue;
+    }
+    if (current.length + s.length + 1 > maxChars && current.trim()) {
+      chunks.push(current.trim());
+      current = s;
+    } else {
+      current = current ? `${current} ${s}` : s;
+    }
+  }
+  if (current.trim()) chunks.push(current.trim());
+  return chunks.length ? chunks : [text.trim()];
+}
+
+/** Warm the Kokoro engine in the background (call when Tender tab opens). */
+export function warmVoiceEngine(): void {
+  if (typeof window === 'undefined') return;
+  const run = () => void import('./kokoro').then(m => m.getKokoroTts()).catch(() => {});
+  if (typeof requestIdleCallback !== 'undefined') requestIdleCallback(run, { timeout: 2000 });
+  else setTimeout(run, 400);
 }

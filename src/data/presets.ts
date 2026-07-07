@@ -8,6 +8,13 @@ export interface Preset {
 
 export const PRESETS: Preset[] = [
   {
+    id: 'reflection',
+    title: 'Your Internal Sky',
+    subtitle: 'Atmospheric Somatic Grounding',
+    author: 'Human Weather',
+    text: `Your internal sky is vast. Clouds and storms will sweep through, but remember that you are the atmosphere itself. You do not contain the weather. The weather is a dynamic movement passing through you. Simply witness the movement.`
+  },
+  {
     id: 'solitude',
     title: 'The Art of Embracing Solitude',
     subtitle: 'A Journey to Inner Peace · The Wanderer Mind',
@@ -57,12 +64,5 @@ As I continue on my path, I’ve realized that the journey of embracing solitude
 I invite you to take that first step into solitude, whether it's for five minutes or an entire day. Let go of the need to always be “doing” and allow yourself to simply be. In the quiet, you may find answers you didn’t know you were searching for. You may find peace, creativity, and the clarity to live a life that feels authentically yours.
 
 In a world that glorifies busyness, the real magic happens when you dare to slow down.`
-  },
-  {
-    id: 'reflection',
-    title: 'Your Internal Sky',
-    subtitle: 'Atmospheric Somatic Grounding',
-    author: 'Human Weather',
-    text: `Your internal sky is vast. Clouds and storms will sweep through, but remember that you are the atmosphere itself. You do not contain the weather. The weather is a dynamic movement passing through you. Simply witness the movement.`
   }
 ];
