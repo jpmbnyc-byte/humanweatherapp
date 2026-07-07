@@ -573,8 +573,8 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                 className={`transition-all duration-150 rounded px-0.5 ${
                   isCurrent
                     ? currentTheme === 'night'
-                      ? 'text-[#CCCAFF] font-bold bg-[#8C6CD0]/20 drop-shadow-[0_0_12px_rgba(140,108,208,0.6)] scale-[1.03] inline-block'
-                      : 'text-[#46238D] font-bold bg-[#8C6CD0]/25 drop-shadow-[0_0_12px_rgba(101,68,135,0.4)] scale-[1.03] inline-block'
+                      ? 'text-[#f3efe8] font-bold bg-[#d4b05a]/20 drop-shadow-[0_0_12px_rgba(196,160,68,0.6)] scale-[1.03] inline-block'
+                      : 'text-[#8a6f2e] font-bold bg-[#d4b05a]/25 drop-shadow-[0_0_12px_rgba(184,149,107,0.4)] scale-[1.03] inline-block'
                     : isReading 
                       ? currentTheme === 'night' ? 'text-white/40' : 'text-zinc-400'
                       : currentTheme === 'night' ? 'text-white/80' : 'text-zinc-800'
@@ -598,22 +598,22 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     titleText: theme.text,
     mutedText: theme.textMuted,
     accentText: theme.accent,
-    accentBorder: isNight ? 'border-[#8C6CD0]/30' : 'border-[#654487]/30',
+    accentBorder: isNight ? 'border-[#d4b05a]/30' : 'border-[#b8956b]/30',
     badgeActive: isNight
-      ? 'bg-[#8C6CD0]/12 border-[#8C6CD0] text-[#8C6CD0]'
-      : 'bg-[#8C6CD0]/10 border-[#654487] text-[#654487] font-medium',
+      ? 'bg-[#d4b05a]/12 border-[#d4b05a] text-[#d4b05a]'
+      : 'bg-[#d4b05a]/10 border-[#b8956b] text-[#b8956b] font-medium',
     badgeInactive: isNight
       ? 'bg-black/20 border-white/5 text-white/40 hover:text-white/80 hover:border-white/10'
-      : 'bg-white/40 border-[#8C6CD0]/25 text-[#654487] hover:text-[#46238D] hover:bg-white',
+      : 'bg-white/40 border-stone-200/50 text-stone-600 hover:text-[#8a6f2e] hover:bg-white',
   };
 
   return (
     <div 
-      className={`flex flex-col w-full max-w-4xl mx-auto p-5 sm:p-7 rounded-3xl border backdrop-blur-md relative overflow-hidden ${styles.cardBg}`}
+      className={`flex flex-col w-full max-w-4xl mx-auto p-5 sm:p-7 rounded-2xl border relative overflow-hidden ${styles.cardBg}`}
       id="the-tender-section"
     >
       {/* Visual background subtle warm aura */}
-      <div className={`absolute top-0 right-0 w-72 h-72 rounded-full blur-3xl pointer-events-none z-0 ${isNight ? 'bg-[#8C6CD0]/[0.04]' : 'bg-[#8C6CD0]/[0.06]'}`} />
+      <div className={`absolute top-0 right-0 w-72 h-72 rounded-full blur-3xl pointer-events-none z-0 ${isNight ? 'bg-[#d4b05a]/[0.04]' : 'bg-[#d4b05a]/[0.06]'}`} />
       
       {/* 1. Header Section */}
       <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between border-b pb-4 mb-5 border-accent/10">
@@ -704,9 +704,9 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                 {/* Micro soundwave pulse when speaking */}
                 {isReading && !isPaused && (
                   <span className="flex items-end gap-[1.5px] h-3">
-                    <span className="w-[1.5px] bg-[#8C6CD0] rounded-full animate-[pulse_0.5s_infinite_alternate]" style={{ height: '35%' }}></span>
-                    <span className="w-[1.5px] bg-[#8C6CD0] rounded-full animate-[pulse_0.7s_infinite_alternate_0.15s]" style={{ height: '90%' }}></span>
-                    <span className="w-[1.5px] bg-[#8C6CD0] rounded-full animate-[pulse_0.6s_infinite_alternate_0.1s]" style={{ height: '60%' }}></span>
+                    <span className="w-[1.5px] bg-[#d4b05a] rounded-full animate-[pulse_0.5s_infinite_alternate]" style={{ height: '35%' }}></span>
+                    <span className="w-[1.5px] bg-[#d4b05a] rounded-full animate-[pulse_0.7s_infinite_alternate_0.15s]" style={{ height: '90%' }}></span>
+                    <span className="w-[1.5px] bg-[#d4b05a] rounded-full animate-[pulse_0.6s_infinite_alternate_0.1s]" style={{ height: '60%' }}></span>
                   </span>
                 )}
               </div>
@@ -717,7 +717,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                   <textarea
                     id="tender-custom-textarea"
                     rows={8}
-                    className={`w-full p-3 rounded-2xl border text-xs sm:text-sm font-serif leading-relaxed focus:outline-none focus:border-[#8C6CD0] ${
+                    className={`w-full p-3 rounded-2xl border text-xs sm:text-sm font-serif leading-relaxed focus:outline-none focus:border-[#d4b05a] ${
                       isNight ? 'bg-black/60 border-white/10 text-white placeholder-white/20' : 'bg-white/80 border-zinc-300 text-zinc-900 placeholder-zinc-400'
                     }`}
                     placeholder="Write or paste your custom journal writing, meditation prose, or daily reflections here..."
@@ -755,13 +755,13 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
               <div className="flex items-center gap-1.5">
                 <span className="relative flex h-2 w-2">
                   {isPreparing && (
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#9390FF] opacity-75"></span>
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#e8cc6a] opacity-75"></span>
                   )}
                   {isReading && !isPaused && (
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   )}
                   <span className={`relative inline-flex rounded-full h-2 w-2 ${
-                    isPreparing ? 'bg-[#9390FF]' : isReading ? (isPaused ? 'bg-[#9390FF]' : 'bg-emerald-400') : 'bg-zinc-500'
+                    isPreparing ? 'bg-[#e8cc6a]' : isReading ? (isPaused ? 'bg-[#e8cc6a]' : 'bg-emerald-400') : 'bg-zinc-500'
                   }`}></span>
                 </span>
                 <span className="font-mono text-[8px] uppercase tracking-widest opacity-60">
@@ -782,8 +782,8 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                         ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 hover:bg-emerald-500/25'
                         : 'bg-emerald-600/15 text-emerald-800 border border-emerald-500/30 hover:bg-emerald-500/25'
                       : isNight
-                        ? 'bg-[#8C6CD0] text-white hover:bg-[#8C6CD0]/90 hover:scale-[1.02]'
-                        : 'bg-gradient-to-r from-[#654487] to-[#8C6CD0] text-white hover:shadow-md hover:scale-[1.02]'
+                        ? 'bg-[#d4b05a] text-white hover:bg-[#d4b05a]/90 hover:scale-[1.02]'
+                        : 'bg-gradient-to-r from-[#b8956b] to-[#d4b05a] text-white hover:shadow-md hover:scale-[1.02]'
                   }`}
                 >
                   {isReading && !isPaused ? (
@@ -840,13 +840,13 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                     className="px-2.5 py-2 rounded border transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5"
                     style={{
                       backgroundColor: isSelected 
-                        ? isNight ? 'rgba(140,108,208,0.12)' : 'rgba(101,68,135,0.12)' 
+                        ? isNight ? 'rgba(196,160,68,0.12)' : 'rgba(184,149,107,0.12)' 
                         : 'transparent',
                       borderColor: isSelected 
-                        ? isNight ? '#8C6CD0' : '#654487' 
+                        ? isNight ? '#d4b05a' : '#b8956b' 
                         : isNight ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.1)',
                       color: isSelected 
-                        ? isNight ? '#8C6CD0' : '#654487' 
+                        ? isNight ? '#d4b05a' : '#b8956b' 
                         : isNight ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.5)',
                     }}
                   >
@@ -876,8 +876,8 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
               onChange={(e: any) => setSoundEnv(e.target.value)}
               className={`w-full px-3 py-2 border text-[11px] rounded-full focus:outline-none font-mono cursor-pointer mb-3.5 ${
                 isNight 
-                  ? 'bg-black/60 border-white/10 text-[#8C6CD0] focus:border-[#8C6CD0]' 
-                  : 'bg-white/80 border-[#8C6CD0]/30 text-[#654487] focus:border-[#654487]'
+                  ? 'bg-black/60 border-white/10 text-[#d4b05a] focus:border-[#d4b05a]' 
+                  : 'bg-white/80 border-[#d4b05a]/30 text-[#b8956b] focus:border-[#b8956b]'
               }`}
             >
               <option value="silence">Silence (Pure Narration)</option>
@@ -899,7 +899,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                   step="0.05"
                   value={ambientVolume}
                   onChange={(e) => setAmbientVolume(parseFloat(e.target.value))}
-                  className="flex-1 h-0.5 rounded-lg appearance-none cursor-pointer accent-[#8C6CD0] bg-[#8C6CD0]/10"
+                  className="flex-1 h-0.5 rounded-lg appearance-none cursor-pointer accent-[#d4b05a] bg-[#d4b05a]/10"
                   id="tender-backdrop-volume"
                 />
                 <span className="font-mono text-[8px] opacity-75 w-6 text-right">

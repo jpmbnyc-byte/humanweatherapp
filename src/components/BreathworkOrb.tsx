@@ -83,18 +83,18 @@ export default function BreathworkOrb({ weatherState, currentTheme }: Breathwork
   // Animation configuration for Framer Motion
   const getPhaseColor = () => {
     switch (phase) {
-      case 'Inhale': return 'rgba(140,108,208,0.75)';
-      case 'Hold': return 'rgba(147,144,255,0.9)';
-      case 'Exhale': return 'rgba(140,108,208,0.45)';
-      case 'Hold Out': return 'rgba(140,108,208,0.3)';
+      case 'Inhale': return 'rgba(196,160,68,0.75)';
+      case 'Hold': return 'rgba(232,204,106,0.9)';
+      case 'Exhale': return 'rgba(196,160,68,0.45)';
+      case 'Hold Out': return 'rgba(196,160,68,0.3)';
     }
   };
 
   return (
     <div className={`flex flex-col items-center justify-center p-6 rounded-2xl border backdrop-blur-md w-full max-w-md mx-auto ${
       currentTheme === 'night' 
-        ? 'bg-[#29105A]/75 border-white/[0.06] backdrop-blur-md' 
-        : 'bg-white/80 border-[#CCCAFF]/50 backdrop-blur-md shadow-lg shadow-[#8C6CD0]/10'
+        ? 'bg-[#1e1c18]/90 border-white/[0.06]' 
+        : 'bg-white/90 border-stone-200/60 shadow-sm shadow-stone-900/5'
     }`}
          id="breathwork-guide-orb-container">
       
@@ -143,7 +143,7 @@ export default function BreathworkOrb({ weatherState, currentTheme }: Breathwork
             duration: 1.0, // Smooth transition between tick updates
             ease: 'linear'
           }}
-          className="w-24 h-24 rounded-full bg-gradient-to-tr from-accent/80 to-[#CCCAFF]/90 flex flex-col items-center justify-center z-10 text-white select-none"
+          className="w-24 h-24 rounded-full bg-gradient-to-tr from-accent/70 to-[#f3efe8] flex flex-col items-center justify-center z-10 text-stone-900 select-none"
         >
           {/* Inner particle center */}
           <motion.div

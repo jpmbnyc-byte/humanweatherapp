@@ -67,10 +67,10 @@ export default function App() {
             <span className="font-display text-[9px] tracking-[0.3em] uppercase opacity-45">human weather</span>
             <span className="text-[9px] font-bold text-accent opacity-80">™</span>
           </div>
-          <h1 className="font-display text-2xl md:text-3xl font-semibold tracking-tight uppercase leading-none mt-1">
-            HUMAN <span className="font-light italic text-accent">WEATHER</span>
+          <h1 className="font-serif text-3xl md:text-4xl font-medium tracking-tight leading-none mt-1">
+            Human <span className="italic text-accent">Weather</span>
           </h1>
-          <p className="font-sans text-xs italic opacity-75 mt-1.5">
+          <p className="font-sans text-sm italic opacity-70 mt-2">
             What is your weather right now?
           </p>
         </div>
@@ -103,7 +103,7 @@ export default function App() {
 
       {/* Navigation — pill tabs */}
       <nav className="w-full max-w-4xl mx-auto px-6 mt-6 md:mt-8 z-10" id="app-navigation-bar">
-        <div className={`flex flex-wrap gap-1.5 p-1.5 rounded-full border ${themeStyles.border} ${isNight ? 'bg-black/20' : 'bg-white/30'}`}>
+        <div className={`flex flex-wrap gap-1 p-1 rounded-2xl border ${themeStyles.border} ${isNight ? 'bg-black/15' : 'bg-white/50'}`}>
           {([
             ['somatic', 'Somatic Map'],
             ['therapy', 'Aura & Tones'],
@@ -114,7 +114,7 @@ export default function App() {
               key={id}
               id={`tab-${id}-btn`}
               onClick={() => setActiveTab(id)}
-              className={`flex-1 min-w-[calc(50%-6px)] sm:min-w-0 px-4 py-2.5 rounded-full text-xs font-display font-medium uppercase tracking-wider border transition-all cursor-pointer ${
+              className={`flex-1 min-w-[calc(50%-4px)] sm:min-w-0 px-4 py-2.5 rounded-xl text-xs font-sans font-medium tracking-wide border transition-all cursor-pointer ${
                 activeTab === id ? themeStyles.tabActive : themeStyles.tabInactive
               }`}
             >
@@ -142,15 +142,15 @@ export default function App() {
               </div>
 
               <div className="lg:col-span-7 flex flex-col gap-6 w-full">
-                <div className={`p-6 rounded-3xl border ${themeStyles.border} ${themeStyles.cardBg} backdrop-blur-md relative`}
+                <div className={`p-8 rounded-2xl border ${themeStyles.border} ${themeStyles.cardBg} relative`}
                      id="weather-reading-card">
 
-                  <span className="font-display text-[9px] uppercase tracking-widest opacity-50 block mb-1">
-                    02 — Real-time somatic reading
+                  <span className="font-mono text-[9px] uppercase tracking-widest opacity-40 block mb-2">
+                    Real-time somatic reading
                   </span>
 
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-                    <h2 className="font-display text-2xl font-semibold text-accent tracking-tight">
+                    <h2 className="font-serif text-2xl md:text-3xl font-medium text-accent tracking-tight">
                       {activeWeather.title}
                     </h2>
                     <div className="flex items-center gap-1.5 font-mono text-[10px]">
@@ -167,9 +167,9 @@ export default function App() {
                     {activeWeather.description}
                   </p>
 
-                  <div className="p-3.5 rounded-2xl border border-accent/10 bg-black/20 font-sans text-xs italic text-accent/80 mb-5 leading-relaxed">
-                    <span className="font-display text-[9px] uppercase tracking-widest not-italic font-bold text-accent block mb-1">
-                      Physical Guidance text:
+                  <div className="p-4 rounded-xl border border-accent/15 bg-accent/[0.03] font-serif text-sm italic text-foreground/80 mb-6 leading-relaxed">
+                    <span className="font-mono text-[9px] uppercase tracking-widest not-italic text-accent/70 block mb-1.5">
+                      Physical guidance
                     </span>
                     "{activeWeather.guidanceText}"
                   </div>

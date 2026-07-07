@@ -14,8 +14,8 @@ export default function LightTherapy({ currentTheme }: LightTherapyProps) {
   return (
     <div className={`flex flex-col w-full max-w-4xl mx-auto p-6 rounded-2xl border backdrop-blur-md ${
       currentTheme === 'night' 
-        ? 'bg-[#29105A]/75 border-white/[0.06] backdrop-blur-md' 
-        : 'bg-white/80 border-[#CCCAFF]/50 backdrop-blur-md shadow-lg shadow-[#8C6CD0]/10'
+        ? 'bg-[#1e1c18]/90 border-white/[0.06]' 
+        : 'bg-white/90 border-stone-200/60 shadow-sm shadow-stone-900/5'
     }`}
          id="light-therapy-section">
       
@@ -37,7 +37,7 @@ export default function LightTherapy({ currentTheme }: LightTherapyProps) {
             className={`p-5 rounded-xl border flex flex-col justify-between transition-all duration-300 relative overflow-hidden group cursor-pointer ${
               currentTheme === 'night'
                 ? 'bg-black/35 border-white/[0.06] hover:bg-white/[0.03]'
-                : 'bg-[#CCCAFF]/20 border-[#8C6CD0]/15 hover:bg-[#CCCAFF]/35 shadow-sm'
+                : 'bg-stone-100/40 border-stone-200/50 hover:bg-stone-100/60 shadow-sm'
             }`}
             onClick={() => setActiveMode(mode)}
             id={`light-card-${mode.id}`}

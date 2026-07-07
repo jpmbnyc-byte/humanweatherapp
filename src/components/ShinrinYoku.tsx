@@ -68,8 +68,8 @@ export default function ShinrinYoku({ currentTheme }: ShinrinYokuProps) {
   return (
     <div className={`flex flex-col w-full max-w-4xl mx-auto p-6 rounded-2xl border backdrop-blur-md relative ${
       currentTheme === 'night' 
-        ? 'bg-[#29105A]/75 border-white/[0.06] backdrop-blur-md' 
-        : 'bg-white/80 border-[#CCCAFF]/50 backdrop-blur-md shadow-lg shadow-[#8C6CD0]/10'
+        ? 'bg-[#1e1c18]/90 border-white/[0.06]' 
+        : 'bg-white/90 border-stone-200/60 shadow-sm shadow-stone-900/5'
     }`}
          id="shinrin-yoku-section">
       
@@ -82,7 +82,7 @@ export default function ShinrinYoku({ currentTheme }: ShinrinYokuProps) {
             exit={{ opacity: 0, scale: 0.95 }}
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 pointer-events-none"
           >
-            <div className="p-8 rounded-3xl bg-[#29105A] border border-[#8C6CD0]/40 shadow-[0_0_50px_rgba(140,108,208,0.25)] text-center max-w-sm">
+            <div className="p-8 rounded-3xl bg-[#1e1c18] border border-[#d4b05a]/40 shadow-[0_0_50px_rgba(196,160,68,0.2)] text-center max-w-sm">
               <Trees className="w-10 h-10 text-accent mx-auto mb-4 animate-bounce" />
               <p className="font-serif text-2xl font-semibold text-accent tracking-wide italic leading-normal">
                 "the forest is working."
@@ -116,7 +116,7 @@ export default function ShinrinYoku({ currentTheme }: ShinrinYokuProps) {
               className={`p-5 rounded-xl border flex flex-col justify-between transition-all duration-300 relative ${
                 currentTheme === 'night' 
                   ? 'bg-black/35 border-white/[0.06] hover:bg-white/[0.03]' 
-                  : 'bg-[#CCCAFF]/20 border-[#8C6CD0]/15 hover:bg-[#CCCAFF]/35 shadow-sm'
+                  : 'bg-stone-100/40 border-stone-200/50 hover:bg-stone-100/60 shadow-sm'
               }`}
               id={`shinrin-card-${protocol.id}`}
             >
@@ -153,7 +153,7 @@ export default function ShinrinYoku({ currentTheme }: ShinrinYokuProps) {
                 <div className={`p-3 rounded border text-[10px] font-mono leading-relaxed mb-5 ${
                   currentTheme === 'night' 
                     ? 'border-white/5 bg-black/40 text-slate-400' 
-                    : 'border-[#CCCAFF] bg-[#CCCAFF]/30 text-[#46238D]'
+                    : 'border-[#f3efe8] bg-[#f3efe8]/30 text-[#8a6f2e]'
                 }`}>
                   <span className="text-accent font-bold block mb-0.5 uppercase tracking-wider text-[8px]">Measurable Biomarkers:</span>
                   {protocol.biomarkers}
@@ -180,8 +180,8 @@ export default function ShinrinYoku({ currentTheme }: ShinrinYokuProps) {
                       whileTap={{ scale: 0.9 }}
                       className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all cursor-pointer ${
                         checked 
-                          ? currentTheme === 'night' ? 'bg-[#8C6CD0] border-[#8C6CD0] text-black shadow-md shadow-[#8C6CD0]/10' : 'bg-[#654487] border-[#654487] text-white shadow-md shadow-[#8C6CD0]/10'
-                          : currentTheme === 'night' ? 'bg-transparent border-[#8C6CD0]/30 text-[#8C6CD0]' : 'bg-transparent border-[#8C6CD0]/35 text-[#654487] hover:border-[#8C6CD0]/50'
+                          ? currentTheme === 'night' ? 'bg-[#d4b05a] border-[#d4b05a] text-black shadow-md shadow-[#d4b05a]/10' : 'bg-[#b8956b] border-[#b8956b] text-white shadow-md shadow-[#d4b05a]/10'
+                          : currentTheme === 'night' ? 'bg-transparent border-[#d4b05a]/30 text-[#d4b05a]' : 'bg-transparent border-[#d4b05a]/35 text-[#b8956b] hover:border-[#d4b05a]/50'
                       }`}
                       title={`Mark session ${index + 1} completed`}
                     >

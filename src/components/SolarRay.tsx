@@ -228,8 +228,8 @@ export default function SolarRay({ currentTheme }: SolarRayProps) {
   return (
     <div className={`flex flex-col w-full max-w-4xl mx-auto p-6 rounded-2xl border backdrop-blur-md ${
       currentTheme === 'night' 
-        ? 'bg-[#29105A]/75 border-white/[0.06] backdrop-blur-md' 
-        : 'bg-white/80 border-[#CCCAFF]/50 backdrop-blur-md shadow-lg shadow-[#8C6CD0]/10'
+        ? 'bg-[#1e1c18]/90 border-white/[0.06]' 
+        : 'bg-white/90 border-stone-200/60 shadow-sm shadow-stone-900/5'
     }`}
          id="solar-ray-therapy-section">
       
@@ -265,7 +265,7 @@ export default function SolarRay({ currentTheme }: SolarRayProps) {
           className={`flex-1 px-3 py-1.5 rounded-lg border text-xs sm:text-sm focus:outline-none ${
             currentTheme === 'night'
               ? 'border-accent/20 bg-black/40 text-white placeholder-gold/30 focus:border-accent/50'
-              : 'border-[#8C6CD0]/40 bg-white/85 text-slate-800 placeholder-slate-400 focus:border-[#8C6CD0] shadow-inner'
+              : 'border-[#d4b05a]/40 bg-white/85 text-slate-800 placeholder-slate-400 focus:border-[#d4b05a] shadow-inner'
           }`}
         />
         <button
@@ -273,7 +273,7 @@ export default function SolarRay({ currentTheme }: SolarRayProps) {
           className={`px-3 py-1.5 border rounded-lg font-mono text-xs uppercase tracking-wider cursor-pointer transition-all ${
             currentTheme === 'night'
               ? 'bg-accent/10 hover:bg-accent/20 border-accent/30 text-accent'
-              : 'bg-[#8C6CD0]/10 hover:bg-[#8C6CD0]/20 border-[#8C6CD0]/30 text-[#654487] font-medium'
+              : 'bg-[#d4b05a]/10 hover:bg-[#d4b05a]/20 border-[#d4b05a]/30 text-[#b8956b] font-medium'
           }`}
         >
           Override
@@ -290,7 +290,7 @@ export default function SolarRay({ currentTheme }: SolarRayProps) {
             className={`flex items-start gap-2.5 p-4 rounded-xl border mb-6 ${
               currentTheme === 'night'
                 ? 'bg-accent/10 border-accent/30'
-                : 'bg-[#8C6CD0]/10 border-[#654487]/30 shadow-sm'
+                : 'bg-[#d4b05a]/10 border-[#b8956b]/30 shadow-sm'
             }`}
             id="active-solar-alert"
           >
@@ -316,7 +316,7 @@ export default function SolarRay({ currentTheme }: SolarRayProps) {
         <div className={`p-5 rounded-xl border flex flex-col items-center justify-between min-h-[220px] ${
           currentTheme === 'night' 
             ? 'bg-black/35 border-white/[0.06]' 
-            : 'bg-[#CCCAFF]/20 border-[#8C6CD0]/15 shadow-sm'
+            : 'bg-stone-100/40 border-stone-200/50 shadow-sm'
         }`}>
           <span className="font-mono text-xs uppercase tracking-widest text-accent font-semibold self-start">Live Sun Arc</span>
           
@@ -364,8 +364,8 @@ export default function SolarRay({ currentTheme }: SolarRayProps) {
                 cx={sunPos.x}
                 cy={sunPos.y}
                 r="6"
-                fill={currentTheme === 'night' ? '#8C6CD0' : '#654487'}
-                filter={`drop-shadow(0px 0px 8px ${currentTheme === 'night' ? '#8C6CD0' : '#654487'})`}
+                fill={currentTheme === 'night' ? '#d4b05a' : '#b8956b'}
+                filter={`drop-shadow(0px 0px 8px ${currentTheme === 'night' ? '#d4b05a' : '#b8956b'})`}
                 animate={{
                   r: [6, 7.5, 6]
                 }}
@@ -395,7 +395,7 @@ export default function SolarRay({ currentTheme }: SolarRayProps) {
         <div className={`p-5 rounded-xl border flex flex-col justify-between min-h-[220px] ${
           currentTheme === 'night' 
             ? 'bg-black/35 border-white/[0.06]' 
-            : 'bg-[#CCCAFF]/20 border-[#8C6CD0]/15 shadow-sm'
+            : 'bg-stone-100/40 border-stone-200/50 shadow-sm'
         }`}>
           <span className="font-mono text-xs uppercase tracking-widest text-accent font-semibold">Astrological Metrics</span>
           
@@ -436,7 +436,7 @@ export default function SolarRay({ currentTheme }: SolarRayProps) {
         <div className={`p-5 rounded-xl border flex flex-col justify-between min-h-[220px] ${
           currentTheme === 'night' 
             ? 'bg-black/35 border-white/[0.06]' 
-            : 'bg-[#CCCAFF]/20 border-[#8C6CD0]/15 shadow-sm'
+            : 'bg-stone-100/40 border-stone-200/50 shadow-sm'
         }`}>
           <span className="font-mono text-xs uppercase tracking-widest text-accent font-semibold">Now Active Ray</span>
           
@@ -472,11 +472,11 @@ export default function SolarRay({ currentTheme }: SolarRayProps) {
                 className={`p-4 rounded-xl border flex flex-col justify-between transition-all ${
                   currentTheme === 'night' 
                     ? 'bg-black/35 border-white/[0.06]' 
-                    : 'bg-[#CCCAFF]/20 border-[#8C6CD0]/15 shadow-sm'
+                    : 'bg-stone-100/40 border-stone-200/50 shadow-sm'
                 }`}
                 style={{
                   borderLeft: status === 'NOW' 
-                    ? `3px solid ${currentTheme === 'night' ? '#8C6CD0' : '#654487'}` 
+                    ? `3px solid ${currentTheme === 'night' ? '#d4b05a' : '#b8956b'}` 
                     : undefined
                 }}
               >

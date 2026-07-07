@@ -146,8 +146,8 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
   return (
     <div className={`flex flex-col w-full max-w-4xl mx-auto p-6 rounded-2xl border backdrop-blur-md ${
       currentTheme === 'night' 
-        ? 'bg-[#29105A]/75 border-white/[0.06] backdrop-blur-md' 
-        : 'bg-white/80 border-[#CCCAFF]/50 backdrop-blur-md shadow-lg shadow-[#8C6CD0]/10'
+        ? 'bg-[#1e1c18]/90 border-white/[0.06]' 
+        : 'bg-white/90 border-stone-200/60 shadow-sm shadow-stone-900/5'
     }`}
          id="frequency-therapy-section">
       
@@ -209,11 +209,11 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
               className={`relative p-5 rounded-xl border flex flex-col justify-between cursor-pointer transition-all duration-300 ${
                 isActive 
                   ? currentTheme === 'night' 
-                    ? 'bg-[#8C6CD0]/10 border-[#9390FF] shadow-[0_0_20px_rgba(140,108,208,0.2)]' 
-                    : 'bg-[#8C6CD0]/10 border-[#654487] shadow-[0_0_20px_rgba(101,68,135,0.2)]'
+                    ? 'bg-[#d4b05a]/10 border-[#e8cc6a] shadow-[0_0_20px_rgba(196,160,68,0.15)]' 
+                    : 'bg-[#d4b05a]/10 border-[#b8956b] shadow-[0_0_20px_rgba(184,149,107,0.15)]'
                   : currentTheme === 'night'
                     ? 'bg-black/35 border-white/[0.06] hover:bg-white/[0.03]'
-                    : 'bg-[#CCCAFF]/20 border-[#8C6CD0]/15 hover:bg-[#CCCAFF]/35'
+                    : 'bg-stone-100/40 border-stone-200/50 hover:bg-stone-100/60'
               }`}
               onClick={() => handleToneClick(tone)}
               id={`freq-card-${tone.id}`}
@@ -222,8 +222,8 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
                 <div className="flex justify-between items-start mb-2">
                   <span className={`font-mono text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full border ${
                     tone.type === 'binaural' 
-                      ? 'border-purple-500/30 bg-purple-500/5 text-purple-400' 
-                      : 'bg-[#8C6CD0]/30 bg-[#8C6CD0]/5 text-[#9390FF]'
+                      ? 'border-accent/30 bg-accent/5 text-accent' 
+                      : 'bg-[#d4b05a]/30 bg-[#d4b05a]/5 text-[#e8cc6a]'
                   }`}>
                     {tone.type}
                   </span>
@@ -273,7 +273,7 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
                     <motion.path
                       d="M0 5 Q 25 1, 50 5 T 100 5"
                       fill="transparent"
-                      stroke={currentTheme === 'night' ? '#8C6CD0' : '#654487'}
+                      stroke={currentTheme === 'night' ? '#d4b05a' : '#b8956b'}
                       strokeWidth="2"
                       animate={{
                         d: [
