@@ -4,6 +4,7 @@ import SomaticGrid from './components/SomaticGrid';
 import BreathworkOrb from './components/BreathworkOrb';
 import MountainBackground from './components/MountainBackground';
 import TabSkeleton from './components/TabSkeleton';
+import TabErrorBoundary from './components/TabErrorBoundary';
 import { WEATHER_STATES } from './data';
 import { WeatherState } from './types';
 import { getThemeStyles } from './lib/theme';
@@ -49,6 +50,11 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'somatic' | 'therapy' | 'rhythms' | 'tender'>('somatic');
   const [activeWeather, setActiveWeather] = useState<WeatherState>(WEATHER_STATES[5]);
   const [activeCoordinates, setActiveCoordinates] = useState<[number, number][]>([]);
+  const [motionReady, setMotionReady] = useState(false);
+
+  useEffect(() => {
+    setMotionReady(true);
+  }, []);
 
   useEffect(() => {
     setCurrentTime(new Date());
@@ -156,7 +162,7 @@ export default function App() {
             {activeTab === 'somatic' && (
               <motion.div
                 key="somatic-view"
-                initial={{ opacity: 0, y: 12 }}
+                initial={motionReady ? { opacity: 0, y: 12 } : false}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -12 }}
                 transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
@@ -219,16 +225,18 @@ export default function App() {
             {activeTab === 'therapy' && (
               <motion.div
                 key="therapy-view"
-                initial={{ opacity: 0, y: 12 }}
+                initial={motionReady ? { opacity: 0, y: 12 } : false}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -12 }}
                 transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
                 className="flex flex-col gap-8 md:gap-10"
               >
                 <Suspense fallback={<TabSkeleton isNight={isNight} />}>
-                  <FrequencyTherapy currentTheme={currentTheme} />
-                  <LightTherapy currentTheme={currentTheme} />
-                  <ClassicalMusic currentTheme={currentTheme} />
+                  <TabErrorBoundary isNight={isNight}>
+                    <FrequencyTherapy currentTheme={currentTheme} />
+                    <LightTherapy currentTheme={currentTheme} />
+                    <ClassicalMusic currentTheme={currentTheme} />
+                  </TabErrorBoundary>
                 </Suspense>
               </motion.div>
             )}
@@ -236,15 +244,17 @@ export default function App() {
             {activeTab === 'rhythms' && (
               <motion.div
                 key="rhythms-view"
-                initial={{ opacity: 0, y: 12 }}
+                initial={motionReady ? { opacity: 0, y: 12 } : false}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -12 }}
                 transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
                 className="flex flex-col gap-8 md:gap-10"
               >
                 <Suspense fallback={<TabSkeleton isNight={isNight} />}>
-                  <SolarRay currentTheme={currentTheme} />
-                  <ShinrinYoku currentTheme={currentTheme} />
+                  <TabErrorBoundary isNight={isNight}>
+                    <SolarRay currentTheme={currentTheme} />
+                    <ShinrinYoku currentTheme={currentTheme} />
+                  </TabErrorBoundary>
                 </Suspense>
               </motion.div>
             )}
@@ -252,14 +262,16 @@ export default function App() {
             {activeTab === 'tender' && (
               <motion.div
                 key="tender-view"
-                initial={{ opacity: 0, y: 12 }}
+                initial={motionReady ? { opacity: 0, y: 12 } : false}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -12 }}
                 transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
                 className="w-full"
               >
                 <Suspense fallback={<TabSkeleton isNight={isNight} />}>
-                  <TheTender currentTheme={currentTheme} />
+                  <TabErrorBoundary isNight={isNight}>
+                    <TheTender currentTheme={currentTheme} />
+                  </TabErrorBoundary>
                 </Suspense>
               </motion.div>
             )}
