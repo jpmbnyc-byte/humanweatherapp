@@ -97,7 +97,9 @@ const DB_NAME = 'human-weather';
 const STORE = 'settings';
 const VOICE_KEY = 'hw-station-voice';
 const PACE_KEY = 'hw-pace';
+const FAMILIAR_GREETED_KEY = 'hw-familiar-greeted';
 export const AUDITION_LINE = 'What is your weather right now?';
+export const FAMILIAR_GREETING_LINE = 'A familiar voice is here.';
 
 function idbOpen(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -167,6 +169,40 @@ export function getActiveVoice(): SpeechSynthesisVoice | null {
 export function getActiveVoiceLabel(): string {
   if (!_stationVoice) return '';
   return cleanVoiceName(_stationVoice.name);
+}
+
+export function isIosPlatform(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
+export function isFamiliarVoice(voice: SpeechSynthesisVoice): boolean {
+  const hay = `${voice.name}${voice.voiceURI}`;
+  return /personal|familiar/i.test(hay);
+}
+
+export function isFamiliarEntry(entry: RosterEntry): boolean {
+  return isFamiliarVoice(entry.voice);
+}
+
+export function hasFamiliarInRoster(roster: RosterEntry[]): boolean {
+  return roster.some(isFamiliarEntry);
+}
+
+export function isActiveVoiceFamiliar(): boolean {
+  return _stationVoice ? isFamiliarVoice(_stationVoice) : false;
+}
+
+export async function getFamiliarGreeted(): Promise<boolean> {
+  return (await idbGet(FAMILIAR_GREETED_KEY)) === '1';
+}
+
+export async function setFamiliarGreeted(): Promise<void> {
+  await idbSet(FAMILIAR_GREETED_KEY, '1');
+}
+
+export function familiarVoiceCopy(): string {
+  return 'A familiar voice from Personal Voice may appear here. Create one in Settings \u2192 Accessibility \u2192 Personal Voice.';
 }
 
 export async function initStationSpeech(): Promise<RosterEntry[]> {

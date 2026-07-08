@@ -17,6 +17,14 @@ import {
   platformVoiceHint,
   PACE_VALUES,
   paceFromRate,
+  isIosPlatform,
+  isFamiliarEntry,
+  hasFamiliarInRoster,
+  isActiveVoiceFamiliar,
+  getFamiliarGreeted,
+  setFamiliarGreeted,
+  familiarVoiceCopy,
+  FAMILIAR_GREETING_LINE,
   type RosterEntry,
   type PaceOption,
 } from '../lib/stationSpeech';
@@ -32,20 +40,26 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const [roster, setRoster] = useState<RosterEntry[]>([]);
   const [currentVoiceLabel, setCurrentVoiceLabel] = useState('');
   const [currentTier, setCurrentTier] = useState<'PREMIUM' | 'ENHANCED' | 'STANDARD'>('STANDARD');
+  const [currentVoiceFamiliar, setCurrentVoiceFamiliar] = useState(false);
   const [pace, setPace] = useState<PaceOption>('standard');
   const [ambientVolume, setAmbientVolume] = useState(0.4);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [inlineVoiceOpen, setInlineVoiceOpen] = useState(false);
+  const [showFamiliarGreeting, setShowFamiliarGreeting] = useState(false);
+  const [familiarGreetingFading, setFamiliarGreetingFading] = useState(false);
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const noiseSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const envGainNodeRef = useRef<GainNode | null>(null);
   const speakSessionRef = useRef(0);
+  const proseRef = useRef<HTMLDivElement | null>(null);
 
   const syncVoiceHeader = useCallback((list: RosterEntry[]) => {
     const label = getActiveVoiceLabel();
     setCurrentVoiceLabel(label);
     const active = list.find(e => cleanVoiceName(e.name) === label);
     setCurrentTier(active ? rosterTier(active) : 'STANDARD');
+    setCurrentVoiceFamiliar(isActiveVoiceFamiliar());
   }, []);
 
   useEffect(() => {
@@ -55,6 +69,11 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
       setRoster(list);
       setPace(paceFromRate(getPaceRate()));
       syncVoiceHeader(list);
+      if (isIosPlatform() && hasFamiliarInRoster(list)) {
+        void getFamiliarGreeted().then(greeted => {
+          if (!cancelled && !greeted) setShowFamiliarGreeting(true);
+        });
+      }
     });
 
     const onVoicesChanged = () => {
@@ -161,6 +180,30 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     if (stopAmbient) stopSoundEnvironment();
   };
 
+  const dismissFamiliarGreeting = useCallback(() => {
+    setFamiliarGreetingFading(true);
+    window.setTimeout(() => {
+      setShowFamiliarGreeting(false);
+      setFamiliarGreetingFading(false);
+    }, 600);
+    void setFamiliarGreeted();
+  }, []);
+
+  const handleVoiceSelect = (entry: RosterEntry) => {
+    const cleaned = cleanVoiceName(entry.name);
+    const tier = rosterTier(entry);
+    if (speaking) stopReading(false);
+    setCurrentVoiceLabel(cleaned);
+    setCurrentTier(tier);
+    setCurrentVoiceFamiliar(isFamiliarEntry(entry));
+    setSpeaking(true);
+    void chooseStationVoice(entry).finally(() => {
+      setSpeaking(false);
+      setInlineVoiceOpen(false);
+      proseRef.current?.focus();
+    });
+  };
+
   const handleListenStop = () => {
     if (speaking) {
       stopReading(false);
@@ -168,6 +211,8 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     }
     const textSrc = inputText.trim();
     if (!textSrc || isEditMode) return;
+
+    if (showFamiliarGreeting) dismissFamiliarGreeting();
 
     const session = ++speakSessionRef.current;
     if (soundEnv !== 'silence') startSoundEnvironment(soundEnv);
@@ -217,6 +262,38 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
         : isNight ? 'text-white/40 border-white/10' : 'text-stone-500 border-stone-200';
 
   const displayRoster = dedupeRoster(roster);
+  const isIos = isIosPlatform();
+  const chipName = currentVoiceLabel || (displayRoster[0] ? cleanVoiceName(displayRoster[0].name) : '');
+
+  const renderRosterRows = (onSelect: (entry: RosterEntry) => void) =>
+    displayRoster.map(entry => {
+      const cleaned = cleanVoiceName(entry.name);
+      const tier = rosterTier(entry);
+      const selected = currentVoiceLabel === cleaned;
+      return (
+        <li key={entry.uri}>
+          <button
+            type="button"
+            aria-label={`Try and select ${cleaned}, ${tier}`}
+            aria-pressed={selected}
+            onClick={() => onSelect(entry)}
+            className={`w-full text-left px-4 py-3 rounded-lg border transition-all cursor-pointer flex items-center justify-between gap-2 min-h-[48px] ${
+              selected
+                ? isNight ? 'border-[#d4b05a] bg-[#d4b05a]/10' : 'border-[#2c2824] bg-stone-100'
+                : isNight ? 'border-white/8 hover:border-white/15' : 'border-stone-200 hover:border-stone-300'
+            }`}
+          >
+            <span className={`font-sans text-sm ${selected ? styles.titleText : styles.mutedText}`}>
+              {cleaned}
+              {isFamiliarEntry(entry) ? ' · Familiar' : ''}
+            </span>
+            <span className={`text-[10px] tracking-widest uppercase px-2 py-0.5 rounded-full border shrink-0 ${tierStyle(tier)}`}>
+              {tier}
+            </span>
+          </button>
+        </li>
+      );
+    });
 
   return (
     <div
@@ -290,7 +367,25 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
               )}
             </div>
 
-            <div className="flex-1 max-h-[220px] overflow-y-auto pr-1 select-text scrollbar-thin mb-4">
+            <AnimatePresence>
+              {showFamiliarGreeting && (
+                <motion.p
+                  initial={{ opacity: 1 }}
+                  animate={{ opacity: familiarGreetingFading ? 0 : 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.6 }}
+                  className={`font-mono text-xs tracking-wide mb-3 ${styles.mutedText}`}
+                >
+                  {FAMILIAR_GREETING_LINE}
+                </motion.p>
+              )}
+            </AnimatePresence>
+
+            <div
+              ref={proseRef}
+              tabIndex={-1}
+              className="flex-1 max-h-[220px] overflow-y-auto pr-1 select-text scrollbar-thin mb-4 outline-none"
+            >
               {isEditMode ? (
                 <textarea
                   id="tender-custom-textarea"
@@ -313,7 +408,42 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
               )}
             </div>
 
-            <div className="flex gap-2 justify-end border-t border-accent/10 pt-4">
+            <AnimatePresence>
+              {inlineVoiceOpen && displayRoster.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden mb-3"
+                  id="tender-inline-voice-chooser"
+                >
+                  {isIos && (
+                    <p className={`font-mono text-xs mb-3 ${styles.mutedText}`}>
+                      {familiarVoiceCopy()}
+                    </p>
+                  )}
+                  <ul className="space-y-2 max-h-[180px] overflow-y-auto scrollbar-thin" role="list">
+                    {renderRosterRows(handleVoiceSelect)}
+                  </ul>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <div className="flex items-center justify-between gap-3 border-t border-accent/10 pt-4">
+              <button
+                type="button"
+                id="tender-voice-chip"
+                onClick={() => setInlineVoiceOpen(open => !open)}
+                aria-expanded={inlineVoiceOpen}
+                aria-controls="tender-inline-voice-chooser"
+                className={`font-mono text-[11px] tracking-wide uppercase text-left cursor-pointer ${styles.mutedText} hover:opacity-80 transition-opacity`}
+              >
+                {chipName
+                  ? currentVoiceFamiliar
+                    ? `READ BY · ${chipName} · FAMILIAR`
+                    : `READ BY · ${chipName}`
+                  : 'READ BY · standard voice'}
+              </button>
               <button
                 id="tender-play-toggle-btn"
                 disabled={isEditMode || !inputText.trim()}
@@ -361,37 +491,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                 </div>
 
                 <ul className="space-y-2 mb-4 max-h-[220px] overflow-y-auto scrollbar-thin" role="list">
-                  {displayRoster.map(entry => {
-                    const cleaned = cleanVoiceName(entry.name);
-                    const tier = rosterTier(entry);
-                    const selected = currentVoiceLabel === cleaned;
-                    return (
-                      <li key={entry.uri}>
-                        <button
-                          type="button"
-                          aria-label={`Try and select ${cleaned}, ${tier}`}
-                          aria-pressed={selected}
-                          onClick={() => {
-                            if (speaking) stopReading(false);
-                            setCurrentVoiceLabel(cleaned);
-                            setCurrentTier(tier);
-                            setSpeaking(true);
-                            void chooseStationVoice(entry).finally(() => setSpeaking(false));
-                          }}
-                          className={`w-full text-left px-4 py-3 rounded-lg border transition-all cursor-pointer flex items-center justify-between gap-2 min-h-[48px] ${
-                            selected
-                              ? isNight ? 'border-[#d4b05a] bg-[#d4b05a]/10' : 'border-[#2c2824] bg-stone-100'
-                              : isNight ? 'border-white/8 hover:border-white/15' : 'border-stone-200 hover:border-stone-300'
-                          }`}
-                        >
-                          <span className={`font-sans text-sm ${selected ? styles.titleText : styles.mutedText}`}>{cleaned}</span>
-                          <span className={`text-[10px] tracking-widest uppercase px-2 py-0.5 rounded-full border shrink-0 ${tierStyle(tier)}`}>
-                            {tier}
-                          </span>
-                        </button>
-                      </li>
-                    );
-                  })}
+                  {renderRosterRows(handleVoiceSelect)}
                 </ul>
 
                 <p className={`hw-caption text-xs mb-4 ${styles.mutedText}`}>{platformVoiceHint()}</p>
