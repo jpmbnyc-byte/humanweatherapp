@@ -55,12 +55,6 @@ export default function App() {
 
   useEffect(() => {
     setMotionReady(true);
-    const run = () => {
-    void import('kokoro-js');
-    void import('./lib/voices').then(m => m.warmVoiceEngine());
-  };
-    if (typeof requestIdleCallback !== 'undefined') requestIdleCallback(run, { timeout: 1500 });
-    else setTimeout(run, 400);
   }, []);
 
   useEffect(() => {
@@ -148,7 +142,8 @@ export default function App() {
                 key={id}
                 id={`tab-${id}-btn`}
                 onClick={() => {
-                  if (id !== 'somatic') prefetchTabWhenIdle(id);
+                  if (id === 'tender') void import('./components/TheTender');
+                  else if (id !== activeTab && id !== 'somatic') prefetchTabWhenIdle(id);
                   setActiveTab(id);
                 }}
                 whileTap={{ scale: 0.98 }}

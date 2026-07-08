@@ -51,15 +51,12 @@ export function splitIntoSpeakChunks(text: string, maxChars = 320): string[] {
   return chunks.length ? chunks : [text.trim()];
 }
 
-/** Warm the Kokoro engine in the background (call when Tender tab opens). */
+/** Warm the Kokoro engine when The Tender opens — never on initial app paint. */
 export function warmVoiceEngine(): void {
   if (typeof window === 'undefined') return;
-  const run = () => {
-    void import('kokoro-js');
-    void import('./kokoro').then(m => m.getKokoroTts()).catch(() => {});
-  };
-  if (typeof requestIdleCallback !== 'undefined') requestIdleCallback(run, { timeout: 1500 });
-  else setTimeout(run, 300);
+  const run = () => void import('./kokoro').then(m => m.getKokoroTts()).catch(() => {});
+  if (typeof requestIdleCallback !== 'undefined') requestIdleCallback(run, { timeout: 500 });
+  else setTimeout(run, 100);
 }
 
 export { subscribeKokoroLoadProgress, getKokoroLoadState } from './kokoro';

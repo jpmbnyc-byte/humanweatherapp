@@ -60,6 +60,13 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     };
 
     const unsub = subscribeKokoroLoadProgress(progress => {
+      if (progress.error) {
+        setWarmLoading(false);
+        setLoadLabel(progress.status);
+        setSpeechError(progress.status);
+        setPhase('error');
+        return;
+      }
       setWarmLoading(getKokoroLoadState() === 'loading');
       setLoadPercent(progress.percent);
       setLoadLabel(progress.status);
@@ -69,8 +76,6 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
       m.getKokoroTts().then(onReady).catch(err => {
         console.error('Voice warm failed:', err);
         setWarmLoading(false);
-        setSpeechError('Voice unavailable — tap Listen to retry.');
-        setPhase('error');
       }),
     );
 
@@ -414,16 +419,19 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                   {loadLabel || 'Preparing the voice…'}
                 </p>
                 <div
-                  className={`h-0.5 w-full rounded-full overflow-hidden ${isNight ? 'bg-white/10' : 'bg-stone-200'}`}
+                  className={`h-1 w-full rounded-full overflow-hidden relative ${isNight ? 'bg-white/10' : 'bg-stone-200'}`}
                   role="progressbar"
                   aria-valuemin={0}
                   aria-valuemax={100}
                   aria-valuenow={loadPercent}
                   aria-label="Voice preparation progress"
                 >
+                  {loadPercent < 8 && isLoading ? (
+                    <div className="absolute inset-0 bg-[#d4b05a]/40 animate-pulse" />
+                  ) : null}
                   <div
-                    className="h-full bg-[#d4b05a] transition-[width] duration-200 ease-out"
-                    style={{ width: `${loadPercent}%` }}
+                    className="h-full bg-[#d4b05a] transition-[width] duration-300 ease-out relative z-10"
+                    style={{ width: `${Math.max(loadPercent, loadPercent < 8 && isLoading ? 8 : 0)}%` }}
                   />
                 </div>
               </div>

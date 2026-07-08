@@ -16,11 +16,12 @@ export type KokoroLoadProgress = {
   total: number;
   percent: number;
   status: string;
+  error?: boolean;
 };
 
 function notifyProgress(progress: KokoroLoadProgress) {
   lastProgress = progress;
-  if (loadState !== 'ready') loadState = 'loading';
+  if (!progress.error && loadState !== 'ready') loadState = 'loading';
   for (const listener of progressListeners) {
     try {
       listener(progress);
@@ -36,13 +37,13 @@ function handleLoadProgress(data: Record<string, unknown>) {
 
   if (status === 'initiate') {
     const file = (data.file as string) || 'model';
-    notifyProgress({ loaded: 0, total: 0, percent: 0, status: `Loading ${file}…` });
+    notifyProgress({ loaded: 0, total: 0, percent: 3, status: `Loading ${file}…` });
     return;
   }
 
   if (status === 'download') {
     const file = (data.file as string) || 'voice model';
-    notifyProgress({ loaded: 0, total: 0, percent: 1, status: `Downloading ${file}…` });
+    notifyProgress({ loaded: 0, total: 0, percent: 8, status: `Downloading ${file}…` });
     return;
   }
 
@@ -51,25 +52,30 @@ function handleLoadProgress(data: Record<string, unknown>) {
     const total = (data.total as number) || 0;
     const percent =
       typeof data.progress === 'number'
-        ? Math.round(data.progress)
+        ? Math.min(99, Math.round(data.progress))
         : total > 0
-          ? Math.min(100, Math.round((loaded / total) * 100))
-          : 0;
+          ? Math.min(99, Math.round((loaded / total) * 100))
+          : 10;
     notifyProgress({
       loaded,
       total,
       percent,
-      status:
-        percent < 100
-          ? `Preparing the voice — ${percent}%`
-          : 'Voice ready — preparing speech…',
+      status: `Preparing the voice — ${percent}%`,
     });
     return;
   }
 
   if (status === 'done') {
-    notifyProgress({ loaded: 0, total: 0, percent: 100, status: 'Voice ready — preparing speech…' });
+    notifyProgress({ loaded: 0, total: 0, percent: 99, status: 'Voice ready — preparing speech…' });
   }
+}
+
+function configureOnnxEnv(env: KokoroModule['env']) {
+  const wasm = env.backends?.onnx?.wasm;
+  if (!wasm) return;
+  // Never override numThreads — ORT auto-sets 1 without crossOriginIsolated.
+  // Forcing >1 without COEP breaks SharedArrayBuffer and silently kills load.
+  wasm.proxy = false;
 }
 
 export function subscribeKokoroLoadProgress(
@@ -99,32 +105,16 @@ export async function getKokoroTts(
     notifyProgress({
       loaded: 0,
       total: 0,
-      percent: 0,
-      status: 'Preparing the voice — one-time download.',
+      percent: 1,
+      status: 'Starting voice engine…',
     });
 
     loadPromise = (async () => {
-      notifyProgress({
-        loaded: 0,
-        total: 0,
-        percent: 2,
-        status: 'Loading voice engine…',
-      });
-
+      notifyProgress({ loaded: 0, total: 0, percent: 2, status: 'Loading voice library…' });
       const { KokoroTTS, env } = await import('kokoro-js');
+      configureOnnxEnv(env);
 
-      notifyProgress({
-        loaded: 0,
-        total: 0,
-        percent: 5,
-        status: 'Preparing the voice — one-time download.',
-      });
-
-      const wasm = env.backends?.onnx?.wasm;
-      if (wasm) {
-        wasm.proxy = true;
-        wasm.numThreads = Math.min(Math.max(navigator.hardwareConcurrency || 1, 1), 4);
-      }
+      notifyProgress({ loaded: 0, total: 0, percent: 5, status: 'Connecting to voice model…' });
 
       const instance = await KokoroTTS.from_pretrained(MODEL_ID, {
         dtype: 'q8',
@@ -132,17 +122,20 @@ export async function getKokoroTts(
         progress_callback: data => handleLoadProgress(data as Record<string, unknown>),
       });
 
-      try {
-        await instance.generate('Ready.', { voice: 'af_heart', speed: 1 });
-      } catch {
-        /* warmup best-effort */
-      }
-
       loadState = 'ready';
+      notifyProgress({ loaded: 0, total: 0, percent: 100, status: 'Voice ready' });
       return instance;
     })().catch(err => {
       loadPromise = null;
       loadState = 'idle';
+      const message = err instanceof Error ? err.message : String(err);
+      notifyProgress({
+        loaded: 0,
+        total: 0,
+        percent: 0,
+        status: `Voice load failed — ${message}`,
+        error: true,
+      });
       lastProgress = null;
       throw err;
     });
