@@ -1,19 +1,25 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Volume2, Play, Pause, Square, Music, Headphones, Sliders, Edit2, Check } from 'lucide-react';
+import { Volume2, Play, Square, Music, Headphones, Sliders, Edit2, Check } from 'lucide-react';
 import { PRESETS } from '../data/presets';
 import { getThemeStyles } from '../lib/theme';
 import {
-  TENDER_VOICES,
-  getVoiceProfile,
-  warmVoiceEngine,
-  subscribeKokoroLoadProgress,
-  getKokoroLoadState,
-  type TenderVoiceId,
-} from '../lib/voices';
-import type { NarrationControls } from '../lib/readProse';
-
-type Phase = 'idle' | 'loading' | 'live' | 'paused' | 'error';
+  initStationSpeech,
+  stationSpeak,
+  stationStop,
+  chooseStationVoice,
+  setPaceRate,
+  getPaceRate,
+  getActiveVoiceLabel,
+  dedupeRoster,
+  cleanVoiceName,
+  rosterTier,
+  platformVoiceHint,
+  PACE_VALUES,
+  paceFromRate,
+  type RosterEntry,
+  type PaceOption,
+} from '../lib/stationSpeech';
 
 interface TheTenderProps {
   currentTheme: 'day' | 'night';
@@ -22,71 +28,56 @@ interface TheTenderProps {
 export default function TheTender({ currentTheme }: TheTenderProps) {
   const [inputText, setInputText] = useState(PRESETS[0].text);
   const [soundEnv, setSoundEnv] = useState<'rain' | 'forest' | 'ocean' | 'hearth' | 'crickets' | 'silence'>('silence');
-  const [tenderVoice, setTenderVoice] = useState<TenderVoiceId>('joan');
-  const [phase, setPhase] = useState<Phase>('idle');
-  const [speechError, setSpeechError] = useState<string | null>(null);
-  const [loadPercent, setLoadPercent] = useState(0);
-  const [loadLabel, setLoadLabel] = useState('');
-  const [warmLoading, setWarmLoading] = useState(false);
-  const [currentWordIndex, setCurrentWordIndex] = useState(-1);
+  const [speaking, setSpeaking] = useState(false);
+  const [roster, setRoster] = useState<RosterEntry[]>([]);
+  const [currentVoiceLabel, setCurrentVoiceLabel] = useState('');
+  const [currentTier, setCurrentTier] = useState<'PREMIUM' | 'ENHANCED' | 'STANDARD'>('STANDARD');
+  const [pace, setPace] = useState<PaceOption>('standard');
   const [ambientVolume, setAmbientVolume] = useState(0.4);
   const [isEditMode, setIsEditMode] = useState(false);
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const noiseSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const envGainNodeRef = useRef<GainNode | null>(null);
-  const controlsRef = useRef<NarrationControls | null>(null);
-  const sessionRef = useRef(0);
-  const abortRef = useRef<AbortController | null>(null);
+  const speakSessionRef = useRef(0);
 
-  const isLive = phase === 'live';
-  const isPaused = phase === 'paused';
-  const isLoading = phase === 'loading';
-  const isActive = isLive || isPaused;
-  const showLoadStatus = isLoading || warmLoading || loadLabel.length > 0;
+  const syncVoiceHeader = useCallback((list: RosterEntry[]) => {
+    const label = getActiveVoiceLabel();
+    setCurrentVoiceLabel(label);
+    const active = list.find(e => cleanVoiceName(e.name) === label);
+    setCurrentTier(active ? rosterTier(active) : 'STANDARD');
+  }, []);
 
   useEffect(() => {
-    warmVoiceEngine();
-
-    const syncWarmState = () => setWarmLoading(getKokoroLoadState() === 'loading');
-    syncWarmState();
-
-    const onReady = () => {
-      if (getKokoroLoadState() === 'ready') {
-        setWarmLoading(false);
-        setLoadPercent(0);
-        setLoadLabel('');
-      }
-    };
-
-    const unsub = subscribeKokoroLoadProgress(progress => {
-      if (progress.error) {
-        setWarmLoading(false);
-        setLoadLabel(progress.status);
-        setSpeechError(progress.status);
-        setPhase('error');
-        return;
-      }
-      setWarmLoading(getKokoroLoadState() === 'loading');
-      setLoadPercent(progress.percent);
-      setLoadLabel(progress.status);
+    let cancelled = false;
+    void initStationSpeech().then(list => {
+      if (cancelled) return;
+      setRoster(list);
+      setPace(paceFromRate(getPaceRate()));
+      syncVoiceHeader(list);
     });
 
-    void import('../lib/kokoro').then(m =>
-      m.getKokoroTts().then(onReady).catch(err => {
-        console.error('Voice warm failed:', err);
-        setWarmLoading(false);
-      }),
-    );
+    const onVoicesChanged = () => {
+      void initStationSpeech().then(list => {
+        if (cancelled) return;
+        setRoster(list);
+        syncVoiceHeader(list);
+      });
+    };
+    const prevVoicesHandler = speechSynthesis.onvoiceschanged;
+    speechSynthesis.onvoiceschanged = () => {
+      prevVoicesHandler?.call(speechSynthesis, new Event('voiceschanged'));
+      onVoicesChanged();
+    };
 
     return () => {
-      unsub();
-      abortRef.current?.abort();
-      controlsRef.current?.stop();
+      cancelled = true;
+      speechSynthesis.onvoiceschanged = prevVoicesHandler;
+      stationStop();
       stopSoundEnvironment();
       if (audioCtxRef.current) audioCtxRef.current.close().catch(() => {});
     };
-  }, []);
+  }, [syncVoiceHeader]);
 
   useEffect(() => {
     if (envGainNodeRef.current && audioCtxRef.current) {
@@ -99,7 +90,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
         envGainNodeRef.current.gain.setValueAtTime(target, ctx.currentTime);
       }
     }
-  }, [ambientVolume, soundEnv, phase]);
+  }, [ambientVolume, soundEnv, speaking]);
 
   useEffect(() => {
     if (soundEnv !== 'silence') startSoundEnvironment(soundEnv);
@@ -108,8 +99,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
 
   const getAmbientVolumeTarget = () => {
     if (soundEnv === 'silence') return 0;
-    if (isLive) return ambientVolume * 0.15;
-    if (isPaused) return ambientVolume * 0.2;
+    if (speaking) return ambientVolume * 0.15;
     return ambientVolume * 0.45;
   };
 
@@ -165,104 +155,33 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   };
 
   const stopReading = (stopAmbient = true) => {
-    sessionRef.current += 1;
-    abortRef.current?.abort();
-    abortRef.current = null;
-    controlsRef.current?.stop();
-    controlsRef.current = null;
-    setPhase('idle');
-    setSpeechError(null);
-    setLoadPercent(0);
-    setLoadLabel('');
-    setCurrentWordIndex(-1);
+    speakSessionRef.current += 1;
+    stationStop();
+    setSpeaking(false);
     if (stopAmbient) stopSoundEnvironment();
   };
 
-  const playNarration = async (textSrc: string, voiceId: TenderVoiceId) => {
-    const session = ++sessionRef.current;
-    const profile = getVoiceProfile(voiceId);
-    const abort = new AbortController();
-    abortRef.current = abort;
-
-    setSpeechError(null);
-    setPhase('loading');
-    setLoadPercent(getKokoroLoadState() === 'ready' ? 0 : 0);
-    setLoadLabel(getKokoroLoadState() === 'ready' ? 'Preparing speech…' : 'Preparing the voice — one-time download.');
-    setCurrentWordIndex(-1);
-
-    try {
-      const { readProse } = await import('../lib/readProse');
-      await readProse({
-        text: textSrc,
-        profile,
-        signal: abort.signal,
-        onStatus: status => {
-          if (sessionRef.current !== session) return;
-          if (status.phase === 'playing') {
-            setLoadPercent(0);
-            setLoadLabel('');
-            return;
-          }
-          setLoadPercent(status.percent ?? 0);
-          setLoadLabel(status.label);
-        },
-        onStart: controls => {
-          if (sessionRef.current === session) {
-            controlsRef.current = controls;
-            setPhase('live');
-            setLoadPercent(0);
-            setLoadLabel('');
-          }
-        },
-        onWordIndex: idx => {
-          if (sessionRef.current === session) setCurrentWordIndex(idx);
-        },
-      });
-
-      if (sessionRef.current === session) {
-        setPhase('idle');
-        setCurrentWordIndex(-1);
-        controlsRef.current = null;
-      }
-    } catch (err) {
-      if (sessionRef.current !== session || abort.signal.aborted) return;
-      if (err instanceof DOMException && err.name === 'AbortError') return;
-
-      console.error('Narration failed:', err);
-      const { resetKokoroEngine } = await import('../lib/readProse');
-      resetKokoroEngine();
-      controlsRef.current = null;
-      setSpeechError('Voice unavailable — tap Listen to retry.');
-      setPhase('error');
-    }
-  };
-
-  const handlePlayToggle = () => {
-    if (isActive) {
-      const controls = controlsRef.current;
-      if (!controls) return;
-      if (isPaused) {
-        void controls.resume();
-        setPhase('live');
-      } else {
-        controls.pause();
-        setPhase('paused');
-      }
+  const handleListenStop = () => {
+    if (speaking) {
+      stopReading(false);
       return;
     }
-
     const textSrc = inputText.trim();
     if (!textSrc || isEditMode) return;
+
+    const session = ++speakSessionRef.current;
     if (soundEnv !== 'silence') startSoundEnvironment(soundEnv);
-    void playNarration(textSrc, tenderVoice);
+    setSpeaking(true);
+
+    void stationSpeak(textSrc).finally(() => {
+      if (speakSessionRef.current === session) setSpeaking(false);
+    });
   };
 
-  const handleVoiceChange = (voice: TenderVoiceId) => {
-    setTenderVoice(voice);
-    if (isActive) {
-      stopReading(false);
-      setTimeout(() => void playNarration(inputText.trim(), voice), 80);
-    }
+  const handlePaceChange = (next: PaceOption) => {
+    if (speaking) stopReading(false);
+    setPace(next);
+    void setPaceRate(PACE_VALUES[next]);
   };
 
   const handlePresetSelect = (preset: typeof PRESETS[0]) => {
@@ -272,34 +191,6 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     if (preset.id === 'solitude') setSoundEnv('ocean');
     else if (preset.id === 'reflection') setSoundEnv('rain');
     else setSoundEnv('silence');
-  };
-
-  const renderText = () => {
-    let n = 0;
-    return inputText.split('\n\n').map((paragraph, pIdx) => (
-      <p key={pIdx} className="mb-4 hw-body text-left">
-        {paragraph.split(/(\s+)/).map((part, i) => {
-          const isWord = /\S/.test(part);
-          const idx = n;
-          if (isWord) n++;
-          const current = isLive && isWord && idx === currentWordIndex;
-          return (
-            <span
-              key={i}
-              className={`transition-colors duration-100 rounded px-0.5 ${
-                current
-                  ? isNight ? 'text-[#f3efe8] bg-[#d4b05a]/25' : 'text-[#2c2824] bg-stone-200/90'
-                  : isLive
-                    ? isNight ? 'text-white/40' : 'text-stone-500'
-                    : isNight ? 'text-white/85' : 'text-[#2c2824]'
-              }`}
-            >
-              {part}
-            </span>
-          );
-        })}
-      </p>
-    ));
   };
 
   const isNight = currentTheme === 'night';
@@ -317,6 +208,15 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
       ? 'bg-black/20 border-white/5 text-white/50 hover:text-white/85 hover:border-white/10'
       : 'bg-white/60 border-stone-200/70 text-stone-600 hover:text-[#2c2824] hover:bg-white',
   };
+
+  const tierStyle = (tier: string) =>
+    tier === 'PREMIUM'
+      ? isNight ? 'text-[#d4b05a] border-[#d4b05a]/40' : 'text-amber-800 border-amber-300'
+      : tier === 'ENHANCED'
+        ? isNight ? 'text-emerald-300/80 border-emerald-500/30' : 'text-emerald-800 border-emerald-300'
+        : isNight ? 'text-white/40 border-white/10' : 'text-stone-500 border-stone-200';
+
+  const displayRoster = dedupeRoster(roster);
 
   return (
     <div
@@ -365,7 +265,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
         <div className="md:col-span-7">
           <div className={`p-5 sm:p-6 rounded-xl border text-left flex flex-col min-h-[280px] ${styles.innerBg}`}>
             <AnimatePresence>
-              {isLive && (
+              {speaking && (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -377,8 +277,8 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
 
             <div className="flex items-center justify-between border-b pb-2 mb-4 border-accent/10">
               <Headphones className={`w-4 h-4 ${styles.accentText}`} />
-              {isLive && (
-                <span className="flex items-end gap-[2px] h-3">
+              {speaking && (
+                <span className="flex items-end gap-[2px] h-3" aria-hidden="true">
                   {[0.4, 1, 0.65].map((h, i) => (
                     <span
                       key={i}
@@ -403,99 +303,121 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                   onChange={e => { stopReading(true); setInputText(e.target.value); }}
                 />
               ) : inputText.trim() ? (
-                renderText()
+                inputText.split('\n\n').map((paragraph, pIdx) => (
+                  <p key={pIdx} className={`mb-4 hw-body text-left ${speaking ? (isNight ? 'text-white/85' : 'text-[#2c2824]') : isNight ? 'text-white/85' : 'text-[#2c2824]'}`}>
+                    {paragraph}
+                  </p>
+                ))
               ) : (
                 <p className={`hw-caption ${styles.mutedText}`}>Choose a preset or edit your own prose.</p>
               )}
             </div>
 
-            {showLoadStatus && (
-              <div className="mb-3" aria-busy="true">
-                <p
-                  className={`hw-caption font-mono text-xs mb-1.5 ${isNight ? 'text-white/55' : 'text-stone-500'}`}
-                  aria-live="polite"
-                  role="status"
-                >
-                  {loadLabel || 'Preparing the voice…'}
-                </p>
-                <div
-                  className={`h-1 w-full rounded-full overflow-hidden relative ${isNight ? 'bg-white/10' : 'bg-stone-200'}`}
-                  role="progressbar"
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={loadPercent}
-                  aria-label="Voice preparation progress"
-                >
-                  {loadPercent < 8 && isLoading ? (
-                    <div className="absolute inset-0 bg-[#d4b05a]/40 animate-pulse" />
-                  ) : null}
-                  <div
-                    className="h-full bg-[#d4b05a] transition-[width] duration-300 ease-out relative z-10"
-                    style={{ width: `${Math.max(loadPercent, loadPercent < 8 && isLoading ? 8 : 0)}%` }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {phase === 'error' && (
-              <p className="text-red-400/90 text-sm mb-3" role="alert">{speechError}</p>
-            )}
-
             <div className="flex gap-2 justify-end border-t border-accent/10 pt-4">
               <button
                 id="tender-play-toggle-btn"
-                disabled={isEditMode || !inputText.trim() || isLoading}
-                onClick={handlePlayToggle}
+                disabled={isEditMode || !inputText.trim()}
+                onClick={handleListenStop}
+                aria-pressed={speaking}
                 className={`px-5 py-2.5 rounded-full hw-btn-label flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-30 ${
-                  isLive
-                    ? isNight ? 'text-emerald-400 border border-emerald-500/30' : 'text-emerald-800 border border-emerald-500/40'
-                    : isLoading
-                      ? isNight ? 'text-white/50 border border-white/10' : 'text-stone-500 border border-stone-200'
-                      : isNight ? 'bg-[#d4b05a] text-white' : 'bg-[#2c2824] text-white'
+                  speaking
+                    ? isNight ? 'text-red-300/90 border border-red-500/30' : 'text-red-800 border border-red-300'
+                    : isNight ? 'bg-[#d4b05a] text-white' : 'bg-[#2c2824] text-white'
                 }`}
               >
-                {isLoading ? <>Preparing…</> :
-                  isLive ? <><Pause className="w-3.5 h-3.5 fill-current" /> Pause</> :
-                  isPaused ? <><Play className="w-3.5 h-3.5 fill-current" /> Resume</> :
-                  <><Play className="w-3.5 h-3.5 fill-current" /> Listen</>}
-              </button>
-              <button
-                id="tender-stop-btn"
-                disabled={!isActive}
-                onClick={() => stopReading(true)}
-                className={`px-4 py-2.5 rounded-full hw-btn-label border cursor-pointer transition-all disabled:opacity-20 ${
-                  isNight ? 'text-red-300/80 border-red-500/20' : 'text-red-800 border-red-200'
-                }`}
-              >
-                <Square className="w-3 h-3 inline mr-1" />Stop
+                {speaking ? (
+                  <><Square className="w-3.5 h-3.5 fill-current" /> Stop</>
+                ) : (
+                  <><Play className="w-3.5 h-3.5 fill-current" /> Listen</>
+                )}
               </button>
             </div>
           </div>
         </div>
 
         <div className="md:col-span-5 flex flex-col gap-4">
-          <div className={`p-4 rounded-xl border ${styles.innerBg}`}>
+          <div className={`p-4 rounded-xl border ${styles.innerBg}`} id="voice-panel">
             <div className="flex items-center gap-2 mb-3">
               <Sliders className={`w-4 h-4 ${styles.accentText}`} />
               <span className={`hw-eyebrow ${styles.mutedText}`}>Voice</span>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              {TENDER_VOICES.map(v => (
-                <button
-                  id={`voice-custom-btn-${v.id}`}
-                  key={v.id}
-                  onClick={() => handleVoiceChange(v.id)}
-                  className="px-3 py-2.5 rounded-lg border transition-all cursor-pointer text-center"
-                  style={{
-                    backgroundColor: tenderVoice === v.id ? (isNight ? 'rgba(196,160,68,0.12)' : 'rgba(0,0,0,0.04)') : 'transparent',
-                    borderColor: tenderVoice === v.id ? (isNight ? '#d4b05a' : '#2c2824') : isNight ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.12)',
-                    color: tenderVoice === v.id ? (isNight ? '#d4b05a' : '#2c2824') : isNight ? 'rgba(255,255,255,0.55)' : '#6b6560',
-                  }}
-                >
-                  <span className="font-serif text-base">{v.name}</span>
-                </button>
-              ))}
+
+            {displayRoster.length === 0 ? (
+              <p className={`hw-caption ${styles.mutedText}`}>
+                This device&apos;s standard voice will be used.
+              </p>
+            ) : (
+              <>
+                <div className="mb-4 pb-3 border-b border-accent/10">
+                  <span className={`hw-eyebrow block mb-1 ${styles.mutedText}`}>Current voice</span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`font-serif text-base ${styles.titleText}`}>
+                      {currentVoiceLabel || cleanVoiceName(displayRoster[0].name)}
+                    </span>
+                    <span className={`text-[10px] tracking-widest uppercase px-2 py-0.5 rounded-full border ${tierStyle(currentTier)}`}>
+                      {currentTier}
+                    </span>
+                  </div>
+                </div>
+
+                <ul className="space-y-2 mb-4 max-h-[220px] overflow-y-auto scrollbar-thin" role="list">
+                  {displayRoster.map(entry => {
+                    const cleaned = cleanVoiceName(entry.name);
+                    const tier = rosterTier(entry);
+                    const selected = currentVoiceLabel === cleaned;
+                    return (
+                      <li key={entry.uri}>
+                        <button
+                          type="button"
+                          aria-label={`Try and select ${cleaned}, ${tier}`}
+                          aria-pressed={selected}
+                          onClick={() => {
+                            if (speaking) stopReading(false);
+                            setCurrentVoiceLabel(cleaned);
+                            setCurrentTier(tier);
+                            setSpeaking(true);
+                            void chooseStationVoice(entry).finally(() => setSpeaking(false));
+                          }}
+                          className={`w-full text-left px-4 py-3 rounded-lg border transition-all cursor-pointer flex items-center justify-between gap-2 min-h-[48px] ${
+                            selected
+                              ? isNight ? 'border-[#d4b05a] bg-[#d4b05a]/10' : 'border-[#2c2824] bg-stone-100'
+                              : isNight ? 'border-white/8 hover:border-white/15' : 'border-stone-200 hover:border-stone-300'
+                          }`}
+                        >
+                          <span className={`font-sans text-sm ${selected ? styles.titleText : styles.mutedText}`}>{cleaned}</span>
+                          <span className={`text-[10px] tracking-widest uppercase px-2 py-0.5 rounded-full border shrink-0 ${tierStyle(tier)}`}>
+                            {tier}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+
+                <p className={`hw-caption text-xs mb-4 ${styles.mutedText}`}>{platformVoiceHint()}</p>
+              </>
+            )}
+
+            <div className="pt-3 border-t border-accent/10">
+              <span className={`hw-eyebrow block mb-2 ${styles.mutedText}`}>Pace</span>
+              <div className="flex gap-2" role="radiogroup" aria-label="Reading pace">
+                {(['slow', 'standard', 'brisk'] as const).map(opt => (
+                  <button
+                    key={opt}
+                    type="button"
+                    role="radio"
+                    aria-checked={pace === opt}
+                    onClick={() => handlePaceChange(opt)}
+                    className={`flex-1 px-3 py-2 rounded-lg border text-sm font-sans capitalize cursor-pointer transition-all ${
+                      pace === opt ? styles.badgeActive : styles.badgeInactive
+                    }`}
+                  >
+                    {opt === 'slow' ? 'Slow' : opt === 'brisk' ? 'Brisk' : 'Standard'}
+                  </button>
+                ))}
+              </div>
             </div>
+
           </div>
 
           <div className={`p-4 rounded-xl border ${styles.innerBg}`}>
