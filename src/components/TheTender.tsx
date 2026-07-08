@@ -43,21 +43,13 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const isPaused = phase === 'paused';
   const isLoading = phase === 'loading';
   const isActive = isLive || isPaused;
-  const showLoadStatus = isLoading || (phase === 'idle' && warmLoading);
+  const showLoadStatus = isLoading || warmLoading || loadLabel.length > 0;
 
   useEffect(() => {
     warmVoiceEngine();
 
     const syncWarmState = () => setWarmLoading(getKokoroLoadState() === 'loading');
     syncWarmState();
-
-    const unsub = subscribeKokoroLoadProgress(progress => {
-      if (getKokoroLoadState() === 'loading') {
-        setWarmLoading(true);
-        setLoadPercent(progress.percent);
-        setLoadLabel(progress.status);
-      }
-    });
 
     const onReady = () => {
       if (getKokoroLoadState() === 'ready') {
@@ -66,7 +58,21 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
         setLoadLabel('');
       }
     };
-    void import('../lib/kokoro').then(m => m.getKokoroTts().then(onReady).catch(() => {}));
+
+    const unsub = subscribeKokoroLoadProgress(progress => {
+      setWarmLoading(getKokoroLoadState() === 'loading');
+      setLoadPercent(progress.percent);
+      setLoadLabel(progress.status);
+    });
+
+    void import('../lib/kokoro').then(m =>
+      m.getKokoroTts().then(onReady).catch(err => {
+        console.error('Voice warm failed:', err);
+        setWarmLoading(false);
+        setSpeechError('Voice unavailable — tap Listen to retry.');
+        setPhase('error');
+      }),
+    );
 
     return () => {
       unsub();

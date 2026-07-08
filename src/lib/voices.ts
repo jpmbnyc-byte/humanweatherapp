@@ -54,10 +54,13 @@ export function splitIntoSpeakChunks(text: string, maxChars = 320): string[] {
 /** Warm the Kokoro engine in the background (call when Tender tab opens). */
 export function warmVoiceEngine(): void {
   if (typeof window === 'undefined') return;
-  const run = () => void import('./kokoro').then(m => m.getKokoroTts()).catch(() => {});
-  if (typeof requestIdleCallback !== 'undefined') requestIdleCallback(run, { timeout: 2000 });
-  else setTimeout(run, 400);
+  const run = () => {
+    void import('kokoro-js');
+    void import('./kokoro').then(m => m.getKokoroTts()).catch(() => {});
+  };
+  if (typeof requestIdleCallback !== 'undefined') requestIdleCallback(run, { timeout: 1500 });
+  else setTimeout(run, 300);
 }
 
-export { subscribeKokoroLoadProgress, getKokoroLoadState } from './kokoroWorkerClient';
-export type { KokoroLoadProgress } from './kokoroWorkerClient';
+export { subscribeKokoroLoadProgress, getKokoroLoadState } from './kokoro';
+export type { KokoroLoadProgress } from './kokoro';
