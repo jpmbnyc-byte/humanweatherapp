@@ -10,6 +10,7 @@ import { getThemeStyles } from './lib/theme';
 import { stopAllAudio } from './lib/stopAllAudio';
 import { whereAreWe, type WhereAreWeResult } from './lib/whereAreWe';
 import { EntitlementProvider } from './lib/EntitlementContext';
+import MembershipButton from './components/MembershipButton';
 import { Sun, Moon } from 'lucide-react';
 
 const FrequencyTherapy = lazy(() => import('./components/FrequencyTherapy'));
@@ -143,6 +144,7 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-3">
+            <MembershipButton isNight={isNight} themeStyles={themeStyles} />
             <div className={`hidden sm:flex flex-col items-end px-3 border-r ${themeStyles.border}`}>
               <span className="font-mono text-xs font-medium tracking-wider leading-none">{timeString}</span>
               <span className="hw-meta opacity-45 leading-none mt-1">{dateString}</span>

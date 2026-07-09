@@ -5,6 +5,7 @@ import type { Office } from '../lib/officeObserved';
 import { markOfficeComplete } from '../lib/officeObserved';
 import { stationSpeak } from '../lib/stationSpeech';
 import { useEntitlement } from '../lib/EntitlementContext';
+import PurchaseOffer from './PurchaseOffer';
 
 type AppTab = 'somatic' | 'therapy' | 'rhythms' | 'tender';
 
@@ -175,22 +176,24 @@ export default function OfficeSequence({ place, currentTheme, onNavigateTab }: P
 
   if (!officesEnabled) {
     return (
-      <div
-        className={`w-full mb-8 p-6 rounded-2xl border ${
-          isNight ? 'border-white/10 bg-black/20' : 'border-stone-200 bg-white/60'
-        }`}
-        id="office-sequence"
-      >
-        <div className="flex items-start gap-3">
-          <Lock className={`w-4 h-4 mt-0.5 shrink-0 ${isNight ? 'text-white/40' : 'text-stone-400'}`} />
-          <div>
-            <span className="hw-eyebrow block mb-1">Diurnal spine · {def.designation}</span>
-            <p className={`font-sans text-sm leading-relaxed ${isNight ? 'text-white/60' : 'text-stone-600'}`}>
-              {def.explainer} The Diurnal Spine — Vault, Meridian, and Marrow — opens during trial and membership.
-              Your trial has lapsed; Field Station core remains available.
-            </p>
+      <div className="w-full mb-8 flex flex-col gap-4" id="office-sequence">
+        <div
+          className={`p-6 rounded-2xl border ${
+            isNight ? 'border-white/10 bg-black/20' : 'border-stone-200 bg-white/60'
+          }`}
+        >
+          <div className="flex items-start gap-3">
+            <Lock className={`w-4 h-4 mt-0.5 shrink-0 ${isNight ? 'text-white/40' : 'text-stone-400'}`} />
+            <div>
+              <span className="hw-eyebrow block mb-1">Diurnal spine · {def.designation}</span>
+              <p className={`font-sans text-sm leading-relaxed ${isNight ? 'text-white/60' : 'text-stone-600'}`}>
+                {def.explainer} The Diurnal Spine opens during trial and membership. Field Station core
+                remains available.
+              </p>
+            </div>
           </div>
         </div>
+        <PurchaseOffer currentTheme={currentTheme} variant="card" />
       </div>
     );
   }

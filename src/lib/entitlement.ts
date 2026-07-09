@@ -1,4 +1,8 @@
 import { idbGetJson, idbSetJson } from './idb';
+import {
+  PURCHASE_SUCCESS_QUERY,
+  PURCHASE_SUCCESS_VALUE,
+} from './purchaseConfig';
 
 export const ENTITLEMENT_KEY = 'hw-entitlement';
 
@@ -79,4 +83,24 @@ export async function loadEntitlement(now: Date = new Date()): Promise<{
   }
 
   return { record, effective };
+}
+
+/** Grant lifetime membership after successful checkout return. */
+export async function grantMembership(now: Date = new Date()): Promise<EntitlementRecord> {
+  const record: EntitlementRecord = { state: 'member', since: now.toISOString() };
+  await idbSetJson(ENTITLEMENT_KEY, record);
+  return record;
+}
+
+export function parsePurchaseReturn(search: string): 'success' | null {
+  const params = new URLSearchParams(search);
+  return params.get(PURCHASE_SUCCESS_QUERY) === PURCHASE_SUCCESS_VALUE ? 'success' : null;
+}
+
+export function stripPurchaseReturnParams(search: string): string {
+  const params = new URLSearchParams(search);
+  params.delete(PURCHASE_SUCCESS_QUERY);
+  params.delete('session_id');
+  const next = params.toString();
+  return next ? `?${next}` : '';
 }

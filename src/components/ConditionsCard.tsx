@@ -5,6 +5,7 @@ import { getConditionCopy } from '../data/conditions';
 import { prescriptionTab, routePrescription } from '../lib/prescriptionRouter';
 import { stationSpeak, stationStop } from '../lib/stationSpeech';
 import { useEntitlement } from '../lib/EntitlementContext';
+import PurchaseOffer from './PurchaseOffer';
 
 type Props = {
   activeWeather: WeatherState;
@@ -116,7 +117,7 @@ export default function ConditionsCard({
         &ldquo;{activeWeather.guidanceText}&rdquo;
       </div>
 
-      {showPrescription && (
+      {showPrescription ? (
         <div className="border-t border-accent/10 pt-6">
           <span className="font-mono text-xs uppercase tracking-widest opacity-40 block mb-2">
             Prescription
@@ -142,6 +143,16 @@ export default function ConditionsCard({
               </button>
             </div>
           )}
+        </div>
+      ) : (
+        <div className="border-t border-accent/10 pt-6">
+          <span className="font-mono text-xs uppercase tracking-widest opacity-40 block mb-3">
+            Prescription
+          </span>
+          <p className={`font-sans text-sm mb-4 ${isNight ? 'text-white/55' : 'text-stone-600'}`}>
+            Routed prescriptions unlock with membership.
+          </p>
+          <PurchaseOffer currentTheme={isNight ? 'night' : 'day'} variant="compact" />
         </div>
       )}
 

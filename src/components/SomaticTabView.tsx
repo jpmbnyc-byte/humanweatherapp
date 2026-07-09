@@ -5,6 +5,7 @@ import TheFascia from './TheFascia';
 import ConditionsCard from './ConditionsCard';
 import OfficeSequence from './OfficeSequence';
 import TrialFootline from './TrialFootline';
+import PurchaseSuccessBanner from './PurchaseSuccessBanner';
 import FormingCaptureOverlay from './FormingCaptureOverlay';
 import { FormingProvider, useFormingOptional } from '../lib/forming/FormingContext';
 import { useEntitlement } from '../lib/EntitlementContext';
@@ -51,7 +52,7 @@ export default function SomaticTabView({
   onStateChange,
   onNavigateTab,
 }: Props) {
-  const { can } = useEntitlement();
+  const { can, purchaseJustCompleted, dismissPurchaseSuccess } = useEntitlement();
   const nascimentoEnabled = can('nascimento');
   const conditionsSummary = `${activeWeather.clinicalIndex} · HRV ${activeWeather.hrv}%`;
 
@@ -67,6 +68,12 @@ export default function SomaticTabView({
           className="flex flex-col"
         >
           <TrialFootline currentTheme={currentTheme} />
+          {purchaseJustCompleted && (
+            <PurchaseSuccessBanner
+              currentTheme={currentTheme}
+              onDismiss={dismissPurchaseSuccess}
+            />
+          )}
           <OfficeSequence
             place={place}
             currentTheme={currentTheme}
