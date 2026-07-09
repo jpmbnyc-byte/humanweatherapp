@@ -3,6 +3,8 @@ import { motion } from 'motion/react';
 import { PATHWAYS, WEATHER_STATES } from '../data/somatic';
 import { WeatherState, Pathway } from '../types';
 import { Sparkles, Trash2, HelpCircle } from 'lucide-react';
+import { useFormingOptional } from '../lib/forming/FormingContext';
+import FormingDustLayer from './FormingDustLayer';
 
 interface SomaticGridProps {
   onStateChange: (state: WeatherState, activeCoordinates: [number, number][]) => void;
@@ -17,6 +19,15 @@ export default function SomaticGrid({ onStateChange, currentTheme }: SomaticGrid
   const [drawMode, setDrawMode] = useState<boolean>(true); // true to draw, false to erase
   const gridRef = useRef<HTMLDivElement>(null);
   const lastCellRef = useRef<string | null>(null);
+  const cellEnterRef = useRef<number>(Date.now());
+  const forming = useFormingOptional();
+
+  const touchForming = (r: number, c: number, dwellMs = 24) => {
+    if (!forming) return;
+    const nx = (c + 0.5) / 8;
+    const ny = (r + 0.5) / 8;
+    forming.registerTouch(nx, ny, dwellMs);
+  };
 
   // Classify state based on active grid cells
   useEffect(() => {
@@ -97,10 +108,12 @@ export default function SomaticGrid({ onStateChange, currentTheme }: SomaticGrid
 
   const handleMouseDown = (r: number, c: number, e: React.MouseEvent) => {
     e.preventDefault();
+    cellEnterRef.current = Date.now();
     const targetVal = !grid[r][c];
     setDrawMode(targetVal);
     setIsDrawing(true);
     toggleCell(r, c, targetVal);
+    touchForming(r, c);
     lastCellRef.current = `${r},${c}`;
   };
 
@@ -109,6 +122,8 @@ export default function SomaticGrid({ onStateChange, currentTheme }: SomaticGrid
     const cellKey = `${r},${c}`;
     if (lastCellRef.current === cellKey) return;
     toggleCell(r, c, drawMode);
+    touchForming(r, c, Date.now() - cellEnterRef.current);
+    cellEnterRef.current = Date.now();
     lastCellRef.current = cellKey;
   };
 
@@ -136,17 +151,20 @@ export default function SomaticGrid({ onStateChange, currentTheme }: SomaticGrid
       const cellKey = `${r},${c}`;
       if (lastCellRef.current !== cellKey) {
         toggleCell(r, c, drawMode);
+        touchForming(r, c, Date.now() - cellEnterRef.current);
+        cellEnterRef.current = Date.now();
         lastCellRef.current = cellKey;
       }
     }
   };
 
   const handleTouchStart = (r: number, c: number, e: React.TouchEvent) => {
-    // Start drawing
+    cellEnterRef.current = Date.now();
     const targetVal = !grid[r][c];
     setDrawMode(targetVal);
     setIsDrawing(true);
     toggleCell(r, c, targetVal);
+    touchForming(r, c);
     lastCellRef.current = `${r},${c}`;
   };
 
@@ -181,7 +199,12 @@ export default function SomaticGrid({ onStateChange, currentTheme }: SomaticGrid
         {activeCount > 0 && (
           <motion.button
             id="clear-grid-btn"
-            onClick={clearGrid}
+            onClick={() => {
+              clearGrid();
+              if (forming && !['capturing', 'mounting', 'stillness'].includes(forming.stage)) {
+                forming.abortForming();
+              }
+            }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono rounded-full border border-red-500/30 text-red-400 bg-red-500/5 hover:bg-red-500/10 transition-colors"
@@ -214,7 +237,8 @@ export default function SomaticGrid({ onStateChange, currentTheme }: SomaticGrid
             : '0 10px 30px -10px rgba(196, 160, 68, 0.06)'
         }}
       >
-        {grid.map((row, rIdx) => 
+        <FormingDustLayer />
+        {grid.map((row, rIdx) =>
           row.map((active, cIdx) => {
             const cellKey = `${rIdx},${cIdx}`;
             return (

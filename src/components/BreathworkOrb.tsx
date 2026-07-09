@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { WeatherState } from '../types';
 import { Play, Pause, RefreshCw } from 'lucide-react';
+import { useFormingOptional } from '../lib/forming/FormingContext';
+import { FORMING_CYCLE_COUNT } from '../lib/forming/types';
 
 interface BreathworkOrbProps {
   weatherState: WeatherState;
@@ -13,12 +15,23 @@ export default function BreathworkOrb({ weatherState, currentTheme }: Breathwork
   const [phase, setPhase] = useState<'Inhale' | 'Hold' | 'Exhale' | 'Hold Out'>('Inhale');
   const [secondsLeft, setSecondsLeft] = useState(inhale);
   const [isPlaying, setIsPlaying] = useState(true);
+  const exhaleCycleRef = useRef(0);
+  const forming = useFormingOptional();
 
   useEffect(() => {
     // Reset when state changes
     setPhase('Inhale');
     setSecondsLeft(inhale);
-  }, [weatherState]);
+    exhaleCycleRef.current = 0;
+  }, [weatherState, inhale]);
+
+  useEffect(() => {
+    forming?.onBreathPhase(phase);
+  }, [phase, forming]);
+
+  useEffect(() => {
+    if (forming?.stillness) setIsPlaying(false);
+  }, [forming?.stillness]);
 
   useEffect(() => {
     if (!isPlaying) return;
@@ -26,6 +39,14 @@ export default function BreathworkOrb({ weatherState, currentTheme }: Breathwork
     const interval = setInterval(() => {
       setSecondsLeft((prev) => {
         if (prev <= 1) {
+          if (phase === 'Exhale' && forming?.canForm) {
+            forming.onExhaleEnd(exhaleCycleRef.current);
+            exhaleCycleRef.current += 1;
+            if (exhaleCycleRef.current >= FORMING_CYCLE_COUNT) {
+              setIsPlaying(false);
+            }
+          }
+
           // Transition to next phase
           let nextPhase: typeof phase = 'Inhale';
           let nextDuration = inhale;
@@ -91,12 +112,15 @@ export default function BreathworkOrb({ weatherState, currentTheme }: Breathwork
   };
 
   return (
-    <div className={`flex flex-col items-center justify-center p-6 rounded-2xl border backdrop-blur-md w-full max-w-md mx-auto ${
+    <div
+      className={`flex flex-col items-center justify-center p-6 rounded-2xl border backdrop-blur-md w-full max-w-md mx-auto ${
       currentTheme === 'night' 
         ? 'bg-[#1e1c18]/90 border-white/[0.06]' 
         : 'bg-white/90 border-stone-200/60 shadow-sm shadow-stone-900/5'
-    }`}
-         id="breathwork-guide-orb-container">
+    } ${forming?.stillness ? 'opacity-0 pointer-events-none' : ''}`}
+         id="breathwork-guide-orb-container"
+         style={{ transform: forming?.scalePunch && forming.scalePunch < 1 ? `scale(${forming.scalePunch})` : undefined }}
+    >
       
       {/* Title */}
       <span className="hw-eyebrow mb-1">Breath guide</span>
@@ -196,6 +220,7 @@ export default function BreathworkOrb({ weatherState, currentTheme }: Breathwork
               setPhase('Inhale');
               setSecondsLeft(inhale);
               setIsPlaying(true);
+              exhaleCycleRef.current = 0;
             }}
             className="w-10 h-10 rounded-full border border-accent/20 flex items-center justify-center bg-transparent text-accent/60 hover:text-accent hover:bg-accent/5 transition-all duration-200 cursor-pointer"
             title="Reset Respiration Cycle"
