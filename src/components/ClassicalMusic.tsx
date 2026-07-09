@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { CLASSICAL_PIECES } from '../data';
 import { ClassicalPiece } from '../types';
 import { Music, Play, Square, ExternalLink, Info, Volume2 } from 'lucide-react';
+import { registerAudioStop, stopAllAudio } from '../lib/stopAllAudio';
 
 interface ClassicalMusicProps {
   currentTheme: 'day' | 'night';
@@ -51,8 +52,10 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
     setIsPlaying(false);
   };
 
+  useEffect(() => registerAudioStop(stopAmbient), []);
+
   const startAmbient = (piece: ClassicalPiece) => {
-    stopAmbient();
+    stopAllAudio();
 
     try {
       if (!audioCtxRef.current) {

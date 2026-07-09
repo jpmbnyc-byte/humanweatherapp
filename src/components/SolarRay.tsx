@@ -6,9 +6,10 @@ import { Sun, Compass, MapPin, AlertCircle, Sparkles, CheckCircle2, Circle } fro
 
 interface SolarRayProps {
   currentTheme: 'day' | 'night';
+  isActive?: boolean;
 }
 
-export default function SolarRay({ currentTheme }: SolarRayProps) {
+export default function SolarRay({ currentTheme, isActive = true }: SolarRayProps) {
   // Default fallback: New York
   const [coords, setCoords] = useState({ lat: 40.7128, lon: -74.0060 });
   const [city, setCity] = useState('New York City');
@@ -44,21 +45,15 @@ export default function SolarRay({ currentTheme }: SolarRayProps) {
     );
   }, []);
 
-  // 2. Compute Solar Data and set up 1-minute updating interval loop
+  // 2. Compute solar data on demand when this section is active (no interval timer)
   useEffect(() => {
-    const updateSolar = () => {
-      const data = calculateSunPosition(coords.lat, coords.lon, new Date());
-      setSolarData({
-        ...data,
-        city: city
-      });
-    };
-
-    updateSolar();
-    const interval = setInterval(updateSolar, 60000); // update every minute
-
-    return () => clearInterval(interval);
-  }, [coords, city]);
+    if (!isActive) return;
+    const data = calculateSunPosition(coords.lat, coords.lon, new Date());
+    setSolarData({
+      ...data,
+      city: city,
+    });
+  }, [coords, city, isActive]);
 
   // 3. Manual coordinate lookup
   const handleManualSearch = async (e: React.FormEvent) => {

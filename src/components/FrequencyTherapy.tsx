@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { FREQUENCY_TONES } from '../data';
 import { FrequencyTone } from '../types';
 import { Headphones, Volume2, Play, Square, Info } from 'lucide-react';
+import { registerAudioStop, stopAllAudio } from '../lib/stopAllAudio';
 
 interface FrequencyTherapyProps {
   currentTheme: 'day' | 'night';
@@ -43,9 +44,11 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
     setIsPlaying(false);
   };
 
+  useEffect(() => registerAudioStop(stopAudio), []);
+
   // Start audio generator
   const startAudio = (tone: FrequencyTone) => {
-    stopAudio();
+    stopAllAudio();
 
     try {
       // Lazy init AudioContext

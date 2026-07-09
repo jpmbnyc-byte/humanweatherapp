@@ -1,3 +1,6 @@
+import { idbGet, idbSet } from './idb';
+import { stopAllAudio } from './stopAllAudio';
+
 // ── VOICES READY (handles the empty-first-call race on iOS/Chrome) ──
 function _voicesReady() {
   return new Promise<SpeechSynthesisVoice[]>(resolve => {
@@ -69,8 +72,8 @@ export function stationStop() {
 }
 
 export async function stationSpeak(text: string) {
+  stopAllAudio();
   const token = ++_speakToken;
-  speechSynthesis.cancel();
   const sentences = text.match(/[^.!?]+[.!?]+["']?|[^.!?]+$/g) || [text];
   const v = await selectStationVoice();
   for (const s of sentences) {
@@ -93,44 +96,11 @@ export async function stationSpeak(text: string) {
 
 // ── IndexedDB persistence + UI helpers (Step 4 & 5) ──
 
-const DB_NAME = 'human-weather';
-const STORE = 'settings';
 const VOICE_KEY = 'hw-station-voice';
 const PACE_KEY = 'hw-pace';
 const FAMILIAR_GREETED_KEY = 'hw-familiar-greeted';
 export const AUDITION_LINE = 'What is your weather right now?';
 export const FAMILIAR_GREETING_LINE = 'A familiar voice is here.';
-
-function idbOpen(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = () => req.result.createObjectStore(STORE);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-async function idbGet(key: string): Promise<string | null> {
-  if (typeof indexedDB === 'undefined') return null;
-  const db = await idbOpen();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readonly');
-    const get = tx.objectStore(STORE).get(key);
-    get.onsuccess = () => resolve((get.result as string | undefined) ?? null);
-    get.onerror = () => reject(get.error);
-  });
-}
-
-async function idbSet(key: string, value: string): Promise<void> {
-  if (typeof indexedDB === 'undefined') return;
-  const db = await idbOpen();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readwrite');
-    tx.objectStore(STORE).put(value, key);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-}
 
 export function cleanVoiceName(name: string): string {
   return name.replace(/\s*\([^)]*\)/g, '').trim();

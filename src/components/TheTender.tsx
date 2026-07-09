@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Volume2, Play, Square, Music, Headphones, Sliders, Edit2, Check } from 'lucide-react';
 import { PRESETS } from '../data/presets';
 import { getThemeStyles } from '../lib/theme';
+import { registerAudioStop } from '../lib/stopAllAudio';
 import {
   initStationSpeech,
   stationSpeak,
@@ -179,6 +180,22 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     setSpeaking(false);
     if (stopAmbient) stopSoundEnvironment();
   };
+
+  useEffect(() => {
+    return registerAudioStop(() => {
+      speakSessionRef.current += 1;
+      stationStop();
+      if (noiseSourceRef.current) {
+        try { noiseSourceRef.current.stop(); noiseSourceRef.current.disconnect(); } catch { /* noop */ }
+        noiseSourceRef.current = null;
+      }
+      if (envGainNodeRef.current) {
+        try { envGainNodeRef.current.disconnect(); } catch { /* noop */ }
+        envGainNodeRef.current = null;
+      }
+      setSpeaking(false);
+    });
+  }, []);
 
   const dismissFamiliarGreeting = useCallback(() => {
     setFamiliarGreetingFading(true);

@@ -197,6 +197,90 @@ export function calculateSunPosition(
   };
 }
 
+/** Local decimal hours for today's solar marks (sunrise, noon, sunset, astronomical dark). */
+export interface DailySolarMarks {
+  sunrise: number;
+  noon: number;
+  sunset: number;
+  dark: number;
+}
+
+function solarJulianDay(date: Date): number {
+  const year = date.getUTCFullYear();
+  const month = date.getUTCMonth() + 1;
+  const day = date.getUTCDate();
+  const hours = date.getUTCHours();
+  const minutes = date.getUTCMinutes();
+  const seconds = date.getUTCSeconds();
+
+  let A = Math.floor(year / 100);
+  let B = 2 - A + Math.floor(A / 4);
+  let jdY = year;
+  let jdM = month;
+  if (month <= 2) {
+    jdY = year - 1;
+    jdM = month + 12;
+  }
+  let jd = Math.floor(365.25 * (jdY + 4716)) + Math.floor(30.6001 * (jdM + 1)) + day + B - 1524.5;
+  jd += (hours + minutes / 60 + seconds / 3600) / 24;
+  return jd;
+}
+
+export function computeDailySolarMarks(
+  lat: number,
+  lon: number,
+  date: Date = new Date(),
+): DailySolarMarks {
+  const jd = solarJulianDay(date);
+  const T = (jd - 2451545.0) / 36525;
+
+  let g = 357.52911 + 35999.05029 * T - 0.0001537 * T * T;
+  g = g % 360;
+
+  let L0 = 280.46646 + 36000.76983 * T + 0.0003032 * T * T;
+  L0 = L0 % 360;
+
+  const C = (1.914602 - 0.004817 * T - 0.000014 * T * T) * Math.sin(rad(g)) +
+            (0.019993 - 0.000101 * T) * Math.sin(rad(2 * g)) +
+            0.000289 * Math.sin(rad(3 * g));
+
+  const lambda = L0 + C;
+  const epsilon = 23.439291 - 0.013004167 * T - 0.00000016399 * T * T;
+  let alpha = deg(Math.atan2(Math.cos(rad(epsilon)) * Math.sin(rad(lambda)), Math.cos(rad(lambda))));
+  alpha = (alpha + 360) % 360;
+  const delta = deg(Math.asin(Math.sin(rad(epsilon)) * Math.sin(rad(lambda))));
+
+  const yVar = Math.tan(rad(epsilon) / 2) * Math.tan(rad(epsilon) / 2);
+  const eot = 4 * deg(
+    yVar * Math.sin(2 * rad(L0)) -
+    2 * 0.016708 * Math.sin(rad(g)) +
+    4 * 0.016708 * yVar * Math.sin(rad(g)) * Math.cos(2 * rad(L0)) -
+    0.5 * yVar * yVar * Math.sin(4 * rad(L0)) -
+    1.25 * 0.016708 * 0.016708 * Math.sin(2 * rad(g))
+  );
+
+  const localOffset = -date.getTimezoneOffset() / 60;
+  let noon = 12 - lon / 15 + localOffset - eot / 60;
+  noon = ((noon % 24) + 24) % 24;
+
+  const hourAngleAt = (altDeg: number): number | null => {
+    const cosH = (Math.sin(rad(altDeg)) - Math.sin(rad(lat)) * Math.sin(rad(delta))) /
+      (Math.cos(rad(lat)) * Math.cos(rad(delta)));
+    if (cosH < -1 || cosH > 1) return null;
+    return deg(Math.acos(cosH));
+  };
+
+  const H0 = hourAngleAt(-0.83);
+  let sunrise = H0 !== null ? noon - H0 / 15 : 6;
+  let sunset = H0 !== null ? noon + H0 / 15 : 18;
+
+  const HDark = hourAngleAt(-18);
+  let dark = HDark !== null ? noon + HDark / 15 : 24;
+  if (dark <= sunset) dark = 24;
+
+  return { sunrise, noon, sunset, dark };
+}
+
 // Simple OSM Nominatim reverse geocoder
 export async function reverseGeocode(lat: number, lon: number): Promise<string> {
   try {

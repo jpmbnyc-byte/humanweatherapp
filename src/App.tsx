@@ -7,6 +7,8 @@ import TabErrorBoundary from './components/TabErrorBoundary';
 import { WEATHER_STATES } from './data/somatic';
 import { WeatherState } from './types';
 import { getThemeStyles } from './lib/theme';
+import { stopAllAudio } from './lib/stopAllAudio';
+import { whereAreWe, type WhereAreWeResult } from './lib/whereAreWe';
 import { Sun, Moon } from 'lucide-react';
 
 const BreathworkOrb = lazy(() => import('./components/BreathworkOrb'));
@@ -44,18 +46,49 @@ const getThemeForNow = (): 'day' | 'night' => {
   return h >= 6 && h < 18 ? 'day' : 'night';
 };
 
+/** Threshold — home section returned to after backgrounding. */
+const THRESHOLD_TAB = 'somatic' as const;
+type AppTab = 'somatic' | 'therapy' | 'rhythms' | 'tender';
+
 export default function App() {
   const [currentTheme, setCurrentTheme] = useState<'day' | 'night'>('day');
   const [manualOverride, setManualOverride] = useState(false);
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
-  const [activeTab, setActiveTab] = useState<'somatic' | 'therapy' | 'rhythms' | 'tender'>('somatic');
+  const [activeTab, setActiveTab] = useState<AppTab>(THRESHOLD_TAB);
   const [activeWeather, setActiveWeather] = useState<WeatherState>(WEATHER_STATES[5]);
   const [activeCoordinates, setActiveCoordinates] = useState<[number, number][]>([]);
   const [motionReady, setMotionReady] = useState(false);
+  const [place, setPlace] = useState<WhereAreWeResult | null>(null);
+
+  const refreshPlace = useCallback(() => {
+    void whereAreWe().then(setPlace);
+  }, []);
+
+  const transitionToTab = useCallback((id: AppTab) => {
+    stopAllAudio();
+    setActiveTab(id);
+  }, []);
 
   useEffect(() => {
     setMotionReady(true);
   }, []);
+
+  useEffect(() => {
+    refreshPlace();
+  }, [activeTab, refreshPlace]);
+
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        stopAllAudio();
+        return;
+      }
+      refreshPlace();
+      setActiveTab(THRESHOLD_TAB);
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, [refreshPlace]);
 
   useEffect(() => {
     setCurrentTime(new Date());
@@ -87,7 +120,12 @@ export default function App() {
   const themeStyles = getThemeStyles(currentTheme);
 
   return (
-    <div className={`min-h-screen w-full flex flex-col ${themeStyles.bg} ${themeStyles.text} theme-transition relative overflow-x-hidden`} id="app-root-container">
+    <div
+      className={`min-h-screen w-full flex flex-col ${themeStyles.bg} ${themeStyles.text} theme-transition relative overflow-x-hidden`}
+      id="app-root-container"
+      data-active-office={place?.activeOffice ?? 'none'}
+      data-office-state={place?.officeState ?? 'none'}
+    >
       <MountainBackground theme={currentTheme} />
 
       <div className="relative z-10 flex flex-col flex-1 w-full max-w-5xl mx-auto px-6 md:px-10 lg:px-12">
@@ -144,7 +182,7 @@ export default function App() {
                 onClick={() => {
                   if (id === 'tender') void import('./components/TheTender');
                   else if (id !== activeTab && id !== 'somatic') prefetchTabWhenIdle(id);
-                  setActiveTab(id);
+                  transitionToTab(id);
                 }}
                 whileTap={{ scale: 0.98 }}
                 layout
@@ -267,7 +305,7 @@ export default function App() {
               >
                 <Suspense fallback={<TabSkeleton isNight={isNight} />}>
                   <TabErrorBoundary isNight={isNight}>
-                    <SolarRay currentTheme={currentTheme} />
+                    <SolarRay currentTheme={currentTheme} isActive={activeTab === 'rhythms'} />
                     <ShinrinYoku currentTheme={currentTheme} />
                   </TabErrorBoundary>
                 </Suspense>
