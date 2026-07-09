@@ -3,7 +3,7 @@ import { ChevronRight, Check, Lock } from 'lucide-react';
 import type { WhereAreWeResult } from '../lib/whereAreWe';
 import type { Office } from '../lib/officeObserved';
 import { markOfficeComplete } from '../lib/officeObserved';
-import { stationSpeak } from '../lib/stationSpeech';
+import { stationSpeak, ensureVoicesReady, primeSpeechEngine } from '../lib/stationSpeech';
 import { useEntitlement } from '../lib/EntitlementContext';
 import PurchaseOffer from './PurchaseOffer';
 
@@ -171,7 +171,9 @@ export default function OfficeSequence({ place, currentTheme, onNavigateTab }: P
   };
 
   const handleSpeak = () => {
-    if (step?.speak) void stationSpeak(step.speak);
+    if (!step?.speak) return;
+    primeSpeechEngine();
+    void ensureVoicesReady().then(() => stationSpeak(step.speak!));
   };
 
   if (!officesEnabled) {

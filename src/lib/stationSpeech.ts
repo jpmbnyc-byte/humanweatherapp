@@ -1,26 +1,13 @@
 import { idbGet, idbSet } from './idb';
 import { stopAllAudio } from './stopAllAudio';
 
-// ── VOICES READY (handles the empty-first-call race on iOS/Chrome) ──
-function _voicesReady() {
-  return new Promise<SpeechSynthesisVoice[]>(resolve => {
-    const v = speechSynthesis.getVoices();
-    if (v.length) return resolve(v);
-    let done = false;
-    speechSynthesis.onvoiceschanged = () => {
-      if (!done) {
-        done = true;
-        resolve(speechSynthesis.getVoices());
-      }
-    };
-    setTimeout(() => {
-      if (!done) {
-        done = true;
-        resolve(speechSynthesis.getVoices());
-      }
-    }, 2000);
-  });
-}
+const VOICE_KEY = 'hw-station-voice';
+const VOICE_URI_KEY = 'hw-station-voice-uri';
+const PACE_KEY = 'hw-pace';
+const FAMILIAR_GREETED_KEY = 'hw-familiar-greeted';
+
+export const AUDITION_LINE = 'What is your weather right now?';
+export const FAMILIAR_GREETING_LINE = 'A familiar voice is here.';
 
 export type RosterEntry = {
   name: string;
@@ -31,96 +18,225 @@ export type RosterEntry = {
   voice: SpeechSynthesisVoice;
 };
 
-// ── VOICE ROSTER — every compatible English voice on the device, ranked ──
 let _stationVoice: SpeechSynthesisVoice | null = null;
-let _paceRate = 0.88; // updated by the Pace setting in Step 5
+let _paceRate = 0.88;
+let _voicesPromise: Promise<SpeechSynthesisVoice[]> | null = null;
+let _speechPrimed = false;
 
-export async function buildVoiceRoster() {
-  const voices = await _voicesReady();
-  const JUNK = /compact|fred|albert|zarvox|bad news|bells|trinoids|whisper|jester|organ|cellos|boing|bubbles/i;
-  return voices
-    .filter(v => v.lang.startsWith('en') && !JUNK.test(v.name))
-    .map(v => ({
-      name: v.name,
-      uri: v.voiceURI,
-      lang: v.lang,
-      local: v.localService,
-      score:
-        (/premium/i.test(v.name + v.voiceURI) ? 100 :
-          /enhanced|natural/i.test(v.name + v.voiceURI) ? 80 :
-            /google us english/i.test(v.name) ? 60 : 0)
-        + (v.localService ? 15 : 0)
-        + (v.lang === 'en-US' ? 10 : 0),
-      voice: v,
-    }))
-    .sort((a, b) => b.score - a.score);
+function synthesis(): SpeechSynthesis | null {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return null;
+  return window.speechSynthesis;
 }
 
-// ── SELECT + SPEAK ──
-async function selectStationVoice() {
-  if (_stationVoice) return _stationVoice;
-  const roster = await buildVoiceRoster();
-  _stationVoice = roster.length ? roster[0].voice : null;
-  return _stationVoice;
+/** iOS/Safari loads voices asynchronously — never trust the first empty getVoices(). */
+function loadVoices(timeoutMs = 8000): Promise<SpeechSynthesisVoice[]> {
+  const syn = synthesis();
+  if (!syn) return Promise.resolve([]);
+
+  if (_voicesPromise) return _voicesPromise;
+
+  _voicesPromise = new Promise(resolve => {
+    let settled = false;
+    const finish = (voices: SpeechSynthesisVoice[]) => {
+      if (settled) return;
+      settled = true;
+      syn.removeEventListener('voiceschanged', onChange);
+      window.clearInterval(pollId);
+      window.clearTimeout(hardStopId);
+      resolve(voices);
+      _voicesPromise = null;
+    };
+
+    const read = () => {
+      syn.getVoices();
+      return syn.getVoices();
+    };
+
+    const onChange = () => {
+      const voices = read();
+      if (voices.length) finish(voices);
+    };
+
+    syn.addEventListener('voiceschanged', onChange);
+
+    const immediate = read();
+    if (immediate.length) {
+      finish(immediate);
+      return;
+    }
+
+    const pollId = window.setInterval(() => {
+      const voices = read();
+      if (voices.length) finish(voices);
+    }, 250);
+
+    const hardStopId = window.setTimeout(() => finish(read()), timeoutMs);
+  });
+
+  return _voicesPromise;
 }
 
-let _speakToken = 0;
-
-export function stationStop() {
-  _speakToken += 1;
-  speechSynthesis.cancel();
+/** Call from a user gesture (tap) before first speak on iPhone. */
+export function primeSpeechEngine(): void {
+  const syn = synthesis();
+  if (!syn || _speechPrimed) return;
+  _speechPrimed = true;
+  syn.getVoices();
+  if (syn.paused) syn.resume();
 }
 
-export async function stationSpeak(text: string) {
-  stopAllAudio();
-  const token = ++_speakToken;
-  const sentences = text.match(/[^.!?]+[.!?]+["']?|[^.!?]+$/g) || [text];
-  const v = await selectStationVoice();
-  for (const s of sentences) {
-    if (token !== _speakToken) return;
-    await new Promise<void>(res => {
-      const u = new SpeechSynthesisUtterance(s.trim());
-      if (v) u.voice = v;
-      u.rate = _paceRate;
-      u.pitch = 0.95;
-      u.onend = () => res();
-      u.onerror = () => res();
-      if (token !== _speakToken) {
-        res();
-        return;
-      }
-      speechSynthesis.speak(u);
-    });
-  }
+export function isIosPlatform(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
-
-// ── IndexedDB persistence + UI helpers (Step 4 & 5) ──
-
-const VOICE_KEY = 'hw-station-voice';
-const PACE_KEY = 'hw-pace';
-const FAMILIAR_GREETED_KEY = 'hw-familiar-greeted';
-export const AUDITION_LINE = 'What is your weather right now?';
-export const FAMILIAR_GREETING_LINE = 'A familiar voice is here.';
 
 export function cleanVoiceName(name: string): string {
   return name.replace(/\s*\([^)]*\)/g, '').trim();
 }
 
-export function rosterTier(entry: RosterEntry): 'PREMIUM' | 'ENHANCED' | 'STANDARD' {
-  const hay = entry.name + entry.uri;
-  if (/premium/i.test(hay)) return 'PREMIUM';
-  if (/enhanced|natural/i.test(hay)) return 'ENHANCED';
-  return 'STANDARD';
+export function isPersonalVoice(voice: SpeechSynthesisVoice): boolean {
+  const hay = `${voice.name}|${voice.voiceURI}`.toLowerCase();
+  return (
+    /personal/.test(hay) ||
+    /familiar/.test(hay) ||
+    /com\.apple\.(tts|voice)[^.]*\.personal/.test(hay) ||
+    /personalvoice/.test(hay)
+  );
 }
 
-export function dedupeRoster(roster: RosterEntry[], max = 12): RosterEntry[] {
+export function isFamiliarVoice(voice: SpeechSynthesisVoice): boolean {
+  return isPersonalVoice(voice);
+}
+
+export function isFamiliarEntry(entry: RosterEntry): boolean {
+  return isPersonalVoice(entry.voice);
+}
+
+function voiceScore(v: SpeechSynthesisVoice): number {
+  const hay = `${v.name}${v.voiceURI}`;
+  let score = 0;
+  if (isPersonalVoice(v)) score += 250;
+  if (/premium/i.test(hay)) score += 100;
+  else if (/enhanced|natural|siri/i.test(hay)) score += 80;
+  else if (/google us english/i.test(v.name)) score += 60;
+  if (v.localService) score += 15;
+  if (v.lang === 'en-US') score += 10;
+  if (v.default) score += 5;
+  return score;
+}
+
+export async function buildVoiceRoster(): Promise<RosterEntry[]> {
+  const voices = await loadVoices(isIosPlatform() ? 10000 : 6000);
+  const junk =
+    /compact|fred|albert|zarvox|bad news|bells|trinoids|whisper|jester|organ|cellos|boing|bubbles/i;
+  return voices
+    .filter(v => v.lang.startsWith('en') && !junk.test(v.name))
+    .map(v => ({
+      name: v.name,
+      uri: v.voiceURI,
+      lang: v.lang,
+      local: v.localService,
+      score: voiceScore(v),
+      voice: v,
+    }))
+    .sort((a, b) => b.score - a.score);
+}
+
+export function dedupeRoster(roster: RosterEntry[], max = 16): RosterEntry[] {
   const seen = new Map<string, RosterEntry>();
   for (const entry of roster) {
-    const key = cleanVoiceName(entry.name).toLowerCase();
+    const key = entry.uri || cleanVoiceName(entry.name).toLowerCase();
     const prev = seen.get(key);
     if (!prev || entry.score > prev.score) seen.set(key, entry);
   }
   return [...seen.values()].sort((a, b) => b.score - a.score).slice(0, max);
+}
+
+async function pickDefaultVoice(roster: RosterEntry[]): Promise<SpeechSynthesisVoice | null> {
+  if (!roster.length) return null;
+
+  const savedUri = await idbGet(VOICE_URI_KEY);
+  if (savedUri) {
+    const byUri = roster.find(e => e.uri === savedUri);
+    if (byUri) return byUri.voice;
+  }
+
+  const savedName = await idbGet(VOICE_KEY);
+  if (savedName) {
+    const byName = roster.find(
+      e => cleanVoiceName(e.name) === savedName || e.name === savedName,
+    );
+    if (byName) return byName.voice;
+  }
+
+  const personal = roster.find(isFamiliarEntry);
+  if (personal) return personal.voice;
+
+  return roster[0].voice;
+}
+
+async function selectStationVoice(): Promise<SpeechSynthesisVoice | null> {
+  if (_stationVoice) return _stationVoice;
+  const roster = dedupeRoster(await buildVoiceRoster());
+  _stationVoice = await pickDefaultVoice(roster);
+  return _stationVoice;
+}
+
+let _speakToken = 0;
+
+export function stationStop(): void {
+  _speakToken += 1;
+  synthesis()?.cancel();
+}
+
+async function iosUnlockAfterCancel(): Promise<void> {
+  if (!isIosPlatform()) return;
+  const syn = synthesis();
+  if (!syn) return;
+  syn.resume();
+  await new Promise<void>(resolve => window.setTimeout(resolve, 60));
+}
+
+export async function stationSpeak(text: string): Promise<void> {
+  primeSpeechEngine();
+  stopAllAudio();
+  await iosUnlockAfterCancel();
+
+  const token = ++_speakToken;
+  const sentences = text.match(/[^.!?]+[.!?]+["']?|[^.!?]+$/g) || [text];
+  const voice = await selectStationVoice();
+  const syn = synthesis();
+  if (!syn) return;
+
+  for (const sentence of sentences) {
+    if (token !== _speakToken) return;
+    const trimmed = sentence.trim();
+    if (!trimmed) continue;
+
+    await new Promise<void>(resolve => {
+      const utterance = new SpeechSynthesisUtterance(trimmed);
+      if (voice) utterance.voice = voice;
+      utterance.lang = voice?.lang ?? 'en-US';
+      utterance.rate = _paceRate;
+      utterance.pitch = 0.95;
+      utterance.onend = () => resolve();
+      utterance.onerror = () => resolve();
+      if (token !== _speakToken) {
+        resolve();
+        return;
+      }
+      syn.resume();
+      syn.speak(utterance);
+    });
+  }
+}
+
+export function rosterTier(entry: RosterEntry): 'PREMIUM' | 'ENHANCED' | 'STANDARD' | 'FAMILIAR' {
+  if (isFamiliarEntry(entry)) return 'FAMILIAR';
+  const hay = entry.name + entry.uri;
+  if (/premium/i.test(hay)) return 'PREMIUM';
+  if (/enhanced|natural|siri/i.test(hay)) return 'ENHANCED';
+  return 'STANDARD';
 }
 
 export function getPaceRate(): number {
@@ -141,20 +257,6 @@ export function getActiveVoiceLabel(): string {
   return cleanVoiceName(_stationVoice.name);
 }
 
-export function isIosPlatform(): boolean {
-  if (typeof navigator === 'undefined') return false;
-  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
-}
-
-export function isFamiliarVoice(voice: SpeechSynthesisVoice): boolean {
-  const hay = `${voice.name}${voice.voiceURI}`;
-  return /personal|familiar/i.test(hay);
-}
-
-export function isFamiliarEntry(entry: RosterEntry): boolean {
-  return isFamiliarVoice(entry.voice);
-}
-
 export function hasFamiliarInRoster(roster: RosterEntry[]): boolean {
   return roster.some(isFamiliarEntry);
 }
@@ -172,10 +274,12 @@ export async function setFamiliarGreeted(): Promise<void> {
 }
 
 export function familiarVoiceCopy(): string {
-  return 'A familiar voice from Personal Voice may appear here. Create one in Settings \u2192 Accessibility \u2192 Personal Voice.';
+  return 'Personal Voice appears here when enabled in Settings → Accessibility → Personal Voice, with “Allow Apps to Request to Use” turned on. Tap Listen once, then open the voice list.';
 }
 
 export async function initStationSpeech(): Promise<RosterEntry[]> {
+  primeSpeechEngine();
+
   const savedPace = await idbGet(PACE_KEY);
   if (savedPace) {
     const n = parseFloat(savedPace);
@@ -183,24 +287,22 @@ export async function initStationSpeech(): Promise<RosterEntry[]> {
   }
 
   const roster = dedupeRoster(await buildVoiceRoster());
-  const savedVoice = await idbGet(VOICE_KEY);
-
-  if (savedVoice && roster.length) {
-    const match = roster.find(
-      e => cleanVoiceName(e.name) === savedVoice || e.name === savedVoice,
-    );
-    if (match) _stationVoice = match.voice;
-    else _stationVoice = roster[0].voice;
-  } else if (roster.length) {
-    _stationVoice = roster[0].voice;
-  }
-
+  _stationVoice = await pickDefaultVoice(roster);
   return roster;
+}
+
+/** Refresh voices after a user gesture — use before first Listen on iPhone. */
+export async function ensureVoicesReady(): Promise<RosterEntry[]> {
+  primeSpeechEngine();
+  _stationVoice = null;
+  _voicesPromise = null;
+  return initStationSpeech();
 }
 
 export async function chooseStationVoice(entry: RosterEntry): Promise<void> {
   _stationVoice = entry.voice;
   await idbSet(VOICE_KEY, cleanVoiceName(entry.name));
+  await idbSet(VOICE_URI_KEY, entry.uri);
   stationStop();
   await stationSpeak(AUDITION_LINE);
 }
@@ -211,10 +313,10 @@ export function platformVoiceHint(): string {
   }
   const ua = navigator.userAgent;
   if (/iPhone|iPad|iPod/i.test(ua)) {
-    return 'Richer voices are free in Settings \u2192 Accessibility \u2192 Spoken Content \u2192 Voices. New voices appear here automatically.';
+    return 'On iPhone, voices load after your first tap. Enable Personal Voice under Settings → Accessibility → Personal Voice, then tap a voice below to audition.';
   }
   if (/Android/i.test(ua)) {
-    return 'Add voices in Settings \u2192 Text-to-speech output. New voices appear here automatically.';
+    return 'Add voices in Settings → Text-to-speech output. New voices appear here automatically.';
   }
   return 'Your system\u2019s installed voices appear here automatically.';
 }

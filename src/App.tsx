@@ -8,6 +8,7 @@ import { getThemeStyles } from './lib/theme';
 import { stopAllAudio } from './lib/stopAllAudio';
 import type { WhereAreWeResult } from './lib/whereAreWe';
 import { runWhenIdle } from './lib/deferredWork';
+import { primeSpeechEngine } from './lib/stationSpeech';
 import { EntitlementProvider } from './lib/EntitlementContext';
 import MembershipButton from './components/MembershipButton';
 
@@ -83,6 +84,16 @@ export default function App() {
 
   useEffect(() => {
     document.getElementById('hw-boot')?.remove();
+  }, []);
+
+  useEffect(() => {
+    const prime = () => primeSpeechEngine();
+    window.addEventListener('pointerdown', prime, { once: true, passive: true });
+    window.addEventListener('touchstart', prime, { once: true, passive: true });
+    return () => {
+      window.removeEventListener('pointerdown', prime);
+      window.removeEventListener('touchstart', prime);
+    };
   }, []);
 
   useEffect(() => {

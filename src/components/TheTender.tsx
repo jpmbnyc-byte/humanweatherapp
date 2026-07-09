@@ -5,10 +5,11 @@ import { PRESETS } from '../data/presets';
 import { getThemeStyles } from '../lib/theme';
 import { registerAudioStop } from '../lib/stopAllAudio';
 import {
-  initStationSpeech,
   stationSpeak,
   stationStop,
   chooseStationVoice,
+  ensureVoicesReady,
+  primeSpeechEngine,
   setPaceRate,
   getPaceRate,
   getActiveVoiceLabel,
@@ -40,7 +41,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const [speaking, setSpeaking] = useState(false);
   const [roster, setRoster] = useState<RosterEntry[]>([]);
   const [currentVoiceLabel, setCurrentVoiceLabel] = useState('');
-  const [currentTier, setCurrentTier] = useState<'PREMIUM' | 'ENHANCED' | 'STANDARD'>('STANDARD');
+  const [currentTier, setCurrentTier] = useState<'PREMIUM' | 'ENHANCED' | 'STANDARD' | 'FAMILIAR'>('STANDARD');
   const [currentVoiceFamiliar, setCurrentVoiceFamiliar] = useState(false);
   const [pace, setPace] = useState<PaceOption>('standard');
   const [ambientVolume, setAmbientVolume] = useState(0.4);
@@ -65,34 +66,29 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
 
   useEffect(() => {
     let cancelled = false;
-    void initStationSpeech().then(list => {
-      if (cancelled) return;
-      setRoster(list);
-      setPace(paceFromRate(getPaceRate()));
-      syncVoiceHeader(list);
-      if (isIosPlatform() && hasFamiliarInRoster(list)) {
-        void getFamiliarGreeted().then(greeted => {
-          if (!cancelled && !greeted) setShowFamiliarGreeting(true);
-        });
-      }
-    });
-
-    const onVoicesChanged = () => {
-      void initStationSpeech().then(list => {
+    const load = () => {
+      void ensureVoicesReady().then(list => {
         if (cancelled) return;
         setRoster(list);
+        setPace(paceFromRate(getPaceRate()));
         syncVoiceHeader(list);
+        if (isIosPlatform() && hasFamiliarInRoster(list)) {
+          void getFamiliarGreeted().then(greeted => {
+            if (!cancelled && !greeted) setShowFamiliarGreeting(true);
+          });
+        }
       });
     };
-    const prevVoicesHandler = speechSynthesis.onvoiceschanged;
-    speechSynthesis.onvoiceschanged = () => {
-      prevVoicesHandler?.call(speechSynthesis, new Event('voiceschanged'));
-      onVoicesChanged();
-    };
+
+    load();
+
+    const onVoicesChanged = () => load();
+    const syn = speechSynthesis;
+    syn.addEventListener('voiceschanged', onVoicesChanged);
 
     return () => {
       cancelled = true;
-      speechSynthesis.onvoiceschanged = prevVoicesHandler;
+      syn.removeEventListener('voiceschanged', onVoicesChanged);
       stationStop();
       stopSoundEnvironment();
       if (audioCtxRef.current) audioCtxRef.current.close().catch(() => {});
@@ -214,11 +210,14 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     setCurrentTier(tier);
     setCurrentVoiceFamiliar(isFamiliarEntry(entry));
     setSpeaking(true);
-    void chooseStationVoice(entry).finally(() => {
-      setSpeaking(false);
-      setInlineVoiceOpen(false);
-      proseRef.current?.focus();
-    });
+    primeSpeechEngine();
+    void ensureVoicesReady()
+      .then(() => chooseStationVoice(entry))
+      .finally(() => {
+        setSpeaking(false);
+        setInlineVoiceOpen(false);
+        proseRef.current?.focus();
+      });
   };
 
   const handleListenStop = () => {
@@ -235,7 +234,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     if (soundEnv !== 'silence') startSoundEnvironment(soundEnv);
     setSpeaking(true);
 
-    void stationSpeak(textSrc).finally(() => {
+    void ensureVoicesReady().then(() => stationSpeak(textSrc)).finally(() => {
       if (speakSessionRef.current === session) setSpeaking(false);
     });
   };
@@ -272,7 +271,9 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   };
 
   const tierStyle = (tier: string) =>
-    tier === 'PREMIUM'
+    tier === 'FAMILIAR'
+      ? isNight ? 'text-[#e8cc6a] border-[#d4b05a]/50' : 'text-amber-900 border-amber-400'
+      : tier === 'PREMIUM'
       ? isNight ? 'text-[#d4b05a] border-[#d4b05a]/40' : 'text-amber-800 border-amber-300'
       : tier === 'ENHANCED'
         ? isNight ? 'text-emerald-300/80 border-emerald-500/30' : 'text-emerald-800 border-emerald-300'
@@ -450,7 +451,14 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
               <button
                 type="button"
                 id="tender-voice-chip"
-                onClick={() => setInlineVoiceOpen(open => !open)}
+                onClick={() => {
+                  primeSpeechEngine();
+                  void ensureVoicesReady().then(list => {
+                    setRoster(list);
+                    syncVoiceHeader(list);
+                    setInlineVoiceOpen(open => !open);
+                  });
+                }}
                 aria-expanded={inlineVoiceOpen}
                 aria-controls="tender-inline-voice-chooser"
                 className={`font-mono text-[11px] tracking-wide uppercase text-left cursor-pointer ${styles.mutedText} hover:opacity-80 transition-opacity`}

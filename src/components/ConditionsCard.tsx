@@ -3,7 +3,7 @@ import { Volume2, Square } from 'lucide-react';
 import type { WeatherState } from '../types';
 import { getConditionCopy } from '../data/conditions';
 import { prescriptionTab, routePrescription } from '../lib/prescriptionRouter';
-import { stationSpeak, stationStop } from '../lib/stationSpeech';
+import { stationSpeak, stationStop, ensureVoicesReady, primeSpeechEngine } from '../lib/stationSpeech';
 import { useEntitlement } from '../lib/EntitlementContext';
 import PurchaseOffer from './PurchaseOffer';
 
@@ -27,6 +27,7 @@ export default function ConditionsCard({
   const showPrescription = can('prescriptions');
 
   const handleListen = async () => {
+    primeSpeechEngine();
     if (speaking) {
       stationStop();
       setSpeaking(false);
@@ -35,6 +36,7 @@ export default function ConditionsCard({
     const text = register?.spoken ?? `${activeWeather.title}. ${activeWeather.description}`;
     setSpeaking(true);
     try {
+      await ensureVoicesReady();
       await stationSpeak(text);
     } finally {
       setSpeaking(false);
