@@ -1,7 +1,5 @@
 import React, {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -15,6 +13,10 @@ import { localDateKey } from '../dailyMarks';
 import { createMementoFromSeed, getMementoForDate, saveMemento, getAllMementos } from './genesis';
 import { prefersReducedMotion } from './motion';
 import {
+  FormingContext,
+  type FormingContextValue,
+} from './formingContextLite';
+import {
   FORMING_CYCLE_COUNT,
   MIN_DUST_FOR_FORMING,
   type BreathPhase,
@@ -23,43 +25,7 @@ import {
   type Memento,
 } from './types';
 
-type FormingContextValue = {
-  stage: FormingStage;
-  dust: DustField;
-  formSeed: FormSeed | null;
-  coalesce: number;
-  breathPhase: BreathPhase;
-  breathScatter: number;
-  cycleIndex: number;
-  canForm: boolean;
-  mounting: boolean;
-  stillness: boolean;
-  scalePunch: number;
-  warmthBloom: number;
-  showFrame: boolean;
-  caption: string;
-  mementos: Memento[];
-  todaySaved: boolean;
-  reduceMotion: boolean;
-  displaySeed: FormSeed | null;
-  registerTouch: (normX: number, normY: number, dwellMs: number) => void;
-  onBreathPhase: (phase: BreathPhase) => void;
-  onExhaleEnd: (cycle: number) => void;
-  abortForming: () => void;
-  refreshMementos: () => void;
-};
-
-const FormingContext = createContext<FormingContextValue | null>(null);
-
-export function useForming(): FormingContextValue {
-  const ctx = useContext(FormingContext);
-  if (!ctx) throw new Error('useForming requires FormingProvider');
-  return ctx;
-}
-
-export function useFormingOptional(): FormingContextValue | null {
-  return useContext(FormingContext);
-}
+export { useForming, useFormingOptional } from './formingContextLite';
 
 type Props = {
   weather: WeatherState;

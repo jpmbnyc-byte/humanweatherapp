@@ -3,7 +3,7 @@ import SomaticGrid from './SomaticGrid';
 import ConditionsCard from './ConditionsCard';
 import TrialFootline from './TrialFootline';
 import PurchaseSuccessBanner from './PurchaseSuccessBanner';
-import { useFormingOptional } from '../lib/forming/FormingContext';
+import { useFormingOptional } from '../lib/forming/formingContextLite';
 import { useEntitlement } from '../lib/EntitlementContext';
 import { runWhenIdle } from '../lib/deferredWork';
 import type { WhereAreWeResult } from '../lib/whereAreWe';

@@ -89,6 +89,7 @@ ${cssLink}
     <div id="hw-boot-bar" aria-hidden="true"><i></i></div>
   </div>
 </div>
+<div id="app-mount"></div>
 <script type="module" src="${indexScript}"></script>
 </body>
 </html>

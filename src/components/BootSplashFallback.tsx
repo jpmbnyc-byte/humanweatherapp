@@ -2,17 +2,60 @@
 export default function BootSplashFallback() {
   return (
     <div
-      className="hw-view-enter flex flex-col gap-6 py-6"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1.5rem',
+        padding: '1.5rem 0',
+      }}
       aria-busy="true"
       aria-live="polite"
     >
-      <div className="space-y-3 animate-pulse">
-        <div className="h-4 w-40 rounded bg-accent/10" />
-        <div className="h-10 w-64 max-w-full rounded bg-accent/10" />
-        <div className="h-4 w-52 rounded bg-accent/10" />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <div
+          style={{
+            height: '1rem',
+            width: '10rem',
+            borderRadius: '0.25rem',
+            background: 'rgba(196, 160, 68, 0.12)',
+          }}
+        />
+        <div
+          style={{
+            height: '2.5rem',
+            width: '16rem',
+            maxWidth: '100%',
+            borderRadius: '0.25rem',
+            background: 'rgba(196, 160, 68, 0.12)',
+          }}
+        />
+        <div
+          style={{
+            height: '1rem',
+            width: '13rem',
+            borderRadius: '0.25rem',
+            background: 'rgba(196, 160, 68, 0.12)',
+          }}
+        />
       </div>
-      <div className="h-72 w-full rounded-2xl bg-accent/5 animate-pulse" />
-      <p className="font-serif text-sm italic opacity-50 text-center">
+      <div
+        style={{
+          height: '18rem',
+          width: '100%',
+          borderRadius: '1rem',
+          background: 'rgba(196, 160, 68, 0.06)',
+        }}
+      />
+      <p
+        style={{
+          fontFamily: 'Georgia, "Times New Roman", serif',
+          fontSize: '0.875rem',
+          fontStyle: 'italic',
+          opacity: 0.5,
+          textAlign: 'center',
+          margin: 0,
+        }}
+      >
         Loading field station…
       </p>
     </div>
