@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useFormingOptional, drawFormToCanvas } from '../lib/forming/FormingContext';
+import { useEntitlement } from '../lib/EntitlementContext';
 
 type Props = {
   currentTheme: 'day' | 'night';
@@ -7,6 +8,19 @@ type Props = {
 
 export default function TheFascia({ currentTheme }: Props) {
   const forming = useFormingOptional();
+  const { can } = useEntitlement();
+  const fasciaEnabled = can('fascia');
+
+  if (!fasciaEnabled) {
+    return (
+      <div className="w-full mt-8 pt-6 border-t border-accent/10" id="the-fascia">
+        <span className="hw-eyebrow block mb-1">The Fascia</span>
+        <p className={`font-mono text-[11px] ${currentTheme === 'night' ? 'text-white/35' : 'text-stone-500'}`}>
+          Full Fascia — your observation log and Il Nascimento mementos — opens during trial and membership.
+        </p>
+      </div>
+    );
+  }
 
   if (!forming || forming.mementos.length === 0) {
     return (

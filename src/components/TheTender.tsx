@@ -517,7 +517,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
 
             <div className="pt-3 border-t border-accent/10">
               <span className={`hw-eyebrow block mb-2 ${styles.mutedText}`}>Pace</span>
-              <div className="flex gap-2" role="radiogroup" aria-label="Reading pace">
+              <div className="flex gap-2" role="radiogroup" aria-label="Speech pace">
                 {(['slow', 'standard', 'brisk'] as const).map(opt => (
                   <button
                     key={opt}

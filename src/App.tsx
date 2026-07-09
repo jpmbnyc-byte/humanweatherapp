@@ -9,6 +9,7 @@ import { WeatherState } from './types';
 import { getThemeStyles } from './lib/theme';
 import { stopAllAudio } from './lib/stopAllAudio';
 import { whereAreWe, type WhereAreWeResult } from './lib/whereAreWe';
+import { EntitlementProvider } from './lib/EntitlementContext';
 import { Sun, Moon } from 'lucide-react';
 
 const FrequencyTherapy = lazy(() => import('./components/FrequencyTherapy'));
@@ -118,6 +119,7 @@ export default function App() {
   const themeStyles = getThemeStyles(currentTheme);
 
   return (
+    <EntitlementProvider>
     <div
       className={`min-h-screen w-full flex flex-col ${themeStyles.bg} ${themeStyles.text} theme-transition relative overflow-x-hidden`}
       id="app-root-container"
@@ -169,7 +171,7 @@ export default function App() {
         <nav className="w-full mt-8 md:mt-10" id="app-navigation-bar">
           <div className={`flex flex-wrap gap-1 p-1 rounded-2xl border ${themeStyles.border} ${isNight ? 'bg-black/15' : 'bg-white/50'}`}>
             {([
-              ['somatic', 'Somatic Map'],
+              ['somatic', 'Field Station'],
               ['therapy', 'Aura & Tones'],
               ['rhythms', 'Circadian'],
               ['tender', 'The Tender'],
@@ -206,7 +208,9 @@ export default function App() {
                 activeWeather={activeWeather}
                 themeStyles={themeStyles}
                 isNight={isNight}
+                place={place}
                 onStateChange={handleStateChange}
+                onNavigateTab={transitionToTab}
               />
             )}
 
@@ -291,5 +295,6 @@ export default function App() {
 
       </div>
     </div>
+    </EntitlementProvider>
   );
 }

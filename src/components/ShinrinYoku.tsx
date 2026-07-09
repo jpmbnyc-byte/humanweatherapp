@@ -88,7 +88,7 @@ export default function ShinrinYoku({ currentTheme }: ShinrinYokuProps) {
                 "the forest is working."
               </p>
               <p className="hw-meta text-white/50 mt-2">
-                Prescription slot recorded
+                Protocol slot recorded
               </p>
             </div>
           </motion.div>
