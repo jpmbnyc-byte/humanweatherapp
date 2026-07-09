@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import MountainBackground from './components/MountainBackground';
 import TabSkeleton from './components/TabSkeleton';
 import TabErrorBoundary from './components/TabErrorBoundary';
-import { WEATHER_STATES } from './data/somatic';
+import { DEFAULT_WEATHER } from './data/defaultWeather';
 import { WeatherState } from './types';
 import { getThemeStyles } from './lib/theme';
 import { stopAllAudio } from './lib/stopAllAudio';
@@ -10,7 +10,19 @@ import type { WhereAreWeResult } from './lib/whereAreWe';
 import { runWhenIdle } from './lib/deferredWork';
 import { EntitlementProvider } from './lib/EntitlementContext';
 import MembershipButton from './components/MembershipButton';
-import { Sun, Moon } from 'lucide-react';
+
+const SunIcon = () => (
+  <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-accent" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+  </svg>
+);
+
+const MoonIcon = () => (
+  <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-accent fill-current" aria-hidden>
+    <path d="M21 14.5A8.5 8.5 0 1 1 9.5 3 7 7 0 0 0 21 14.5z" />
+  </svg>
+);
 
 const SomaticTabView = lazy(() => import('./components/SomaticTabView'));
 const FrequencyTherapy = lazy(() => import('./components/FrequencyTherapy'));
@@ -56,7 +68,7 @@ export default function App() {
   const [manualOverride, setManualOverride] = useState(false);
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState<AppTab>(THRESHOLD_TAB);
-  const [activeWeather, setActiveWeather] = useState<WeatherState>(WEATHER_STATES[5]);
+  const [activeWeather, setActiveWeather] = useState<WeatherState>(DEFAULT_WEATHER);
   const [activeCoordinates, setActiveCoordinates] = useState<[number, number][]>([]);
   const [place, setPlace] = useState<WhereAreWeResult | null>(null);
 
@@ -67,6 +79,10 @@ export default function App() {
   const transitionToTab = useCallback((id: AppTab) => {
     stopAllAudio();
     setActiveTab(id);
+  }, []);
+
+  useEffect(() => {
+    document.getElementById('hw-boot')?.remove();
   }, []);
 
   useEffect(() => {
@@ -158,11 +174,11 @@ export default function App() {
             >
               {isNight ? (
                 <span className="flex items-center gap-1.5 text-accent">
-                  <Moon className="w-3.5 h-3.5 text-accent fill-current" /> Night
+                  <MoonIcon /> Night
                 </span>
               ) : (
                 <span className="flex items-center gap-1.5 text-accent">
-                  <Sun className="w-3.5 h-3.5 text-accent" /> Day
+                  <SunIcon /> Day
                 </span>
               )}
             </button>

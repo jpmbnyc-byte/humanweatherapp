@@ -1,8 +1,7 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
   Link,
-  createRootRouteWithContext,
+  createRootRoute,
   useRouter,
   HeadContent,
   Scripts,
@@ -12,6 +11,16 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { scheduleDeferredFonts } from "../lib/deferredFonts";
+
+const BOOT_SPLASH_CSS = `
+#hw-boot{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#faf8f5;color:#2c2824;font-family:Georgia,"Times New Roman",serif}
+#hw-boot-inner{text-align:center;padding:1.5rem}
+#hw-boot-eyebrow{font-size:11px;letter-spacing:0.25em;text-transform:uppercase;opacity:0.4;margin:0 0 1rem}
+#hw-boot-title{font-size:clamp(1.75rem,6vw,2.5rem);font-weight:500;margin:0;line-height:1.15}
+#hw-boot-title em{font-style:italic;color:#8a6f2e}
+#hw-boot-sub{font-size:1rem;font-style:italic;opacity:0.65;margin:1rem 0 0}
+@media (prefers-color-scheme:dark){#hw-boot{background:#141210;color:#f5f0e8}#hw-boot-title em{color:#d4b85a}}
+`;
 
 function NotFoundComponent() {
   return (
@@ -40,6 +49,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    document.getElementById("hw-boot")?.remove();
   }, [error]);
 
   return (
@@ -73,7 +83,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   );
 }
 
-export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -88,8 +98,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:site", content: "@Lovable" },
       { name: "twitter:title", content: "Human Weather App" },
       { name: "twitter:description", content: "Tracking the emotional climate." },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/Pp3cGsUtaJRNfvToOZt1zOOuAmk2/social-images/social-1782761956593-IMG_4540.webp" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/Pp3cGsUtaJRNfvToOZt1zOOuAmk2/social-images/social-1782761956593-IMG_4540.webp" },
+      {
+        property: "og:image",
+        content:
+          "https://storage.googleapis.com/gpt-engineer-file-uploads/Pp3cGsUtaJRNfvToOZt1zOOuAmk2/social-images/social-1782761956593-IMG_4540.webp",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://storage.googleapis.com/gpt-engineer-file-uploads/Pp3cGsUtaJRNfvToOZt1zOOuAmk2/social-images/social-1782761956593-IMG_4540.webp",
+      },
     ],
     links: [
       {
@@ -109,8 +127,18 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
+        <style dangerouslySetInnerHTML={{ __html: BOOT_SPLASH_CSS }} />
       </head>
       <body>
+        <div id="hw-boot" aria-live="polite" aria-busy="true">
+          <div id="hw-boot-inner">
+            <p id="hw-boot-eyebrow">human weather</p>
+            <h1 id="hw-boot-title">
+              Human <em>Weather</em>
+            </h1>
+            <p id="hw-boot-sub">Opening your field station…</p>
+          </div>
+        </div>
         {children}
         <Scripts />
       </body>
@@ -119,16 +147,9 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 function RootComponent() {
-  const { queryClient } = Route.useRouteContext();
-
   useEffect(() => {
     scheduleDeferredFonts();
   }, []);
 
-  return (
-    <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
-    </QueryClientProvider>
-  );
+  return <Outlet />;
 }

@@ -1,7 +1,26 @@
 import { createFileRoute } from "@tanstack/react-router";
-import App from "@/App";
+import { lazy, Suspense, useEffect } from "react";
+
+const App = lazy(() => import("@/App"));
+
+function dismissBootSplash() {
+  document.getElementById("hw-boot")?.remove();
+}
+
+function IndexPage() {
+  useEffect(() => {
+    dismissBootSplash();
+  }, []);
+
+  return (
+    <Suspense fallback={null}>
+      <App />
+    </Suspense>
+  );
+}
 
 export const Route = createFileRoute("/")({
+  ssr: false,
   head: () => ({
     meta: [
       { title: "Human Weather — Somatic Climate & Circadian Alignment" },
@@ -18,5 +37,5 @@ export const Route = createFileRoute("/")({
       },
     ],
   }),
-  component: App,
+  component: IndexPage,
 });

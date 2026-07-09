@@ -11,6 +11,7 @@ import {
   trialFootline,
 } from './entitlement';
 import { openPurchaseCheckout } from './purchaseConfig';
+import { runWhenIdle } from './deferredWork';
 
 type EntitlementContextValue = {
   record: EntitlementRecord | null;
@@ -41,7 +42,9 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
   }, []);
 
   useEffect(() => {
-    void refresh();
+    runWhenIdle(() => {
+      void refresh();
+    }, 2500);
   }, [refresh]);
 
   useEffect(() => {
