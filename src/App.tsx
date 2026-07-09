@@ -8,7 +8,6 @@ import { getThemeStyles } from './lib/theme';
 import { stopAllAudio } from './lib/stopAllAudio';
 import type { WhereAreWeResult } from './lib/whereAreWe';
 import { runWhenIdle } from './lib/deferredWork';
-import { primeSpeechEngine } from './lib/stationSpeech';
 import { EntitlementProvider } from './lib/EntitlementContext';
 import BootSplashFallback, { dismissBootSplash } from './components/BootSplashFallback';
 import MembershipButton from './components/MembershipButton';
@@ -84,11 +83,15 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    dismissBootSplash();
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => dismissBootSplash());
+    });
   }, []);
 
   useEffect(() => {
-    const prime = () => primeSpeechEngine();
+    const prime = () => {
+      void import('./lib/stationSpeech').then(m => m.primeSpeechEngine());
+    };
     window.addEventListener('pointerdown', prime, { once: true, passive: true });
     window.addEventListener('touchstart', prime, { once: true, passive: true });
     return () => {

@@ -115,8 +115,11 @@ export const Route = createRootRoute({
     ],
     links: [
       {
-        rel: "stylesheet",
+        rel: "preload",
         href: appCss,
+        as: "style",
+        // @ts-expect-error onload for async CSS in SSR shell
+        onload: "this.onload=null;this.rel='stylesheet'",
       },
     ],
   }),
