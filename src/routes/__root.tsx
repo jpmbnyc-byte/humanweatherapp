@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { scheduleDeferredFonts } from "../lib/deferredFonts";
 
 function NotFoundComponent() {
   return (
@@ -95,11 +96,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
-      {
-        rel: "preconnect",
-        href: "https://fonts.gstatic.com",
-        crossOrigin: "anonymous",
-      },
     ],
   }),
   shellComponent: RootShell,
@@ -126,18 +122,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   useEffect(() => {
-    const href =
-      'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Red+Hat+Display:wght@400;500;600&display=swap';
-    if (document.querySelector(`link[data-hw-fonts="true"]`)) return;
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = href;
-    link.media = 'print';
-    link.dataset.hwFonts = 'true';
-    link.onload = () => {
-      link.media = 'all';
-    };
-    document.head.appendChild(link);
+    scheduleDeferredFonts();
   }, []);
 
   return (

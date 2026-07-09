@@ -1,6 +1,4 @@
 import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import SomaticTabView from './components/SomaticTabView';
 import MountainBackground from './components/MountainBackground';
 import TabSkeleton from './components/TabSkeleton';
 import TabErrorBoundary from './components/TabErrorBoundary';
@@ -8,11 +6,13 @@ import { WEATHER_STATES } from './data/somatic';
 import { WeatherState } from './types';
 import { getThemeStyles } from './lib/theme';
 import { stopAllAudio } from './lib/stopAllAudio';
-import { whereAreWe, type WhereAreWeResult } from './lib/whereAreWe';
+import type { WhereAreWeResult } from './lib/whereAreWe';
+import { runWhenIdle } from './lib/deferredWork';
 import { EntitlementProvider } from './lib/EntitlementContext';
 import MembershipButton from './components/MembershipButton';
 import { Sun, Moon } from 'lucide-react';
 
+const SomaticTabView = lazy(() => import('./components/SomaticTabView'));
 const FrequencyTherapy = lazy(() => import('./components/FrequencyTherapy'));
 const LightTherapy = lazy(() => import('./components/LightTherapy'));
 const ClassicalMusic = lazy(() => import('./components/ClassicalMusic'));
@@ -34,11 +34,7 @@ function prefetchTabWhenIdle(tab: 'therapy' | 'rhythms' | 'tender') {
       void import('./components/TheTender');
     }
   };
-  if (typeof requestIdleCallback !== 'undefined') {
-    requestIdleCallback(run, { timeout: 4000 });
-  } else {
-    setTimeout(run, 800);
-  }
+  runWhenIdle(run, 4000);
 }
 
 const getThemeForNow = (): 'day' | 'night' => {
@@ -50,6 +46,11 @@ const getThemeForNow = (): 'day' | 'night' => {
 const THRESHOLD_TAB = 'somatic' as const;
 type AppTab = 'somatic' | 'therapy' | 'rhythms' | 'tender';
 
+async function resolvePlace(): Promise<WhereAreWeResult> {
+  const { whereAreWe } = await import('./lib/whereAreWe');
+  return whereAreWe();
+}
+
 export default function App() {
   const [currentTheme, setCurrentTheme] = useState<'day' | 'night'>('day');
   const [manualOverride, setManualOverride] = useState(false);
@@ -57,11 +58,10 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>(THRESHOLD_TAB);
   const [activeWeather, setActiveWeather] = useState<WeatherState>(WEATHER_STATES[5]);
   const [activeCoordinates, setActiveCoordinates] = useState<[number, number][]>([]);
-  const [motionReady, setMotionReady] = useState(false);
   const [place, setPlace] = useState<WhereAreWeResult | null>(null);
 
   const refreshPlace = useCallback(() => {
-    void whereAreWe().then(setPlace);
+    void resolvePlace().then(setPlace);
   }, []);
 
   const transitionToTab = useCallback((id: AppTab) => {
@@ -70,10 +70,11 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    setMotionReady(true);
-  }, []);
+    runWhenIdle(refreshPlace, 3500);
+  }, [refreshPlace]);
 
   useEffect(() => {
+    if (activeTab === THRESHOLD_TAB) return;
     refreshPlace();
   }, [activeTab, refreshPlace]);
 
@@ -149,12 +150,11 @@ export default function App() {
               <span className="font-mono text-xs font-medium tracking-wider leading-none">{timeString}</span>
               <span className="hw-meta opacity-45 leading-none mt-1">{dateString}</span>
             </div>
-            <motion.button
+            <button
+              type="button"
               id="theme-toggle-btn"
               onClick={toggleTheme}
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.96 }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-sans font-medium tracking-wide transition-all cursor-pointer ${themeStyles.border} ${themeStyles.cardBg}`}
+              className={`hw-pressable flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-sans font-medium tracking-wide transition-all cursor-pointer ${themeStyles.border} ${themeStyles.cardBg}`}
             >
               {isNight ? (
                 <span className="flex items-center gap-1.5 text-accent">
@@ -165,7 +165,7 @@ export default function App() {
                   <Sun className="w-3.5 h-3.5 text-accent" /> Day
                 </span>
               )}
-            </motion.button>
+            </button>
           </div>
         </header>
 
@@ -178,7 +178,8 @@ export default function App() {
               ['rhythms', 'Circadian'],
               ['tender', 'The Tender'],
             ] as const).map(([id, label]) => (
-              <motion.button
+              <button
+                type="button"
                 key={id}
                 id={`tab-${id}-btn`}
                 onClick={() => {
@@ -186,44 +187,36 @@ export default function App() {
                   else if (id !== activeTab && id !== 'somatic') prefetchTabWhenIdle(id);
                   transitionToTab(id);
                 }}
-                whileTap={{ scale: 0.98 }}
-                layout
-                className={`flex-1 min-w-[calc(50%-4px)] sm:min-w-0 px-5 py-3.5 rounded-xl text-sm font-sans font-medium tracking-wide border transition-colors cursor-pointer ${
+                className={`hw-pressable flex-1 min-w-[calc(50%-4px)] sm:min-w-0 px-5 py-3.5 rounded-xl text-sm font-sans font-medium tracking-wide border transition-colors cursor-pointer ${
                   activeTab === id ? themeStyles.tabActive : themeStyles.tabInactive
                 }`}
               >
                 {label}
-              </motion.button>
+              </button>
             ))}
           </div>
         </nav>
 
         {/* Main views */}
         <main className="flex-1 w-full py-10 md:py-12" id="app-main-view">
-          <AnimatePresence mode="wait">
-
             {activeTab === 'somatic' && (
-              <SomaticTabView
-                key="somatic-view"
-                currentTheme={currentTheme}
-                motionReady={motionReady}
-                activeWeather={activeWeather}
-                themeStyles={themeStyles}
-                isNight={isNight}
-                place={place}
-                onStateChange={handleStateChange}
-                onNavigateTab={transitionToTab}
-              />
+              <Suspense fallback={<TabSkeleton isNight={isNight} />}>
+                <SomaticTabView
+                  currentTheme={currentTheme}
+                  activeWeather={activeWeather}
+                  themeStyles={themeStyles}
+                  isNight={isNight}
+                  place={place}
+                  onStateChange={handleStateChange}
+                  onNavigateTab={transitionToTab}
+                />
+              </Suspense>
             )}
 
             {activeTab === 'therapy' && (
-              <motion.div
+              <div
                 key="therapy-view"
-                initial={motionReady ? { opacity: 0, y: 12 } : false}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-                className="flex flex-col gap-8 md:gap-10"
+                className="hw-view-enter flex flex-col gap-8 md:gap-10"
               >
                 <Suspense fallback={<TabSkeleton isNight={isNight} />}>
                   <TabErrorBoundary isNight={isNight}>
@@ -232,17 +225,13 @@ export default function App() {
                     <ClassicalMusic currentTheme={currentTheme} />
                   </TabErrorBoundary>
                 </Suspense>
-              </motion.div>
+              </div>
             )}
 
             {activeTab === 'rhythms' && (
-              <motion.div
+              <div
                 key="rhythms-view"
-                initial={motionReady ? { opacity: 0, y: 12 } : false}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-                className="flex flex-col gap-8 md:gap-10"
+                className="hw-view-enter flex flex-col gap-8 md:gap-10"
               >
                 <Suspense fallback={<TabSkeleton isNight={isNight} />}>
                   <TabErrorBoundary isNight={isNight}>
@@ -250,27 +239,21 @@ export default function App() {
                     <ShinrinYoku currentTheme={currentTheme} />
                   </TabErrorBoundary>
                 </Suspense>
-              </motion.div>
+              </div>
             )}
 
             {activeTab === 'tender' && (
-              <motion.div
+              <div
                 key="tender-view"
-                initial={motionReady ? { opacity: 0, y: 12 } : false}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-                className="w-full"
+                className="hw-view-enter w-full"
               >
                 <Suspense fallback={<TabSkeleton isNight={isNight} />}>
                   <TabErrorBoundary isNight={isNight}>
                     <TheTender currentTheme={currentTheme} />
                   </TabErrorBoundary>
                 </Suspense>
-              </motion.div>
+              </div>
             )}
-
-          </AnimatePresence>
         </main>
 
         {/* Footer */}

@@ -1,25 +1,26 @@
-import React from 'react';
-import { motion } from 'motion/react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import SomaticGrid from './SomaticGrid';
-import TheFascia from './TheFascia';
 import ConditionsCard from './ConditionsCard';
-import OfficeSequence from './OfficeSequence';
 import TrialFootline from './TrialFootline';
 import PurchaseSuccessBanner from './PurchaseSuccessBanner';
-import FormingCaptureOverlay from './FormingCaptureOverlay';
-import { FormingProvider, useFormingOptional } from '../lib/forming/FormingContext';
+import { useFormingOptional } from '../lib/forming/FormingContext';
 import { useEntitlement } from '../lib/EntitlementContext';
+import { runWhenIdle } from '../lib/deferredWork';
 import type { WhereAreWeResult } from '../lib/whereAreWe';
 import type { WeatherState } from '../types';
-import { Suspense, lazy } from 'react';
 
 const BreathworkOrb = lazy(() => import('./BreathworkOrb'));
+const OfficeSequence = lazy(() => import('./OfficeSequence'));
+const TheFascia = lazy(() => import('./TheFascia'));
+const FormingCaptureOverlay = lazy(() => import('./FormingCaptureOverlay'));
+const FormingProvider = lazy(() =>
+  import('../lib/forming/FormingContext').then(m => ({ default: m.FormingProvider })),
+);
 
 type AppTab = 'somatic' | 'therapy' | 'rhythms' | 'tender';
 
 type Props = {
   currentTheme: 'day' | 'night';
-  motionReady: boolean;
   activeWeather: WeatherState;
   themeStyles: { border: string; cardBg: string };
   isNight: boolean;
@@ -44,7 +45,6 @@ function SomaticScaleWrap({ children }: { children: React.ReactNode }) {
 
 export default function SomaticTabView({
   currentTheme,
-  motionReady,
   activeWeather,
   themeStyles,
   isNight,
@@ -55,18 +55,22 @@ export default function SomaticTabView({
   const { can, purchaseJustCompleted, dismissPurchaseSuccess } = useEntitlement();
   const nascimentoEnabled = can('nascimento');
   const conditionsSummary = `${activeWeather.clinicalIndex} · HRV ${activeWeather.hrv}%`;
+  const [formingReady, setFormingReady] = useState(false);
+
+  useEffect(() => {
+    if (!nascimentoEnabled) return;
+    runWhenIdle(() => setFormingReady(true), 5000);
+  }, [nascimentoEnabled]);
 
   const inner = (
     <>
-      <FormingCaptureOverlay currentTheme={currentTheme} />
+      {formingReady && (
+        <Suspense fallback={null}>
+          <FormingCaptureOverlay currentTheme={currentTheme} />
+        </Suspense>
+      )}
       <SomaticScaleWrap>
-        <motion.div
-          initial={motionReady ? { opacity: 0, y: 12 } : false}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -12 }}
-          transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-          className="flex flex-col"
-        >
+        <div className="hw-view-enter flex flex-col">
           <TrialFootline currentTheme={currentTheme} />
           {purchaseJustCompleted && (
             <PurchaseSuccessBanner
@@ -74,16 +78,20 @@ export default function SomaticTabView({
               onDismiss={dismissPurchaseSuccess}
             />
           )}
-          <OfficeSequence
-            place={place}
-            currentTheme={currentTheme}
-            onNavigateTab={onNavigateTab}
-          />
+          <Suspense fallback={<div className="h-24 animate-pulse rounded-xl bg-accent/5 mb-6" aria-hidden />}>
+            <OfficeSequence
+              place={place}
+              currentTheme={currentTheme}
+              onNavigateTab={onNavigateTab}
+            />
+          </Suspense>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
             <div className="lg:col-span-5 flex flex-col items-center">
               <SomaticGrid onStateChange={onStateChange} currentTheme={currentTheme} />
-              <TheFascia currentTheme={currentTheme} />
+              <Suspense fallback={<div className="h-32 w-full mt-8 animate-pulse rounded-xl bg-accent/5" aria-hidden />}>
+                <TheFascia currentTheme={currentTheme} />
+              </Suspense>
             </div>
 
             <div className="lg:col-span-7 flex flex-col gap-10 w-full">
@@ -99,22 +107,24 @@ export default function SomaticTabView({
               </Suspense>
             </div>
           </div>
-        </motion.div>
+        </div>
       </SomaticScaleWrap>
     </>
   );
 
-  if (!nascimentoEnabled) {
+  if (!nascimentoEnabled || !formingReady) {
     return inner;
   }
 
   return (
-    <FormingProvider
-      weather={activeWeather}
-      conditionsSummary={conditionsSummary}
-      active
-    >
-      {inner}
-    </FormingProvider>
+    <Suspense fallback={inner}>
+      <FormingProvider
+        weather={activeWeather}
+        conditionsSummary={conditionsSummary}
+        active
+      >
+        {inner}
+      </FormingProvider>
+    </Suspense>
   );
 }

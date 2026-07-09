@@ -275,4 +275,54 @@ body {
     letter-spacing: 0.06em;
     text-transform: uppercase;
   }
+
+  .hw-pressable {
+    transition: transform 120ms ease-out;
+  }
+
+  .hw-pressable:active {
+    transform: scale(0.97);
+  }
+
+  @keyframes hw-view-enter {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .hw-view-enter {
+    animation: hw-view-enter 0.35s ease-out both;
+  }
+
+  @keyframes hw-cell-pulse {
+    0%,
+    100% {
+      opacity: 0.4;
+      transform: scale(0.92);
+    }
+    50% {
+      opacity: 0.8;
+      transform: scale(1.08);
+    }
+  }
+
+  .hw-cell-pulse {
+    animation: hw-cell-pulse 2.4s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hw-view-enter,
+    .hw-cell-pulse {
+      animation: none;
+    }
+
+    .hw-pressable:active {
+      transform: none;
+    }
+  }
 }

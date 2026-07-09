@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'motion/react';
 import { PATHWAYS, WEATHER_STATES } from '../data/somatic';
 import { WeatherState, Pathway } from '../types';
-import { Sparkles, Trash2, HelpCircle } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useFormingOptional } from '../lib/forming/FormingContext';
 import FormingDustLayer from './FormingDustLayer';
 
@@ -197,7 +196,8 @@ export default function SomaticGrid({ onStateChange, currentTheme }: SomaticGrid
         
         {/* Reset Button */}
         {activeCount > 0 && (
-          <motion.button
+          <button
+            type="button"
             id="clear-grid-btn"
             onClick={() => {
               clearGrid();
@@ -205,13 +205,11 @@ export default function SomaticGrid({ onStateChange, currentTheme }: SomaticGrid
                 forming.abortForming();
               }
             }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono rounded-full border border-red-500/30 text-red-400 bg-red-500/5 hover:bg-red-500/10 transition-colors"
+            className="hw-pressable flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono rounded-full border border-red-500/30 text-red-400 bg-red-500/5 hover:bg-red-500/10 transition-colors"
           >
             <Trash2 className="w-3.5 h-3.5" />
             Clear Map
-          </motion.button>
+          </button>
         )}
       </div>
 
@@ -270,17 +268,9 @@ export default function SomaticGrid({ onStateChange, currentTheme }: SomaticGrid
               >
                 {/* Subtle internal particle animation for active cells */}
                 {active && (
-                  <motion.div
-                    animate={{
-                      opacity: [0.4, 0.8, 0.4],
-                      scale: [0.9, 1.1, 0.9],
-                    }}
-                    transition={{
-                      duration: 2 + Math.random() * 2,
-                      repeat: Infinity,
-                      ease: 'easeInOut'
-                    }}
-                    className="absolute inset-0 bg-white/20 blur-[1px]"
+                  <div
+                    className="absolute inset-0 bg-white/20 blur-[1px] hw-cell-pulse"
+                    style={{ animationDuration: `${2 + ((rIdx * 8 + cIdx) % 5) * 0.4}s` }}
                   />
                 )}
               </div>
@@ -296,13 +286,12 @@ export default function SomaticGrid({ onStateChange, currentTheme }: SomaticGrid
         </span>
         <div className="flex flex-wrap gap-1.5 justify-center">
           {PATHWAYS.map((path) => (
-            <motion.button
+            <button
+              type="button"
               id={`pathway-btn-${path.id}`}
               key={path.id}
               onClick={() => loadPathway(path)}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className={`px-3 py-1.5 rounded-full text-xs font-mono transition-all duration-200 border cursor-pointer ${
+              className={`hw-pressable px-3 py-1.5 rounded-full text-xs font-mono transition-all duration-200 border cursor-pointer ${
                 currentTheme === 'night'
                   ? 'bg-[#d4b05a]/5 border-white/[0.08] text-[#f3efe8]/70 hover:text-white hover:bg-[#d4b05a]/10'
                   : 'bg-white/60 border-[#d4b05a]/25 text-[#8a6f2e] hover:bg-white hover:border-[#d4b05a]/40 shadow-sm'
@@ -310,7 +299,7 @@ export default function SomaticGrid({ onStateChange, currentTheme }: SomaticGrid
               title={path.description}
             >
               {path.name}
-            </motion.button>
+            </button>
           ))}
         </div>
       </div>
