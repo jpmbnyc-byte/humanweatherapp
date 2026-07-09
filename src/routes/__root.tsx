@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { scheduleDeferredFonts } from "../lib/deferredFonts";
+import { dismissBootSplash } from "../components/BootSplashFallback";
 
 const BOOT_SPLASH_CSS = `
 #hw-boot{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#faf8f5;color:#2c2824;font-family:Georgia,"Times New Roman",serif}
@@ -18,8 +19,11 @@ const BOOT_SPLASH_CSS = `
 #hw-boot-eyebrow{font-size:11px;letter-spacing:0.25em;text-transform:uppercase;opacity:0.4;margin:0 0 1rem}
 #hw-boot-title{font-size:clamp(1.75rem,6vw,2.5rem);font-weight:500;margin:0;line-height:1.15}
 #hw-boot-title em{font-style:italic;color:#8a6f2e}
-#hw-boot-sub{font-size:1rem;font-style:italic;opacity:0.65;margin:1rem 0 0}
-@media (prefers-color-scheme:dark){#hw-boot{background:#141210;color:#f5f0e8}#hw-boot-title em{color:#d4b85a}}
+#hw-boot-sub{font-size:0.95rem;font-style:italic;opacity:0.65;margin:1rem 0 0}
+#hw-boot-bar{height:3px;width:min(12rem,60vw);margin:1.25rem auto 0;border-radius:999px;background:rgba(44,40,36,0.12);overflow:hidden}
+#hw-boot-bar>i{display:block;height:100%;width:35%;background:#c4a044;border-radius:999px;animation:hw-boot-slide 1.4s ease-in-out infinite}
+@keyframes hw-boot-slide{0%{transform:translateX(-120%)}100%{transform:translateX(320%)}}
+@media (prefers-color-scheme:dark){#hw-boot{background:#141210;color:#f5f0e8}#hw-boot-title em{color:#d4b85a}#hw-boot-bar{background:rgba(255,255,255,0.08)}#hw-boot-bar>i{background:#d4b85a}}
 `;
 
 function NotFoundComponent() {
@@ -49,7 +53,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
-    document.getElementById("hw-boot")?.remove();
+    dismissBootSplash();
   }, [error]);
 
   return (
@@ -137,6 +141,9 @@ function RootShell({ children }: { children: ReactNode }) {
               Human <em>Weather</em>
             </h1>
             <p id="hw-boot-sub">Opening your field station…</p>
+            <div id="hw-boot-bar" aria-hidden="true">
+              <i />
+            </div>
           </div>
         </div>
         {children}

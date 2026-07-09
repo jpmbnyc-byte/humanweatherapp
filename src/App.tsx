@@ -10,6 +10,7 @@ import type { WhereAreWeResult } from './lib/whereAreWe';
 import { runWhenIdle } from './lib/deferredWork';
 import { primeSpeechEngine } from './lib/stationSpeech';
 import { EntitlementProvider } from './lib/EntitlementContext';
+import BootSplashFallback, { dismissBootSplash } from './components/BootSplashFallback';
 import MembershipButton from './components/MembershipButton';
 
 const SunIcon = () => (
@@ -83,7 +84,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    document.getElementById('hw-boot')?.remove();
+    dismissBootSplash();
   }, []);
 
   useEffect(() => {
@@ -227,7 +228,7 @@ export default function App() {
         {/* Main views */}
         <main className="flex-1 w-full py-10 md:py-12" id="app-main-view">
             {activeTab === 'somatic' && (
-              <Suspense fallback={<TabSkeleton isNight={isNight} />}>
+              <Suspense fallback={<BootSplashFallback />}>
                 <SomaticTabView
                   currentTheme={currentTheme}
                   activeWeather={activeWeather}

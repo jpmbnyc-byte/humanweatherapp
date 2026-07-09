@@ -1,11 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from '@tanstack/react-router'
 import { lazy, Suspense, useEffect } from "react";
+import BootSplashFallback, { dismissBootSplash } from "@/components/BootSplashFallback";
 
 const App = lazy(() => import("@/App"));
-
-function dismissBootSplash() {
-  document.getElementById("hw-boot")?.remove();
-}
 
 function IndexPage() {
   useEffect(() => {
@@ -13,7 +10,7 @@ function IndexPage() {
   }, []);
 
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<BootSplashFallback />}>
       <App />
     </Suspense>
   );
