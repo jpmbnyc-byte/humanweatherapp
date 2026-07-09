@@ -1,14 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { lazy, Suspense, useEffect } from "react";
-import BootSplashFallback, { dismissBootSplash } from "@/components/BootSplashFallback";
+import { lazy, Suspense } from "react";
+import BootSplashFallback from "@/components/BootSplashFallback";
 
 const App = lazy(() => import("@/App"));
 
 function IndexPage() {
-  useEffect(() => {
-    dismissBootSplash();
-  }, []);
-
   return (
     <Suspense fallback={<BootSplashFallback />}>
       <App />

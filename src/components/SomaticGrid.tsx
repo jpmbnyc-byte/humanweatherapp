@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { PATHWAYS, WEATHER_STATES } from '../data/somatic';
 import { WeatherState, Pathway } from '../types';
 import { Trash2 } from 'lucide-react';
-import { useFormingOptional } from '../lib/forming/FormingContext';
-import FormingDustLayer from './FormingDustLayer';
+import { useFormingOptional } from '../lib/forming/formingContextLite';
+
+const FormingDustLayer = lazy(() => import('./FormingDustLayer'));
 
 interface SomaticGridProps {
   onStateChange: (state: WeatherState, activeCoordinates: [number, number][]) => void;
@@ -235,7 +236,11 @@ export default function SomaticGrid({ onStateChange, currentTheme }: SomaticGrid
             : '0 10px 30px -10px rgba(196, 160, 68, 0.06)'
         }}
       >
-        <FormingDustLayer />
+        {forming && (
+          <Suspense fallback={null}>
+            <FormingDustLayer />
+          </Suspense>
+        )}
         {grid.map((row, rIdx) =>
           row.map((active, cIdx) => {
             const cellKey = `${rIdx},${cIdx}`;

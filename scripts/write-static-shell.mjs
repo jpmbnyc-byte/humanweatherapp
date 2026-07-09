@@ -2,6 +2,8 @@
 /**
  * Writes a static index.html to .output/public so Cloudflare can serve
  * the boot splash instantly from CDN — before the worker cold-starts.
+ *
+ * Loads the lightweight bootstrap bundle (no TanStack Start) for ~100KB gzip savings.
  */
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -9,6 +11,12 @@ import { join } from 'node:path';
 const ROOT = join(import.meta.dirname, '..');
 const PUBLIC = join(ROOT, '.output/public');
 const SERVER = join(ROOT, '.output/server');
+const ASSETS = join(PUBLIC, 'assets');
+
+function assetUrl(relativePath) {
+  if (!relativePath) return null;
+  return relativePath.startsWith('/') ? relativePath : `/${relativePath}`;
+}
 
 async function findManifestFile() {
   const files = await readdir(SERVER);
@@ -18,8 +26,7 @@ async function findManifestFile() {
 }
 
 async function findStylesheet() {
-  const assets = join(PUBLIC, 'assets');
-  const files = await readdir(assets);
+  const files = await readdir(ASSETS);
   const css = files.find(f => f.startsWith('styles-') && f.endsWith('.css'));
   return css ? `/assets/${css}` : null;
 }
@@ -30,11 +37,62 @@ function extractIndexScript(manifestSource) {
   return match[1];
 }
 
-function shellHtml({ indexScript, cssHref }) {
+/** Preload only the default-tab critical path — not lazy tab chunks. */
+function criticalPreloads(manifest) {
+  const preloads = new Set();
+
+  const addKey = (key) => {
+    const entry = manifest[key];
+    if (entry?.file) preloads.add(assetUrl(entry.file));
+    return entry;
+  };
+
+  const addStaticImports = (entry) => {
+    for (const imp of entry?.imports ?? []) addKey(imp);
+  };
+
+  const bootstrap = addKey('src/bootstrap.tsx');
+  addStaticImports(bootstrap);
+
+  for (const dyn of bootstrap?.dynamicImports ?? []) {
+    const app = addKey(dyn);
+    addStaticImports(app);
+    for (const dyn2 of app?.dynamicImports ?? []) {
+      if (dyn2 !== 'src/components/SomaticTabView.tsx') continue;
+      const somatic = addKey(dyn2);
+      addStaticImports(somatic);
+    }
+  }
+
+  return [...preloads];
+}
+
+async function resolveBootstrapEntry() {
+  const manifestPath = join(PUBLIC, 'bootstrap-manifest.json');
+  try {
+    const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+    const entry = manifest['src/bootstrap.tsx'];
+    if (!entry?.file) return null;
+
+    const script = assetUrl(entry.file);
+    const preloads = criticalPreloads(manifest).filter(href => href && href !== script);
+
+    return { script, preloads: [...new Set(preloads)] };
+  } catch {
+    return null;
+  }
+}
+
+function shellHtml({ entryScript, cssHref, preloads }) {
   const cssLink = cssHref
     ? `<link rel="preload" href="${cssHref}" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <noscript><link rel="stylesheet" href="${cssHref}"></noscript>`
     : '';
+
+  const preloadLinks = preloads
+    .filter(href => href !== entryScript)
+    .map(href => `<link rel="modulepreload" href="${href}">`)
+    .join('\n');
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -43,6 +101,8 @@ function shellHtml({ indexScript, cssHref }) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#faf8f5">
 <title>Human Weather</title>
+<link rel="dns-prefetch" href="https://fonts.googleapis.com">
+<link rel="dns-prefetch" href="https://fonts.gstatic.com">
 <style>
 #hw-boot{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:#faf8f5;color:#2c2824;font-family:Georgia,"Times New Roman",serif}
 #hw-boot-inner{text-align:center;padding:1.5rem;max-width:20rem}
@@ -61,14 +121,14 @@ function shellHtml({ indexScript, cssHref }) {
 }
 </style>
 ${cssLink}
-<link rel="modulepreload" href="${indexScript}">
+<link rel="modulepreload" href="${entryScript}">
+${preloadLinks}
 <script>
 (function(){
   var sub=document.getElementById('hw-boot-sub');
   function set(t){if(sub)sub.textContent=t;}
   set('Opening your field station…');
   window.__hwBootStatus=set;
-  var t0=Date.now();
   var steps=[
     [1200,'Loading app…'],
     [3500,'Preparing field station…'],
@@ -89,7 +149,8 @@ ${cssLink}
     <div id="hw-boot-bar" aria-hidden="true"><i></i></div>
   </div>
 </div>
-<script type="module" src="${indexScript}"></script>
+<div id="app-mount"></div>
+<script type="module" src="${entryScript}"></script>
 </body>
 </html>
 `;
@@ -122,20 +183,37 @@ async function patchHeaders() {
   Cache-Control: public, max-age=0, must-revalidate
 `;
   if (!text.includes('/index.html')) {
-    await writeFile(headersPath, `${text.trimEnd()}\n\n${block}`, 'utf8');
+    text = `${text.trimEnd()}\n\n${block}`;
   }
+
+  const assetCache = `/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+`;
+  if (!text.includes('/assets/*')) {
+    text = `${text.trimEnd()}\n\n${assetCache}`;
+  }
+
+  await writeFile(headersPath, `${text.trimEnd()}\n`, 'utf8');
 }
 
 async function main() {
-  const manifestPath = await findManifestFile();
-  const manifestSource = await readFile(manifestPath, 'utf8');
-  const indexScript = extractIndexScript(manifestSource);
+  const bootstrap = await resolveBootstrapEntry();
+  let entryScript = bootstrap?.script;
+  let preloads = bootstrap?.preloads ?? [];
+
+  if (!entryScript) {
+    const manifestPath = await findManifestFile();
+    const manifestSource = await readFile(manifestPath, 'utf8');
+    entryScript = extractIndexScript(manifestSource);
+    console.warn('[write-static-shell] bootstrap bundle missing — falling back to TanStack index');
+  }
+
   const cssHref = await findStylesheet();
-  const html = shellHtml({ indexScript, cssHref });
+  const html = shellHtml({ entryScript, cssHref, preloads });
   await writeFile(join(PUBLIC, 'index.html'), html, 'utf8');
   await patchWrangler();
   await patchHeaders();
-  console.log(`[write-static-shell] Wrote index.html → ${indexScript}`);
+  console.log(`[write-static-shell] Wrote index.html → ${entryScript} (+${preloads.length} preloads)`);
 }
 
 main().catch(err => {
