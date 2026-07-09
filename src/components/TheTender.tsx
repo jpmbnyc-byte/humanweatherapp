@@ -4,6 +4,7 @@ import { Volume2, Play, Square, Music, Headphones, Sliders, Edit2, Check } from 
 import { PRESETS } from '../data/presets';
 import { getThemeStyles } from '../lib/theme';
 import { registerAudioStop } from '../lib/stopAllAudio';
+import { playShutterSound } from '../lib/forming/capture';
 import {
   stationSpeak,
   stationStop,
@@ -220,15 +221,19 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
       });
   };
 
-  const handleListenStop = () => {
-    if (speaking) {
-      stopReading(false);
-      return;
-    }
+  const handleStop = () => {
+    if (!speaking) return;
+    stopReading(false);
+  };
+
+  const handleListen = () => {
+    if (speaking) return;
     const textSrc = inputText.trim();
     if (!textSrc || isEditMode) return;
 
     if (showFamiliarGreeting) dismissFamiliarGreeting();
+
+    void playShutterSound();
 
     const session = ++speakSessionRef.current;
     if (soundEnv !== 'silence') startSoundEnvironment(soundEnv);
@@ -469,23 +474,33 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                     : `READ BY · ${chipName}`
                   : 'READ BY · standard voice'}
               </button>
-              <button
-                id="tender-play-toggle-btn"
-                disabled={isEditMode || !inputText.trim()}
-                onClick={handleListenStop}
-                aria-pressed={speaking}
-                className={`px-5 py-2.5 rounded-full hw-btn-label flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-30 ${
-                  speaking
-                    ? isNight ? 'text-red-300/90 border border-red-500/30' : 'text-red-800 border border-red-300'
-                    : isNight ? 'bg-[#d4b05a] text-white' : 'bg-[#2c2824] text-white'
-                }`}
-              >
-                {speaking ? (
-                  <><Square className="w-3.5 h-3.5 fill-current" /> Stop</>
-                ) : (
-                  <><Play className="w-3.5 h-3.5 fill-current" /> Listen</>
+              <div className="flex items-center gap-2">
+                {speaking && (
+                  <button
+                    type="button"
+                    id="tender-stop-btn"
+                    onClick={handleStop}
+                    aria-label="Stop reading"
+                    className={`px-4 py-2.5 rounded-full hw-btn-label flex items-center gap-1.5 cursor-pointer transition-all ${
+                      isNight ? 'text-red-300/90 border border-red-500/30' : 'text-red-800 border border-red-300'
+                    }`}
+                  >
+                    <Square className="w-3.5 h-3.5 fill-current" /> Stop
+                  </button>
                 )}
-              </button>
+                <button
+                  type="button"
+                  id="tender-listen-btn"
+                  disabled={isEditMode || !inputText.trim() || speaking}
+                  onClick={handleListen}
+                  aria-pressed={speaking}
+                  className={`px-5 py-2.5 rounded-full hw-btn-label flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-30 ${
+                    isNight ? 'bg-[#d4b05a] text-white' : 'bg-[#2c2824] text-white'
+                  }`}
+                >
+                  <Play className="w-3.5 h-3.5 fill-current" /> Listen
+                </button>
+              </div>
             </div>
           </div>
         </div>
