@@ -14,7 +14,7 @@ export type CachedDailyMarks = {
 const MARKS_KEY = 'hw-marks';
 const DEFAULT_COORDS = { lat: 40.7128, lon: -74.006 };
 
-export function localDateKey(date: Date): string {
+export function localDateKey(date: Date = new Date()): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
