@@ -145,7 +145,6 @@ export const CLASSICAL_PIECES: ClassicalPiece[] = [
     composer: 'Claude Debussy',
     weatherState: 'Dewpoint Restorative Slumber',
     description: 'For Dewpoint Restorative states. Dissolves the boundary between listening and being.',
-    youtubeUrl: 'https://www.youtube.com/watch?v=WNcsUNKlAKw',
     ambientFrequency: 220,
     carrierFrequency: 222.5,
     explanation: 'Debussy’s fluid impressionism bypasses defensive neural circuits, triggering rapid parasympathetic transition via slow-pulsing tempo shifts.'
@@ -156,7 +155,6 @@ export const CLASSICAL_PIECES: ClassicalPiece[] = [
     composer: 'Johann Sebastian Bach',
     weatherState: 'Vaporous Resonance Drift',
     description: 'For Equilibrium states. Mathematical cathedrals. Sit inside one.',
-    youtubeUrl: 'https://www.youtube.com/watch?v=JSAd3XPxF08',
     ambientFrequency: 147,
     carrierFrequency: 153,
     explanation: 'Bach’s steady metronomic pulse acts as an auditory pacemaker, entraining cardiac and respiratory rhythms to a stable homeostatic baseline.'
@@ -167,7 +165,6 @@ export const CLASSICAL_PIECES: ClassicalPiece[] = [
     composer: 'Erik Satie',
     weatherState: 'Scattered Atmospheric Drift',
     description: 'For Scattered states. The space between notes is also music.',
-    youtubeUrl: 'https://www.youtube.com/watch?v=S-Xm7s9eGxU',
     ambientFrequency: 146,
     carrierFrequency: 152,
     explanation: 'Satie’s minimalist spacing leaves acoustic room for cognitive settling. The deliberate silence between chords reduces sensory overload.'
@@ -178,7 +175,6 @@ export const CLASSICAL_PIECES: ClassicalPiece[] = [
     composer: 'Ludwig van Beethoven',
     weatherState: 'Autonomic Stillness',
     description: 'For Night mode. Sounds like it was written from inside.',
-    youtubeUrl: 'https://www.youtube.com/watch?v=4Tr0otuiQuU',
     ambientFrequency: 130,
     carrierFrequency: 132.5,
     explanation: 'Beethoven’s triple meter ostinato acts as a heavy somatic anchor, calming motor cortex activity and preparing the brain for delta-wave sleep.'
@@ -189,7 +185,6 @@ export const CLASSICAL_PIECES: ClassicalPiece[] = [
     composer: 'Frédéric Chopin',
     weatherState: 'High-Resonant Thermal Coherence',
     description: 'For Flow State. A conversation with himself. Let it be one with you.',
-    youtubeUrl: 'https://www.youtube.com/watch?v=9E6b3swgMTY',
     ambientFrequency: 131,
     carrierFrequency: 137,
     explanation: 'Chopin’s sweeping rubato mirrors naturally occurring physiological fluctuations, enhancing heart rate variability (HRV) and emotional resonance.'
@@ -200,7 +195,6 @@ export const CLASSICAL_PIECES: ClassicalPiece[] = [
     composer: 'Arvo Pärt',
     weatherState: 'All States',
     description: 'For all states. Mirror in the mirror. What silence sounds like when it has courage.',
-    youtubeUrl: 'https://www.youtube.com/watch?v=FZu0976CdBA',
     ambientFrequency: 110,
     carrierFrequency: 111.5,
     explanation: 'Pärt’s tintinnabuli style creates a perfectly predictable, non-threatening auditory environment, down-regulating the amygdala and promoting deep neural safety.'

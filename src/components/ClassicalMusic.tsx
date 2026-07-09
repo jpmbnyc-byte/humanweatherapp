@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { CLASSICAL_PIECES } from '../data';
 import { ClassicalPiece } from '../types';
-import { Music, Play, Square, ExternalLink, Info, Volume2 } from 'lucide-react';
+import { Play, Square, Volume2 } from 'lucide-react';
 import { registerAudioStop, stopAllAudio } from '../lib/stopAllAudio';
 
 interface ClassicalMusicProps {
@@ -169,12 +169,16 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
           <span className="hw-eyebrow block mb-1">Contemplative music</span>
           <h2 className="font-serif text-2xl text-accent font-medium">Classical Music Immersion</h2>
           <p className="hw-caption mt-1">
-            Six timeless arrangements selected to gently soothe your nervous system, quiet the mind, and restore inner balance.
+            Harmonic atmospheres synthesized in your browser — no external streams. Each piece maps to a weather state.
           </p>
         </div>
 
         {/* Volume */}
-        <div className="flex items-center gap-3 bg-black/30 px-4 py-2.5 rounded-full border border-accent/15">
+        <div className={`flex items-center gap-3 px-4 py-2.5 rounded-full border ${
+          currentTheme === 'night'
+            ? 'border-white/10 bg-white/[0.03]'
+            : 'border-accent/15 bg-accent/[0.04]'
+        }`}>
           <Volume2 className="w-4 h-4 text-accent/80" />
           <input
             type="range"
@@ -209,13 +213,13 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
             <div
               key={piece.id}
               className={`p-5 rounded-xl border flex flex-col justify-between relative overflow-hidden transition-all duration-300 ${
-                isActive 
-                  ? currentTheme === 'night' 
-                    ? 'bg-[#d4b05a]/10 border-[#e8cc6a] shadow-[0_0_20px_rgba(196,160,68,0.15)]' 
+                isActive
+                  ? currentTheme === 'night'
+                    ? 'bg-[#d4b05a]/10 border-[#e8cc6a] shadow-[0_0_20px_rgba(196,160,68,0.15)]'
                     : 'bg-[#d4b05a]/10 border-[#b8956b] shadow-[0_0_20px_rgba(184,149,107,0.15)]'
                   : currentTheme === 'night'
-                    ? 'bg-black/35 border-white/[0.06] hover:bg-white/[0.03]'
-                    : 'bg-stone-100/40 border-stone-200/50 hover:bg-stone-100/60 shadow-sm'
+                    ? 'bg-transparent border-white/[0.08] hover:border-white/15 hover:bg-white/[0.02]'
+                    : 'bg-transparent border-stone-200/60 hover:border-accent/25 hover:bg-accent/[0.02]'
               }`}
               id={`classical-piece-${piece.id}`}
             >
@@ -235,50 +239,43 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
                 <p className="hw-caption mb-3">"{piece.description}"</p>
                 
                 {/* Scientific Reason */}
-                <div className="p-3 rounded bg-black/40 border border-accent/5 hw-body-muted text-accent/75 italic mb-4">
-                  <span className="hw-meta not-italic font-semibold text-accent block mb-1">
-                    Neurological Rationale:
+                <div className={`p-3 rounded-lg border font-serif text-sm italic mb-4 leading-relaxed ${
+                  currentTheme === 'night'
+                    ? 'border-[#d4b05a]/15 bg-white/[0.03] text-white/70'
+                    : 'border-accent/15 bg-accent/[0.03] text-stone-700'
+                }`}>
+                  <span className="font-mono text-[10px] uppercase tracking-widest not-italic opacity-50 block mb-1">
+                    Neurological rationale
                   </span>
                   {piece.explanation}
                 </div>
               </div>
 
               {/* Quick Actions */}
-              <div className="flex items-center justify-between mt-auto border-t border-accent/10 pt-3">
-                {/* Live Ambient Synthesis */}
+              <div className="flex items-center mt-auto border-t border-accent/10 pt-3">
                 <button
                   id={`play-classical-ambient-btn-${piece.id}`}
                   onClick={() => handlePlayClick(piece)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-mono tracking-wider transition-all cursor-pointer ${
-                    isActive 
+                    isActive
                       ? currentTheme === 'night'
                         ? 'bg-[#d4b05a] border-[#d4b05a] text-black hover:bg-[#d4b05a]/90 font-medium'
                         : 'bg-gradient-to-r from-[#b8956b] to-[#d4b05a] border-[#d4b05a] text-slate-900 shadow-md shadow-[#d4b05a]/10 font-medium'
                       : currentTheme === 'night'
-                        ? 'bg-black/20 border-white/5 text-white/40 hover:text-white/80 hover:border-white/10'
-                        : 'bg-white/50 border-[#d4b05a]/25 text-[#b8956b] hover:text-[#8a6f2e] hover:bg-white hover:border-[#d4b05a]/40 shadow-sm'
+                        ? 'bg-transparent border-white/10 text-white/50 hover:text-white/85 hover:border-white/20'
+                        : 'bg-transparent border-[#d4b05a]/30 text-[#b8956b] hover:text-[#8a6f2e] hover:border-[#d4b05a]/45'
                   }`}
                 >
                   {isActive ? (
                     <>
-                      <Square className="w-3 h-3 fill-current" /> STOP AMBIENT
+                      <Square className="w-3 h-3 fill-current" /> Stop ambient
                     </>
                   ) : (
                     <>
-                      <Play className="w-3 h-3 fill-current" /> LIVE SYNTH
+                      <Play className="w-3 h-3 fill-current" /> Listen
                     </>
                   )}
                 </button>
-
-                {/* External YouTube Link */}
-                <a
-                  href={piece.youtubeUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 hw-body font-mono text-accent/60 hover:text-accent transition-colors"
-                >
-                  FULL RECORDING <ExternalLink className="w-3 h-3" />
-                </a>
               </div>
             </div>
           );

@@ -49,8 +49,7 @@ export interface ClassicalPiece {
   composer: string;
   weatherState: string;
   description: string;
-  youtubeUrl: string;
-  ambientFrequency: number; // Hz for live synthesis
+  ambientFrequency: number; // Hz for live synthesis root
   carrierFrequency: number; // Hz for carrier (binaural-like)
   explanation: string;
 }
