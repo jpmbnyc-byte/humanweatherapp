@@ -37,6 +37,8 @@ function loadVoices(timeoutMs = 8000): Promise<SpeechSynthesisVoice[]> {
 
   _voicesPromise = new Promise(resolve => {
     let settled = false;
+    let pollId = 0;
+    let hardStopId = 0;
     const finish = (voices: SpeechSynthesisVoice[]) => {
       if (settled) return;
       settled = true;
@@ -65,12 +67,12 @@ function loadVoices(timeoutMs = 8000): Promise<SpeechSynthesisVoice[]> {
       return;
     }
 
-    const pollId = window.setInterval(() => {
+    pollId = window.setInterval(() => {
       const voices = read();
       if (voices.length) finish(voices);
     }, 250);
 
-    const hardStopId = window.setTimeout(() => finish(read()), timeoutMs);
+    hardStopId = window.setTimeout(() => finish(read()), timeoutMs);
   });
 
   return _voicesPromise;
