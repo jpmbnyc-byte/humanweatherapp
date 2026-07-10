@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Volume2, Play, Square, Music, Headphones, Sliders, Edit2, Check } from 'lucide-react';
+import { Volume2, Play, Square, Music, Headphones, Sliders, Edit2, Check, RefreshCw } from 'lucide-react';
 import { PRESETS } from '../data/presets';
 import { getThemeStyles } from '../lib/theme';
-import { registerAudioStop } from '../lib/stopAllAudio';
+import { registerAudioStop, stopAllAudio } from '../lib/stopAllAudio';
 import {
   stationSpeak,
   stationStop,
@@ -230,6 +230,9 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
 
     if (showFamiliarGreeting) dismissFamiliarGreeting();
 
+    // Stop any other audio (music, breathwork) BEFORE flipping our speaking
+    // state, so the registered stop handler doesn't immediately reset it.
+    stopAllAudio();
     const session = ++speakSessionRef.current;
     if (soundEnv !== 'silence') startSoundEnvironment(soundEnv);
     setSpeaking(true);
@@ -237,6 +240,20 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     void ensureVoicesReady().then(() => stationSpeak(textSrc)).finally(() => {
       if (speakSessionRef.current === session) setSpeaking(false);
     });
+  };
+
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefreshVoices = () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    primeSpeechEngine();
+    void ensureVoicesReady()
+      .then(list => {
+        setRoster(list);
+        syncVoiceHeader(list);
+        setInlineVoiceOpen(true);
+      })
+      .finally(() => setRefreshing(false));
   };
 
   const handlePaceChange = (next: PaceOption) => {
@@ -448,44 +465,74 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
             </AnimatePresence>
 
             <div className="flex items-center justify-between gap-3 border-t border-accent/10 pt-4">
-              <button
-                type="button"
-                id="tender-voice-chip"
-                onClick={() => {
-                  primeSpeechEngine();
-                  void ensureVoicesReady().then(list => {
-                    setRoster(list);
-                    syncVoiceHeader(list);
-                    setInlineVoiceOpen(open => !open);
-                  });
-                }}
-                aria-expanded={inlineVoiceOpen}
-                aria-controls="tender-inline-voice-chooser"
-                className={`font-mono text-[11px] tracking-wide uppercase text-left cursor-pointer ${styles.mutedText} hover:opacity-80 transition-opacity`}
-              >
-                {chipName
-                  ? currentVoiceFamiliar
-                    ? `READ BY · ${chipName} · FAMILIAR`
-                    : `READ BY · ${chipName}`
-                  : 'READ BY · standard voice'}
-              </button>
-              <button
-                id="tender-play-toggle-btn"
-                disabled={isEditMode || !inputText.trim()}
-                onClick={handleListenStop}
-                aria-pressed={speaking}
-                className={`px-5 py-2.5 rounded-full hw-btn-label flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-30 ${
-                  speaking
-                    ? isNight ? 'text-red-300/90 border border-red-500/30' : 'text-red-800 border border-red-300'
-                    : isNight ? 'bg-[#d4b05a] text-white' : 'bg-[#2c2824] text-white'
-                }`}
-              >
-                {speaking ? (
-                  <><Square className="w-3.5 h-3.5 fill-current" /> Stop</>
-                ) : (
-                  <><Play className="w-3.5 h-3.5 fill-current" /> Listen</>
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <button
+                  type="button"
+                  id="tender-voice-chip"
+                  onClick={() => {
+                    primeSpeechEngine();
+                    void ensureVoicesReady().then(list => {
+                      setRoster(list);
+                      syncVoiceHeader(list);
+                      setInlineVoiceOpen(open => !open);
+                    });
+                  }}
+                  aria-expanded={inlineVoiceOpen}
+                  aria-controls="tender-inline-voice-chooser"
+                  className={`font-mono text-[11px] tracking-wide uppercase text-left cursor-pointer truncate ${styles.mutedText} hover:opacity-80 transition-opacity`}
+                >
+                  {chipName
+                    ? currentVoiceFamiliar
+                      ? `READ BY · ${chipName} · FAMILIAR`
+                      : `READ BY · ${chipName}`
+                    : 'READ BY · standard voice'}
+                </button>
+                <button
+                  type="button"
+                  id="tender-refresh-voices-btn"
+                  onClick={handleRefreshVoices}
+                  disabled={refreshing}
+                  aria-label="Refresh voice list"
+                  title="Refresh voices"
+                  className={`p-1.5 rounded-full border cursor-pointer transition-all disabled:opacity-40 ${
+                    isNight ? 'border-white/10 text-white/60 hover:text-white/90' : 'border-stone-300 text-stone-600 hover:text-[#2c2824]'
+                  }`}
+                >
+                  <RefreshCw className={`w-3 h-3 ${refreshing ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                {speaking && (
+                  <button
+                    type="button"
+                    id="tender-stop-btn"
+                    onClick={() => stopReading(false)}
+                    aria-label="Stop reading"
+                    className={`px-4 py-2.5 rounded-full hw-btn-label flex items-center gap-1.5 cursor-pointer transition-all ${
+                      isNight ? 'text-red-300/90 border border-red-500/30' : 'text-red-800 border border-red-300'
+                    }`}
+                  >
+                    <Square className="w-3.5 h-3.5 fill-current" /> Stop
+                  </button>
                 )}
-              </button>
+                <button
+                  id="tender-play-toggle-btn"
+                  disabled={isEditMode || !inputText.trim()}
+                  onClick={handleListenStop}
+                  aria-pressed={speaking}
+                  className={`px-5 py-2.5 rounded-full hw-btn-label flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-30 ${
+                    speaking
+                      ? isNight ? 'text-red-300/90 border border-red-500/30' : 'text-red-800 border border-red-300'
+                      : isNight ? 'bg-[#d4b05a] text-white' : 'bg-[#2c2824] text-white'
+                  }`}
+                >
+                  {speaking ? (
+                    <><Square className="w-3.5 h-3.5 fill-current" /> Stop</>
+                  ) : (
+                    <><Play className="w-3.5 h-3.5 fill-current" /> Listen</>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
