@@ -21,6 +21,9 @@ let _stationVoice: SpeechSynthesisVoice | null = null;
 let _paceRate = 0.88;
 let _voicesPromise: Promise<SpeechSynthesisVoice[]> | null = null;
 let _speechPrimed = false;
+let _iosSpeechUnlocked = false;
+let _savedVoiceUriCache: string | null = null;
+let _savedVoiceNameCache: string | null = null;
 
 function synthesis(): SpeechSynthesis | null {
   if (typeof window === 'undefined' || !window.speechSynthesis) return null;
@@ -80,20 +83,36 @@ function loadVoices(timeoutMs = 8000, force = false): Promise<SpeechSynthesisVoi
   return _voicesPromise;
 }
 
-/** Speak a near-silent utterance so iOS populates getVoices() after a user gesture. */
-function kickVoiceListLoad(): void {
+/** Speak a near-silent utterance once per session so iOS allows later TTS. */
+export function unlockIosSpeechSession(): void {
+  if (!isIosPlatform() || _iosSpeechUnlocked) return;
   const syn = synthesis();
   if (!syn) return;
   syn.getVoices();
   if (syn.paused) syn.resume();
   try {
-    const kick = new SpeechSynthesisUtterance('.');
-    kick.volume = 0.01;
-    kick.rate = 2;
-    syn.speak(kick);
+    const unlock = new SpeechSynthesisUtterance(' ');
+    unlock.volume = 0.001;
+    unlock.rate = 10;
+    unlock.onend = () => {
+      _iosSpeechUnlocked = true;
+    };
+    unlock.onerror = () => {
+      _iosSpeechUnlocked = true;
+    };
+    syn.speak(unlock);
+    _iosSpeechUnlocked = true;
   } catch {
-    /* noop */
+    _iosSpeechUnlocked = true;
   }
+}
+
+/** Load voices only — never queue a kick utterance before real speech. */
+function warmVoiceList(): void {
+  const syn = synthesis();
+  if (!syn) return;
+  syn.getVoices();
+  if (syn.paused) syn.resume();
 }
 
 /** Call from a user gesture (tap) before first speak on iPhone. */
@@ -101,12 +120,14 @@ export function primeSpeechEngine(): void {
   const syn = synthesis();
   if (!syn || _speechPrimed) return;
   _speechPrimed = true;
-  kickVoiceListLoad();
+  unlockIosSpeechSession();
+  warmVoiceList();
 }
 
 /** Re-trigger voice list loading during an explicit refresh (user tap). */
 export function primeSpeechEngineForRefresh(): void {
-  kickVoiceListLoad();
+  unlockIosSpeechSession();
+  warmVoiceList();
 }
 
 export function isIosPlatform(): boolean {
@@ -241,8 +262,77 @@ function startIosSpeechKeepAlive(): void {
   stopIosSpeechKeepAlive();
   _iosResumeInterval = window.setInterval(() => {
     const syn = synthesis();
-    if (syn?.paused) syn.resume();
-  }, 8000);
+    if (!syn) return;
+    if (syn.paused) syn.resume();
+    if (!syn.speaking && syn.pending) syn.resume();
+  }, 1000);
+}
+
+function resolveVoice(voice: SpeechSynthesisVoice | null): SpeechSynthesisVoice | null {
+  const syn = synthesis();
+  if (!syn) return voice;
+  syn.getVoices();
+  const all = syn.getVoices();
+  if (!all.length) return voice;
+
+  if (voice) {
+    const byUri = all.find(v => v.voiceURI === voice.voiceURI);
+    if (byUri) return byUri;
+    const byName = all.find(v => v.name === voice.name);
+    if (byName) return byName;
+  }
+
+  if (_savedVoiceUriCache) {
+    const saved = all.find(v => v.voiceURI === _savedVoiceUriCache);
+    if (saved) return saved;
+  }
+  if (_savedVoiceNameCache) {
+    const saved = all.find(
+      v => cleanVoiceName(v.name) === _savedVoiceNameCache || v.name === _savedVoiceNameCache,
+    );
+    if (saved) return saved;
+  }
+
+  if (_stationVoice) {
+    const active = all.find(v => v.voiceURI === _stationVoice!.voiceURI);
+    if (active) return active;
+  }
+
+  const en = all.filter(v => v.lang.startsWith('en'));
+  const personal = en.find(isPersonalVoice);
+  return personal ?? en.find(v => v.default) ?? en[0] ?? voice;
+}
+
+function pickVoiceSync(): SpeechSynthesisVoice | null {
+  return resolveVoice(_stationVoice);
+}
+
+function normalizeSpeechText(text: string): string {
+  return text.replace(/\s+/g, ' ').trim();
+}
+
+function chunkTextForIos(text: string, maxLen = 320): string[] {
+  const normalized = normalizeSpeechText(text);
+  if (normalized.length <= maxLen) return [normalized];
+
+  const chunks: string[] = [];
+  const parts = normalized.split(/(?<=[.!?])\s+/);
+  let buf = '';
+  for (const part of parts) {
+    const next = buf ? `${buf} ${part}` : part;
+    if (next.length > maxLen && buf) {
+      chunks.push(buf);
+      buf = part;
+    } else {
+      buf = next;
+    }
+  }
+  if (buf) chunks.push(buf);
+  return chunks.length ? chunks : [normalized.slice(0, maxLen)];
+}
+
+function splitSentences(text: string): string[] {
+  return text.match(/[^.!?]+[.!?]+["']?|[^.!?]+$/g) || [text];
 }
 
 function stopIosSpeechKeepAlive(): void {
@@ -250,21 +340,6 @@ function stopIosSpeechKeepAlive(): void {
     window.clearInterval(_iosResumeInterval);
     _iosResumeInterval = null;
   }
-}
-
-function splitSentences(text: string): string[] {
-  return text.match(/[^.!?]+[.!?]+["']?|[^.!?]+$/g) || [text];
-}
-
-function pickVoiceSync(): SpeechSynthesisVoice | null {
-  if (_stationVoice) return _stationVoice;
-  const syn = synthesis();
-  if (!syn) return null;
-  syn.getVoices();
-  const voices = syn.getVoices().filter(v => v.lang.startsWith('en'));
-  if (!voices.length) return null;
-  const personal = voices.find(isPersonalVoice);
-  return personal ?? voices.find(v => v.default) ?? voices[0] ?? null;
 }
 
 function speakSentence(
@@ -299,15 +374,21 @@ export function stationSpeakFromUserGesture(text: string): Promise<void> {
   const syn = synthesis();
   if (!syn) return Promise.resolve();
 
-  primeSpeechEngineForRefresh();
+  unlockIosSpeechSession();
+  warmVoiceList();
   syn.resume();
 
   const token = ++_speakToken;
   startIosSpeechKeepAlive();
 
-  const sentences = splitSentences(text).map(s => s.trim()).filter(Boolean);
-  const voice = pickVoiceSync();
-  if (!sentences.length) {
+  const voice = resolveVoice(_stationVoice);
+  if (voice) _stationVoice = voice;
+
+  const parts = isIosPlatform()
+    ? chunkTextForIos(text)
+    : splitSentences(text).map(s => s.trim()).filter(Boolean);
+
+  if (!parts.length) {
     stopIosSpeechKeepAlive();
     return Promise.resolve();
   }
@@ -316,32 +397,35 @@ export function stationSpeakFromUserGesture(text: string): Promise<void> {
     let idx = 0;
 
     const speakNext = () => {
-      if (token !== _speakToken || idx >= sentences.length) {
+      if (token !== _speakToken || idx >= parts.length) {
         stopIosSpeechKeepAlive();
         resolve();
         return;
       }
 
-      const utterance = new SpeechSynthesisUtterance(sentences[idx++]);
+      const utterance = new SpeechSynthesisUtterance(parts[idx++]);
       if (voice) utterance.voice = voice;
       utterance.lang = voice?.lang ?? 'en-US';
       utterance.rate = _paceRate;
-      utterance.pitch = 0.95;
+      utterance.pitch = 1;
       utterance.volume = 1;
-      utterance.onend = () => speakNext();
+      utterance.onend = () => {
+        window.setTimeout(speakNext, isIosPlatform() ? 80 : 0);
+      };
       utterance.onerror = () => speakNext();
       syn.resume();
       syn.speak(utterance);
     };
 
-    // First syn.speak() runs in the same turn as the user gesture.
     speakNext();
   });
 }
 
 /** Set active voice immediately (sync) before iOS audition from a tap. */
 export function setStationVoice(entry: RosterEntry): void {
-  _stationVoice = entry.voice;
+  _stationVoice = resolveVoice(entry.voice);
+  _savedVoiceUriCache = entry.uri;
+  _savedVoiceNameCache = cleanVoiceName(entry.name);
 }
 
 async function iosUnlockAfterCancel(): Promise<void> {
@@ -447,6 +531,9 @@ export async function initStationSpeech(): Promise<RosterEntry[]> {
     if ([0.75, 0.88, 1.0].includes(n)) _paceRate = n;
   }
 
+  _savedVoiceUriCache = await idbGet(VOICE_URI_KEY);
+  _savedVoiceNameCache = await idbGet(VOICE_KEY);
+
   const roster = dedupeRoster(await buildVoiceRoster());
   _stationVoice = await pickDefaultVoice(roster);
   return roster;
@@ -455,9 +542,16 @@ export async function initStationSpeech(): Promise<RosterEntry[]> {
 /** Refresh voices after a user gesture — use before first Listen on iPhone. */
 export async function ensureVoicesReady(): Promise<RosterEntry[]> {
   primeSpeechEngine();
-  _stationVoice = null;
   _voicesPromise = null;
   return initStationSpeech();
+}
+
+/** Load roster in background without clearing the active voice mid-playback. */
+export async function loadVoiceRosterInBackground(): Promise<RosterEntry[]> {
+  warmVoiceList();
+  const roster = dedupeRoster(await buildVoiceRoster(isIosPlatform() ? 8000 : 6000, true));
+  if (!_stationVoice) _stationVoice = await pickDefaultVoice(roster);
+  return roster;
 }
 
 /** Aggressive refresh for iPhone — re-kicks speech engine and polls twice for Personal Voice. */
@@ -475,7 +569,7 @@ export async function refreshStationVoices(): Promise<RosterEntry[]> {
 
   if (isIosPlatform()) {
     await new Promise<void>(resolve => window.setTimeout(resolve, 500));
-    kickVoiceListLoad();
+    warmVoiceList();
     _voicesPromise = null;
     const second = dedupeRoster(await buildVoiceRoster(8000, true));
     if (second.length >= roster.length) roster = second;
@@ -494,11 +588,7 @@ export function chooseStationVoiceFromGesture(entry: RosterEntry): Promise<void>
 }
 
 export async function chooseStationVoice(entry: RosterEntry): Promise<void> {
-  setStationVoice(entry);
-  await idbSet(VOICE_KEY, cleanVoiceName(entry.name));
-  await idbSet(VOICE_URI_KEY, entry.uri);
-  stationStop();
-  return stationSpeakFromUserGesture(AUDITION_LINE);
+  return chooseStationVoiceFromGesture(entry);
 }
 
 export function platformVoiceHint(): string {

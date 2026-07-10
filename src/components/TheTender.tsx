@@ -10,8 +10,10 @@ import {
   stationStop,
   chooseStationVoiceFromGesture,
   ensureVoicesReady,
+  loadVoiceRosterInBackground,
   refreshStationVoices,
   primeSpeechEngine,
+  unlockIosSpeechSession,
   setPaceRate,
   getPaceRate,
   getActiveVoiceLabel,
@@ -227,6 +229,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     setCurrentTier(tier);
     setCurrentVoiceFamiliar(isFamiliarEntry(entry));
     setSpeaking(true);
+    unlockIosSpeechSession();
     primeSpeechEngine();
     void chooseStationVoiceFromGesture(entry)
       .then(() => getSavedVoiceMeta())
@@ -240,23 +243,19 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
       });
   };
 
-  const handleListenStop = () => {
-    if (speaking) {
-      stopReading(false);
-      return;
-    }
+  const beginProsePlayback = () => {
     const textSrc = inputText.trim();
     if (!textSrc || isEditMode) return;
 
     if (showFamiliarGreeting) dismissFamiliarGreeting();
 
+    unlockIosSpeechSession();
     primeSpeechEngine();
     suppressTenderStopRef.current = true;
-    stopAllAudio();
+    stopAllAudio({ skipSpeechCancel: isIosPlatform() });
     suppressTenderStopRef.current = false;
 
     const session = ++speakSessionRef.current;
-    if (soundEnv !== 'silence') startSoundEnvironment(soundEnv);
     setSpeaking(true);
 
     const finish = () => {
@@ -265,14 +264,39 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
 
     if (isIosPlatform()) {
       void stationSpeakFromUserGesture(textSrc).finally(finish);
-      void ensureVoicesReady().then(list => {
+      void loadVoiceRosterInBackground().then(list => {
         setRoster(list);
         syncVoiceHeader(list);
       });
       return;
     }
 
+    if (soundEnv !== 'silence') startSoundEnvironment(soundEnv);
     void ensureVoicesReady().then(() => stationSpeak(textSrc)).finally(finish);
+  };
+
+  const iosGestureLockRef = useRef(false);
+  const iosVoiceLockRef = useRef<string | null>(null);
+
+  const handleListenStop = () => {
+    if (isIosPlatform()) {
+      if (iosGestureLockRef.current) {
+        iosGestureLockRef.current = false;
+        return;
+      }
+    }
+    if (speaking) {
+      stopReading(false);
+      return;
+    }
+    beginProsePlayback();
+  };
+
+  const handleListenPointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!isIosPlatform() || speaking || isEditMode || !inputText.trim()) return;
+    e.preventDefault();
+    iosGestureLockRef.current = true;
+    beginProsePlayback();
   };
 
   const handleRefreshVoices = () => {
@@ -360,7 +384,22 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
             type="button"
             aria-label={`Try and select ${cleaned}, ${tier}`}
             aria-pressed={selected}
-            onClick={() => onSelect(entry)}
+            onClick={() => {
+              if (isIos && iosVoiceLockRef.current === entry.uri) {
+                iosVoiceLockRef.current = null;
+                return;
+              }
+              onSelect(entry);
+            }}
+            onPointerDown={
+              isIos
+                ? e => {
+                    e.preventDefault();
+                    iosVoiceLockRef.current = entry.uri;
+                    onSelect(entry);
+                  }
+                : undefined
+            }
             className={`w-full text-left px-4 py-3 rounded-lg border transition-all cursor-pointer flex items-center justify-between gap-2 min-h-[48px] ${
               selected
                 ? isNight ? 'border-[#d4b05a] bg-[#d4b05a]/10' : 'border-[#2c2824] bg-stone-100'
@@ -560,6 +599,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                 id="tender-play-toggle-btn"
                 disabled={isEditMode || !inputText.trim()}
                 onClick={handleListenStop}
+                onPointerDown={handleListenPointerDown}
                 aria-label={speaking ? 'Stop reading' : 'Listen now'}
                 aria-pressed={speaking}
                 className={`px-5 py-2.5 rounded-full hw-btn-label flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-30 ${
