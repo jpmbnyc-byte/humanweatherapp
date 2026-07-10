@@ -5,15 +5,12 @@ import { PRESETS } from '../data/presets';
 import { getThemeStyles } from '../lib/theme';
 import { registerAudioStop, stopAllAudio } from '../lib/stopAllAudio';
 import {
-  stationSpeak,
   stationSpeakFromUserGesture,
   stationStop,
   chooseStationVoiceFromGesture,
   ensureVoicesReady,
-  loadVoiceRosterInBackground,
   refreshStationVoices,
   primeSpeechEngine,
-  unlockIosSpeechSession,
   setPaceRate,
   getPaceRate,
   getActiveVoiceLabel,
@@ -25,14 +22,8 @@ import {
   platformVoiceHint,
   PACE_VALUES,
   paceFromRate,
-  isIosPlatform,
-  isFamiliarEntry,
-  hasFamiliarInRoster,
-  isActiveVoiceFamiliar,
-  getFamiliarGreeted,
-  setFamiliarGreeted,
-  familiarVoiceCopy,
-  FAMILIAR_GREETING_LINE,
+  onKokoroLoadState,
+  type KokoroLoadState,
   type RosterEntry,
   type PaceOption,
   type SavedVoiceMeta,
@@ -49,15 +40,14 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const [roster, setRoster] = useState<RosterEntry[]>([]);
   const [currentVoiceLabel, setCurrentVoiceLabel] = useState('');
   const [currentTier, setCurrentTier] = useState<'PREMIUM' | 'ENHANCED' | 'STANDARD' | 'FAMILIAR'>('STANDARD');
-  const [currentVoiceFamiliar, setCurrentVoiceFamiliar] = useState(false);
   const [pace, setPace] = useState<PaceOption>('standard');
   const [ambientVolume, setAmbientVolume] = useState(0.4);
   const [isEditMode, setIsEditMode] = useState(false);
   const [inlineVoiceOpen, setInlineVoiceOpen] = useState(false);
-  const [showFamiliarGreeting, setShowFamiliarGreeting] = useState(false);
-  const [familiarGreetingFading, setFamiliarGreetingFading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [savedVoice, setSavedVoice] = useState<SavedVoiceMeta>({ uri: null, name: null });
+  const [voiceLoadState, setVoiceLoadState] = useState<KokoroLoadState>('idle');
+  const [voiceLoadDetail, setVoiceLoadDetail] = useState('');
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const noiseSourceRef = useRef<AudioBufferSourceNode | null>(null);
@@ -71,7 +61,6 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     setCurrentVoiceLabel(label);
     const active = list.find(e => cleanVoiceName(e.name) === label);
     setCurrentTier(active ? rosterTier(active) : 'STANDARD');
-    setCurrentVoiceFamiliar(isActiveVoiceFamiliar());
   }, []);
 
   const syncSavedVoice = useCallback(() => {
@@ -83,30 +72,22 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   }, [syncSavedVoice]);
 
   useEffect(() => {
+    return onKokoroLoadState((state, detail) => {
+      setVoiceLoadState(state);
+      setVoiceLoadDetail(detail ?? '');
+    });
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
-    const load = () => {
-      void ensureVoicesReady().then(list => {
-        if (cancelled) return;
-        setRoster(list);
-        setPace(paceFromRate(getPaceRate()));
-        syncVoiceHeader(list);
-        if (isIosPlatform() && hasFamiliarInRoster(list)) {
-          void getFamiliarGreeted().then(greeted => {
-            if (!cancelled && !greeted) setShowFamiliarGreeting(true);
-          });
-        }
-      });
-    };
-
-    load();
-
-    const onVoicesChanged = () => load();
-    const syn = speechSynthesis;
-    syn.addEventListener('voiceschanged', onVoicesChanged);
-
+    void ensureVoicesReady().then(list => {
+      if (cancelled) return;
+      setRoster(list);
+      setPace(paceFromRate(getPaceRate()));
+      syncVoiceHeader(list);
+    });
     return () => {
       cancelled = true;
-      syn.removeEventListener('voiceschanged', onVoicesChanged);
       stationStop();
       stopSoundEnvironment();
       if (audioCtxRef.current) audioCtxRef.current.close().catch(() => {});
@@ -212,30 +193,17 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     });
   }, []);
 
-  const dismissFamiliarGreeting = useCallback(() => {
-    setFamiliarGreetingFading(true);
-    window.setTimeout(() => {
-      setShowFamiliarGreeting(false);
-      setFamiliarGreetingFading(false);
-    }, 600);
-    void setFamiliarGreeted();
-  }, []);
-
   const handleVoiceSelect = (entry: RosterEntry) => {
     const cleaned = cleanVoiceName(entry.name);
     const tier = rosterTier(entry);
     if (speaking) stopReading(false);
     setCurrentVoiceLabel(cleaned);
     setCurrentTier(tier);
-    setCurrentVoiceFamiliar(isFamiliarEntry(entry));
     setSpeaking(true);
-    unlockIosSpeechSession();
     primeSpeechEngine();
     void chooseStationVoiceFromGesture(entry)
       .then(() => getSavedVoiceMeta())
-      .then(meta => {
-        setSavedVoice(meta);
-      })
+      .then(meta => setSavedVoice(meta))
       .finally(() => {
         setSpeaking(false);
         setInlineVoiceOpen(false);
@@ -247,55 +215,24 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     const textSrc = inputText.trim();
     if (!textSrc || isEditMode) return;
 
-    if (showFamiliarGreeting) dismissFamiliarGreeting();
-
-    unlockIosSpeechSession();
     primeSpeechEngine();
     suppressTenderStopRef.current = true;
-    stopAllAudio({ skipSpeechCancel: isIosPlatform() });
+    stopAllAudio();
     suppressTenderStopRef.current = false;
 
     const session = ++speakSessionRef.current;
     setSpeaking(true);
 
-    const finish = () => {
+    void stationSpeakFromUserGesture(textSrc).finally(() => {
       if (speakSessionRef.current === session) setSpeaking(false);
-    };
-
-    if (isIosPlatform()) {
-      void stationSpeakFromUserGesture(textSrc).finally(finish);
-      void loadVoiceRosterInBackground().then(list => {
-        setRoster(list);
-        syncVoiceHeader(list);
-      });
-      return;
-    }
-
-    if (soundEnv !== 'silence') startSoundEnvironment(soundEnv);
-    void ensureVoicesReady().then(() => stationSpeak(textSrc)).finally(finish);
+    });
   };
 
-  const iosGestureLockRef = useRef(false);
-  const iosVoiceLockRef = useRef<string | null>(null);
-
   const handleListenStop = () => {
-    if (isIosPlatform()) {
-      if (iosGestureLockRef.current) {
-        iosGestureLockRef.current = false;
-        return;
-      }
-    }
     if (speaking) {
       stopReading(false);
       return;
     }
-    beginProsePlayback();
-  };
-
-  const handleListenPointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
-    if (!isIosPlatform() || speaking || isEditMode || !inputText.trim()) return;
-    e.preventDefault();
-    iosGestureLockRef.current = true;
     beginProsePlayback();
   };
 
@@ -309,11 +246,6 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
         syncVoiceHeader(list);
         syncSavedVoice();
         setInlineVoiceOpen(true);
-        if (isIosPlatform() && hasFamiliarInRoster(list)) {
-          void getFamiliarGreeted().then(greeted => {
-            if (!greeted) setShowFamiliarGreeting(true);
-          });
-        }
       })
       .finally(() => setRefreshing(false));
   };
@@ -359,15 +291,14 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
         : isNight ? 'text-white/40 border-white/10' : 'text-stone-500 border-stone-200';
 
   const displayRoster = dedupeRoster(roster);
-  const isIos = isIosPlatform();
   const chipName = currentVoiceLabel || (displayRoster[0] ? cleanVoiceName(displayRoster[0].name) : '');
 
   const goldVoiceText = isNight ? 'text-[#e8cc6a]' : 'text-[#b8860b]';
 
   const voiceNameClass = (entry: RosterEntry, selected: boolean) => {
     const saved = isSavedVoiceEntry(entry, savedVoice);
-    const familiar = isFamiliarEntry(entry);
-    if (saved || familiar) return goldVoiceText;
+    const tier = rosterTier(entry);
+    if (saved || tier === 'PREMIUM') return goldVoiceText;
     if (selected) return styles.titleText;
     return styles.mutedText;
   };
@@ -384,33 +315,18 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
             type="button"
             aria-label={`Try and select ${cleaned}, ${tier}`}
             aria-pressed={selected}
-            onClick={() => {
-              if (isIos && iosVoiceLockRef.current === entry.uri) {
-                iosVoiceLockRef.current = null;
-                return;
-              }
-              onSelect(entry);
-            }}
-            onPointerDown={
-              isIos
-                ? e => {
-                    e.preventDefault();
-                    iosVoiceLockRef.current = entry.uri;
-                    onSelect(entry);
-                  }
-                : undefined
-            }
+            onClick={() => onSelect(entry)}
             className={`w-full text-left px-4 py-3 rounded-lg border transition-all cursor-pointer flex items-center justify-between gap-2 min-h-[48px] ${
               selected
                 ? isNight ? 'border-[#d4b05a] bg-[#d4b05a]/10' : 'border-[#2c2824] bg-stone-100'
-                : saved || isFamiliarEntry(entry)
+                : saved || tier === 'PREMIUM'
                   ? isNight ? 'border-[#d4b05a]/40 hover:border-[#d4b05a]/60' : 'border-amber-300 hover:border-amber-400'
                   : isNight ? 'border-white/8 hover:border-white/15' : 'border-stone-200 hover:border-stone-300'
             }`}
           >
             <span className={`font-sans text-sm ${voiceNameClass(entry, selected)}`}>
               {cleaned}
-              {isFamiliarEntry(entry) ? ' · Personal' : saved ? ' · Saved' : ''}
+              {saved ? ' · Saved' : ''}
             </span>
             <span className={`text-[10px] tracking-widest uppercase px-2 py-0.5 rounded-full border shrink-0 ${tierStyle(tier)}`}>
               {tier}
@@ -493,15 +409,15 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
             </div>
 
             <AnimatePresence>
-              {showFamiliarGreeting && (
+              {voiceLoadState === 'loading' && (
                 <motion.p
-                  initial={{ opacity: 1 }}
-                  animate={{ opacity: familiarGreetingFading ? 0 : 1 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: 0.6 }}
-                  className={`font-mono text-xs tracking-wide mb-3 ${styles.mutedText}`}
+                  className={`font-mono text-xs tracking-wide mb-3 ${styles.accentText}`}
                 >
-                  {FAMILIAR_GREETING_LINE}
+                  Preparing the voice — one-time download…
+                  {voiceLoadDetail ? ` ${voiceLoadDetail}` : ''}
                 </motion.p>
               )}
             </AnimatePresence>
@@ -542,11 +458,6 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                   className="overflow-hidden mb-3"
                   id="tender-inline-voice-chooser"
                 >
-                  {isIos && (
-                    <p className={`font-mono text-xs mb-3 ${styles.mutedText}`}>
-                      {familiarVoiceCopy()}
-                    </p>
-                  )}
                   <ul className="space-y-2 max-h-[180px] overflow-y-auto scrollbar-thin" role="list">
                     {renderRosterRows(handleVoiceSelect)}
                   </ul>
@@ -570,16 +481,12 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                   aria-expanded={inlineVoiceOpen}
                   aria-controls="tender-inline-voice-chooser"
                   className={`font-mono text-[11px] tracking-wide uppercase text-left cursor-pointer truncate hover:opacity-80 transition-opacity ${
-                    currentVoiceFamiliar || (chipName && savedVoice.name === chipName)
+                    chipName && (savedVoice.name === chipName || currentTier === 'PREMIUM')
                       ? goldVoiceText
                       : styles.mutedText
                   }`}
                 >
-                  {chipName
-                    ? currentVoiceFamiliar
-                      ? `READ BY · ${chipName} · FAMILIAR`
-                      : `READ BY · ${chipName}`
-                    : 'READ BY · standard voice'}
+                  {chipName ? `READ BY · ${chipName}` : 'READ BY · Joan'}
                 </button>
                 <button
                   type="button"
@@ -599,7 +506,6 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                 id="tender-play-toggle-btn"
                 disabled={isEditMode || !inputText.trim()}
                 onClick={handleListenStop}
-                onPointerDown={handleListenPointerDown}
                 aria-label={speaking ? 'Stop reading' : 'Listen now'}
                 aria-pressed={speaking}
                 className={`px-5 py-2.5 rounded-full hw-btn-label flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-30 ${
@@ -650,9 +556,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                   <span className={`hw-eyebrow block mb-1 ${styles.mutedText}`}>Current voice</span>
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className={`font-serif text-base ${
-                      currentVoiceLabel || currentVoiceFamiliar || savedVoice.name
-                        ? goldVoiceText
-                        : styles.titleText
+                      currentVoiceLabel || savedVoice.name ? goldVoiceText : styles.titleText
                     }`}>
                       {currentVoiceLabel || cleanVoiceName(displayRoster[0].name)}
                     </span>

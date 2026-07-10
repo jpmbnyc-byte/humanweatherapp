@@ -1,3 +1,6 @@
+import { stopAudioPlayback } from './audioPlayback';
+import { kokoroStop } from './kokoroEngine';
+
 const stopHandlers = new Set<() => void>();
 
 export function registerAudioStop(handler: () => void): () => void {
@@ -23,7 +26,11 @@ export function stopAllAudio(options?: StopAllAudioOptions): void {
       }
     });
   }
-  if (!options?.skipSpeechCancel && typeof speechSynthesis !== 'undefined') {
-    speechSynthesis.cancel();
+  if (!options?.skipSpeechCancel) {
+    if (typeof speechSynthesis !== 'undefined') {
+      speechSynthesis.cancel();
+    }
+    stopAudioPlayback();
+    kokoroStop();
   }
 }
