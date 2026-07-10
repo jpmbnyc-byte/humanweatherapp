@@ -1,23 +1,18 @@
+/** Kokoro TTS engine — browser only (*.client.ts). */
 import { idbGet, idbSet } from './idb';
-import { playBlob, stopAudioPlayback, unlockAudioPlayback } from './audioPlayback';
+import { playBlob, stopAudioPlayback, unlockAudioPlayback } from './audioPlayback.client';
+import { registerAudioStop } from './stopAllAudio';
+import {
+  KOKORO_VOICES,
+  kokoroVoiceLabel,
+  type KokoroVoiceKey,
+  type KokoroLoadState,
+} from './kokoroVoices';
+
+export { KOKORO_VOICES, type KokoroVoiceKey, type KokoroLoadState };
 
 const MODEL_ID = 'onnx-community/Kokoro-82M-v1.0-ONNX';
 const VOICE_KEY = 'hw-station-voice';
-const PACE_KEY = 'hw-pace';
-
-export const KOKORO_VOICES = {
-  joan: { id: 'af_heart' as const, label: 'Joan', speed: 0.88, tier: 'PREMIUM' as const },
-  daniel: { id: 'am_michael' as const, label: 'Daniel', speed: 0.9, tier: 'ENHANCED' as const },
-  grace: { id: 'af_nicole' as const, label: 'Grace', speed: 0.85, tier: 'ENHANCED' as const },
-  peter: { id: 'bm_george' as const, label: 'Peter', speed: 0.92, tier: 'STANDARD' as const },
-  samantha: { id: 'af_bella' as const, label: 'Samantha', speed: 0.88, tier: 'STANDARD' as const },
-  river: { id: 'af_river' as const, label: 'River', speed: 0.88, tier: 'STANDARD' as const },
-  sky: { id: 'af_sky' as const, label: 'Sky', speed: 0.88, tier: 'STANDARD' as const },
-};
-
-export type KokoroVoiceKey = keyof typeof KOKORO_VOICES;
-
-export type KokoroLoadState = 'idle' | 'loading' | 'ready' | 'error';
 
 type KokoroTTSInstance = {
   generate: (
@@ -62,6 +57,9 @@ export function getKokoroLoadState(): KokoroLoadState {
 export async function loadKokoroEngine(
   onProgress?: (progress: number) => void,
 ): Promise<KokoroTTSInstance> {
+  if (typeof window === 'undefined') {
+    throw new Error('Kokoro is browser-only');
+  }
   if (_tts) return _tts;
   if (_loadPromise) return _loadPromise;
 
@@ -88,14 +86,6 @@ export async function loadKokoroEngine(
         _activeVoiceKey = saved as KokoroVoiceKey;
       }
 
-      const savedPace = await idbGet(PACE_KEY);
-      if (savedPace) {
-        const n = parseFloat(savedPace);
-        if ([0.75, 0.88, 1.0].includes(n)) {
-          /* pace applied per-voice speed multiplier below */
-        }
-      }
-
       return _tts;
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Voice model failed to load';
@@ -113,7 +103,7 @@ export function getActiveKokoroVoiceKey(): KokoroVoiceKey {
 }
 
 export function getActiveKokoroVoiceLabel(): string {
-  return KOKORO_VOICES[_activeVoiceKey].label;
+  return kokoroVoiceLabel(_activeVoiceKey);
 }
 
 export function setActiveKokoroVoice(key: KokoroVoiceKey): void {
@@ -126,30 +116,21 @@ export function kokoroStop(): void {
   stopAudioPlayback();
 }
 
-function paceMultiplier(): number {
-  return 1;
-}
-
 export async function kokoroSpeak(text: string, voiceKey?: KokoroVoiceKey): Promise<void> {
   const tts = await loadKokoroEngine();
   const token = ++_speakToken;
   const key = voiceKey ?? _activeVoiceKey;
   const voice = KOKORO_VOICES[key];
-  const speed = voice.speed * paceMultiplier();
 
   for (const sentence of splitSentences(text)) {
     if (token !== _speakToken) return;
-    const raw = await tts.generate(sentence, { voice: voice.id, speed });
+    const raw = await tts.generate(sentence, { voice: voice.id, speed: voice.speed });
     if (token !== _speakToken) return;
     await playBlob(raw.toBlob());
   }
 }
 
-/** Start playback pipeline from a user tap (loads model on first use). */
-export function kokoroSpeakFromGesture(
-  text: string,
-  voiceKey?: KokoroVoiceKey,
-): Promise<void> {
+export function kokoroSpeakFromGesture(text: string, voiceKey?: KokoroVoiceKey): Promise<void> {
   unlockAudioPlayback();
   return kokoroSpeak(text, voiceKey);
 }
@@ -158,3 +139,5 @@ export async function kokoroAudition(voiceKey: KokoroVoiceKey): Promise<void> {
   setActiveKokoroVoice(voiceKey);
   return kokoroSpeakFromGesture('What is your weather right now?', voiceKey);
 }
+
+registerAudioStop(kokoroStop);
