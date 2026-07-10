@@ -286,6 +286,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     setIsEditMode(false);
     if (preset.id === 'solitude') setSoundEnv('ocean');
     else if (preset.id === 'reflection') setSoundEnv('rain');
+    else if (preset.id === 'relational-faith-01') setSoundEnv('silence');
     else setSoundEnv('silence');
   };
 
