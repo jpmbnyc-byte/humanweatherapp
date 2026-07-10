@@ -7,8 +7,8 @@ import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 const ROOT = join(import.meta.dirname, '..');
-const PUBLIC = join(ROOT, '.output/public');
-const SERVER = join(ROOT, '.output/server');
+const PUBLIC = join(ROOT, 'dist/client');
+const SERVER = join(ROOT, 'dist/server');
 
 async function findManifestFile() {
   const files = await readdir(SERVER);
