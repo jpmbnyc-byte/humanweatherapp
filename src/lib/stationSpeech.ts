@@ -83,28 +83,11 @@ function loadVoices(timeoutMs = 8000, force = false): Promise<SpeechSynthesisVoi
   return _voicesPromise;
 }
 
-/** Speak a near-silent utterance once per session so iOS allows later TTS. */
+/** Warm iOS speech without queueing audio — a kick utterance breaks the next real speak. */
 export function unlockIosSpeechSession(): void {
-  if (!isIosPlatform() || _iosSpeechUnlocked) return;
-  const syn = synthesis();
-  if (!syn) return;
-  syn.getVoices();
-  if (syn.paused) syn.resume();
-  try {
-    const unlock = new SpeechSynthesisUtterance(' ');
-    unlock.volume = 0.001;
-    unlock.rate = 10;
-    unlock.onend = () => {
-      _iosSpeechUnlocked = true;
-    };
-    unlock.onerror = () => {
-      _iosSpeechUnlocked = true;
-    };
-    syn.speak(unlock);
-    _iosSpeechUnlocked = true;
-  } catch {
-    _iosSpeechUnlocked = true;
-  }
+  if (!isIosPlatform()) return;
+  warmVoiceList();
+  _iosSpeechUnlocked = true;
 }
 
 /** Load voices only — never queue a kick utterance before real speech. */
@@ -118,15 +101,19 @@ function warmVoiceList(): void {
 /** Call from a user gesture (tap) before first speak on iPhone. */
 export function primeSpeechEngine(): void {
   const syn = synthesis();
-  if (!syn || _speechPrimed) return;
+  if (!syn) return;
+  if (isIosPlatform()) {
+    warmVoiceList();
+    if (syn.paused) syn.resume();
+    return;
+  }
+  if (_speechPrimed) return;
   _speechPrimed = true;
-  unlockIosSpeechSession();
   warmVoiceList();
 }
 
 /** Re-trigger voice list loading during an explicit refresh (user tap). */
 export function primeSpeechEngineForRefresh(): void {
-  unlockIosSpeechSession();
   warmVoiceList();
 }
 
@@ -307,6 +294,19 @@ function pickVoiceSync(): SpeechSynthesisVoice | null {
   return resolveVoice(_stationVoice);
 }
 
+/** Sync voice cache during a tap — never await before stationSpeakFromUserGesture on iOS. */
+export function warmSpeechVoicesFromGesture(): void {
+  const syn = synthesis();
+  if (!syn) return;
+  syn.getVoices();
+  if (syn.paused) syn.resume();
+  if (!_stationVoice) {
+    const roster = dedupeRoster(rosterFromVoices(syn.getVoices()));
+    if (roster.length) _stationVoice = roster[0].voice;
+  }
+  _stationVoice = resolveVoice(_stationVoice);
+}
+
 function normalizeSpeechText(text: string): string {
   return text.replace(/\s+/g, ' ').trim();
 }
@@ -370,18 +370,47 @@ function speakSentence(
  * Start speech synchronously from a user tap — required for iOS Safari.
  * Must be called directly from the click/touch handler (no await before this call).
  */
+function queueUtterance(
+  syn: SpeechSynthesis,
+  text: string,
+  voice: SpeechSynthesisVoice | null,
+  token: number,
+  allowVoicelessRetry: boolean,
+  onDone: () => void,
+): void {
+  if (token !== _speakToken) {
+    onDone();
+    return;
+  }
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  if (voice) utterance.voice = voice;
+  utterance.lang = voice?.lang ?? 'en-US';
+  utterance.rate = _paceRate;
+  utterance.pitch = 1;
+  utterance.volume = 1;
+  utterance.onend = onDone;
+  utterance.onerror = () => {
+    if (allowVoicelessRetry && voice) {
+      queueUtterance(syn, text, null, token, false, onDone);
+      return;
+    }
+    onDone();
+  };
+  syn.resume();
+  syn.speak(utterance);
+}
+
 export function stationSpeakFromUserGesture(text: string): Promise<void> {
   const syn = synthesis();
   if (!syn) return Promise.resolve();
 
-  unlockIosSpeechSession();
-  warmVoiceList();
-  syn.resume();
+  warmSpeechVoicesFromGesture();
 
   const token = ++_speakToken;
   startIosSpeechKeepAlive();
 
-  const voice = resolveVoice(_stationVoice);
+  const voice = pickVoiceSync();
   if (voice) _stationVoice = voice;
 
   const parts = isIosPlatform()
@@ -403,18 +432,10 @@ export function stationSpeakFromUserGesture(text: string): Promise<void> {
         return;
       }
 
-      const utterance = new SpeechSynthesisUtterance(parts[idx++]);
-      if (voice) utterance.voice = voice;
-      utterance.lang = voice?.lang ?? 'en-US';
-      utterance.rate = _paceRate;
-      utterance.pitch = 1;
-      utterance.volume = 1;
-      utterance.onend = () => {
-        window.setTimeout(speakNext, isIosPlatform() ? 80 : 0);
-      };
-      utterance.onerror = () => speakNext();
-      syn.resume();
-      syn.speak(utterance);
+      const chunk = parts[idx++];
+      queueUtterance(syn, chunk, voice, token, isIosPlatform(), () => {
+        window.setTimeout(speakNext, isIosPlatform() ? 120 : 0);
+      });
     };
 
     speakNext();

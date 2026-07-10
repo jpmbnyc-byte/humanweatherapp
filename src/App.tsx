@@ -8,7 +8,7 @@ import { getThemeStyles } from './lib/theme';
 import { stopAllAudio } from './lib/stopAllAudio';
 import type { WhereAreWeResult } from './lib/whereAreWe';
 import { runWhenIdle } from './lib/deferredWork';
-import { primeSpeechEngine, unlockIosSpeechSession } from './lib/stationSpeech';
+import { primeSpeechEngine, warmSpeechVoicesFromGesture } from './lib/stationSpeech';
 import { EntitlementProvider } from './lib/EntitlementContext';
 import BootSplashFallback, { dismissBootSplash } from './components/BootSplashFallback';
 import MembershipButton from './components/MembershipButton';
@@ -89,7 +89,7 @@ export default function App() {
 
   useEffect(() => {
     const prime = () => {
-      unlockIosSpeechSession();
+      warmSpeechVoicesFromGesture();
       primeSpeechEngine();
     };
     window.addEventListener('pointerdown', prime, { once: true, passive: true });
