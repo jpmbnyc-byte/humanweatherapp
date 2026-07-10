@@ -9,10 +9,13 @@ import {
   stationStop,
   chooseStationVoice,
   ensureVoicesReady,
+  refreshStationVoices,
   primeSpeechEngine,
   setPaceRate,
   getPaceRate,
   getActiveVoiceLabel,
+  getSavedVoiceMeta,
+  isSavedVoiceEntry,
   dedupeRoster,
   cleanVoiceName,
   rosterTier,
@@ -29,6 +32,7 @@ import {
   FAMILIAR_GREETING_LINE,
   type RosterEntry,
   type PaceOption,
+  type SavedVoiceMeta,
 } from '../lib/stationSpeech';
 
 interface TheTenderProps {
@@ -49,6 +53,8 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const [inlineVoiceOpen, setInlineVoiceOpen] = useState(false);
   const [showFamiliarGreeting, setShowFamiliarGreeting] = useState(false);
   const [familiarGreetingFading, setFamiliarGreetingFading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [savedVoice, setSavedVoice] = useState<SavedVoiceMeta>({ uri: null, name: null });
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const noiseSourceRef = useRef<AudioBufferSourceNode | null>(null);
@@ -63,6 +69,14 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     setCurrentTier(active ? rosterTier(active) : 'STANDARD');
     setCurrentVoiceFamiliar(isActiveVoiceFamiliar());
   }, []);
+
+  const syncSavedVoice = useCallback(() => {
+    void getSavedVoiceMeta().then(setSavedVoice);
+  }, []);
+
+  useEffect(() => {
+    syncSavedVoice();
+  }, [syncSavedVoice]);
 
   useEffect(() => {
     let cancelled = false;
@@ -213,6 +227,10 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     primeSpeechEngine();
     void ensureVoicesReady()
       .then(() => chooseStationVoice(entry))
+      .then(() => getSavedVoiceMeta())
+      .then(meta => {
+        setSavedVoice(meta);
+      })
       .finally(() => {
         setSpeaking(false);
         setInlineVoiceOpen(false);
@@ -242,16 +260,21 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     });
   };
 
-  const [refreshing, setRefreshing] = useState(false);
   const handleRefreshVoices = () => {
     if (refreshing) return;
     setRefreshing(true);
     primeSpeechEngine();
-    void ensureVoicesReady()
+    void refreshStationVoices()
       .then(list => {
         setRoster(list);
         syncVoiceHeader(list);
+        syncSavedVoice();
         setInlineVoiceOpen(true);
+        if (isIosPlatform() && hasFamiliarInRoster(list)) {
+          void getFamiliarGreeted().then(greeted => {
+            if (!greeted) setShowFamiliarGreeting(true);
+          });
+        }
       })
       .finally(() => setRefreshing(false));
   };
@@ -300,11 +323,22 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const isIos = isIosPlatform();
   const chipName = currentVoiceLabel || (displayRoster[0] ? cleanVoiceName(displayRoster[0].name) : '');
 
+  const goldVoiceText = isNight ? 'text-[#e8cc6a]' : 'text-[#b8860b]';
+
+  const voiceNameClass = (entry: RosterEntry, selected: boolean) => {
+    const saved = isSavedVoiceEntry(entry, savedVoice);
+    const familiar = isFamiliarEntry(entry);
+    if (saved || familiar) return goldVoiceText;
+    if (selected) return styles.titleText;
+    return styles.mutedText;
+  };
+
   const renderRosterRows = (onSelect: (entry: RosterEntry) => void) =>
     displayRoster.map(entry => {
       const cleaned = cleanVoiceName(entry.name);
       const tier = rosterTier(entry);
       const selected = currentVoiceLabel === cleaned;
+      const saved = isSavedVoiceEntry(entry, savedVoice);
       return (
         <li key={entry.uri}>
           <button
@@ -315,12 +349,14 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
             className={`w-full text-left px-4 py-3 rounded-lg border transition-all cursor-pointer flex items-center justify-between gap-2 min-h-[48px] ${
               selected
                 ? isNight ? 'border-[#d4b05a] bg-[#d4b05a]/10' : 'border-[#2c2824] bg-stone-100'
-                : isNight ? 'border-white/8 hover:border-white/15' : 'border-stone-200 hover:border-stone-300'
+                : saved || isFamiliarEntry(entry)
+                  ? isNight ? 'border-[#d4b05a]/40 hover:border-[#d4b05a]/60' : 'border-amber-300 hover:border-amber-400'
+                  : isNight ? 'border-white/8 hover:border-white/15' : 'border-stone-200 hover:border-stone-300'
             }`}
           >
-            <span className={`font-sans text-sm ${selected ? styles.titleText : styles.mutedText}`}>
+            <span className={`font-sans text-sm ${voiceNameClass(entry, selected)}`}>
               {cleaned}
-              {isFamiliarEntry(entry) ? ' · Familiar' : ''}
+              {isFamiliarEntry(entry) ? ' · Personal' : saved ? ' · Saved' : ''}
             </span>
             <span className={`text-[10px] tracking-widest uppercase px-2 py-0.5 rounded-full border shrink-0 ${tierStyle(tier)}`}>
               {tier}
@@ -479,7 +515,11 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                   }}
                   aria-expanded={inlineVoiceOpen}
                   aria-controls="tender-inline-voice-chooser"
-                  className={`font-mono text-[11px] tracking-wide uppercase text-left cursor-pointer truncate ${styles.mutedText} hover:opacity-80 transition-opacity`}
+                  className={`font-mono text-[11px] tracking-wide uppercase text-left cursor-pointer truncate hover:opacity-80 transition-opacity ${
+                    currentVoiceFamiliar || (chipName && savedVoice.name === chipName)
+                      ? goldVoiceText
+                      : styles.mutedText
+                  }`}
                 >
                   {chipName
                     ? currentVoiceFamiliar
@@ -501,47 +541,48 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                   <RefreshCw className={`w-3 h-3 ${refreshing ? 'animate-spin' : ''}`} />
                 </button>
               </div>
-              <div className="flex items-center gap-2">
-                {speaking && (
-                  <button
-                    type="button"
-                    id="tender-stop-btn"
-                    onClick={() => stopReading(false)}
-                    aria-label="Stop reading"
-                    className={`px-4 py-2.5 rounded-full hw-btn-label flex items-center gap-1.5 cursor-pointer transition-all ${
-                      isNight ? 'text-red-300/90 border border-red-500/30' : 'text-red-800 border border-red-300'
-                    }`}
-                  >
-                    <Square className="w-3.5 h-3.5 fill-current" /> Stop
-                  </button>
+              <button
+                id="tender-play-toggle-btn"
+                disabled={isEditMode || !inputText.trim()}
+                onClick={handleListenStop}
+                aria-label={speaking ? 'Stop reading' : 'Listen now'}
+                aria-pressed={speaking}
+                className={`px-5 py-2.5 rounded-full hw-btn-label flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-30 ${
+                  speaking
+                    ? isNight ? 'text-red-300/90 border border-red-500/30' : 'text-red-800 border border-red-300'
+                    : isNight ? 'bg-[#d4b05a] text-white' : 'bg-[#2c2824] text-white'
+                }`}
+              >
+                {speaking ? (
+                  <><Square className="w-3.5 h-3.5 fill-current" /> Stop</>
+                ) : (
+                  <><Play className="w-3.5 h-3.5 fill-current" /> Listen now</>
                 )}
-                <button
-                  id="tender-play-toggle-btn"
-                  disabled={isEditMode || !inputText.trim()}
-                  onClick={handleListenStop}
-                  aria-pressed={speaking}
-                  className={`px-5 py-2.5 rounded-full hw-btn-label flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-30 ${
-                    speaking
-                      ? isNight ? 'text-red-300/90 border border-red-500/30' : 'text-red-800 border border-red-300'
-                      : isNight ? 'bg-[#d4b05a] text-white' : 'bg-[#2c2824] text-white'
-                  }`}
-                >
-                  {speaking ? (
-                    <><Square className="w-3.5 h-3.5 fill-current" /> Stop</>
-                  ) : (
-                    <><Play className="w-3.5 h-3.5 fill-current" /> Listen</>
-                  )}
-                </button>
-              </div>
+              </button>
             </div>
           </div>
         </div>
 
         <div className="md:col-span-5 flex flex-col gap-4">
           <div className={`p-4 rounded-xl border ${styles.innerBg}`} id="voice-panel">
-            <div className="flex items-center gap-2 mb-3">
-              <Sliders className={`w-4 h-4 ${styles.accentText}`} />
-              <span className={`hw-eyebrow ${styles.mutedText}`}>Voice</span>
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <div className="flex items-center gap-2">
+                <Sliders className={`w-4 h-4 ${styles.accentText}`} />
+                <span className={`hw-eyebrow ${styles.mutedText}`}>Voice</span>
+              </div>
+              <button
+                type="button"
+                id="tender-voice-panel-refresh-btn"
+                onClick={handleRefreshVoices}
+                disabled={refreshing}
+                aria-label="Refresh voice list"
+                className={`px-3 py-1.5 rounded-full border text-[11px] font-mono uppercase tracking-wide flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-40 ${
+                  isNight ? 'border-white/10 text-white/60 hover:text-white/90' : 'border-stone-300 text-stone-600 hover:text-[#2c2824]'
+                }`}
+              >
+                <RefreshCw className={`w-3 h-3 ${refreshing ? 'animate-spin' : ''}`} />
+                Refresh voices
+              </button>
             </div>
 
             {displayRoster.length === 0 ? (
@@ -553,7 +594,11 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                 <div className="mb-4 pb-3 border-b border-accent/10">
                   <span className={`hw-eyebrow block mb-1 ${styles.mutedText}`}>Current voice</span>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`font-serif text-base ${styles.titleText}`}>
+                    <span className={`font-serif text-base ${
+                      currentVoiceFamiliar || (currentVoiceLabel && savedVoice.name === currentVoiceLabel)
+                        ? goldVoiceText
+                        : styles.titleText
+                    }`}>
                       {currentVoiceLabel || cleanVoiceName(displayRoster[0].name)}
                     </span>
                     <span className={`text-[10px] tracking-widest uppercase px-2 py-0.5 rounded-full border ${tierStyle(currentTier)}`}>

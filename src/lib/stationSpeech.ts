@@ -27,12 +27,15 @@ function synthesis(): SpeechSynthesis | null {
   return window.speechSynthesis;
 }
 
+export type SavedVoiceMeta = { uri: string | null; name: string | null };
+
 /** iOS/Safari loads voices asynchronously — never trust the first empty getVoices(). */
-function loadVoices(timeoutMs = 8000): Promise<SpeechSynthesisVoice[]> {
+function loadVoices(timeoutMs = 8000, force = false): Promise<SpeechSynthesisVoice[]> {
   const syn = synthesis();
   if (!syn) return Promise.resolve([]);
 
-  if (_voicesPromise) return _voicesPromise;
+  if (_voicesPromise && !force) return _voicesPromise;
+  if (force) _voicesPromise = null;
 
   _voicesPromise = new Promise(resolve => {
     let settled = false;
@@ -77,24 +80,33 @@ function loadVoices(timeoutMs = 8000): Promise<SpeechSynthesisVoice[]> {
   return _voicesPromise;
 }
 
+/** Speak a near-silent utterance so iOS populates getVoices() after a user gesture. */
+function kickVoiceListLoad(): void {
+  const syn = synthesis();
+  if (!syn) return;
+  syn.getVoices();
+  if (syn.paused) syn.resume();
+  try {
+    const kick = new SpeechSynthesisUtterance('.');
+    kick.volume = 0.01;
+    kick.rate = 2;
+    syn.speak(kick);
+  } catch {
+    /* noop */
+  }
+}
+
 /** Call from a user gesture (tap) before first speak on iPhone. */
 export function primeSpeechEngine(): void {
   const syn = synthesis();
   if (!syn || _speechPrimed) return;
   _speechPrimed = true;
-  syn.getVoices();
-  if (syn.paused) syn.resume();
-  // iOS Safari won't populate getVoices() until the synth actually speaks once
-  // after a user gesture. Speak a near-silent utterance to force the voice
-  // list to load. Harmless on desktop.
-  try {
-    const kick = new SpeechSynthesisUtterance(' ');
-    kick.volume = 0;
-    kick.rate = 1;
-    syn.speak(kick);
-  } catch {
-    /* noop */
-  }
+  kickVoiceListLoad();
+}
+
+/** Re-trigger voice list loading during an explicit refresh (user tap). */
+export function primeSpeechEngineForRefresh(): void {
+  kickVoiceListLoad();
 }
 
 export function isIosPlatform(): boolean {
@@ -111,8 +123,10 @@ export function isPersonalVoice(voice: SpeechSynthesisVoice): boolean {
   return (
     /personal/.test(hay) ||
     /familiar/.test(hay) ||
+    /smooth.*personal|personal.*smooth/.test(hay) ||
     /com\.apple\.(tts|voice)[^.]*\.personal/.test(hay) ||
-    /personalvoice/.test(hay)
+    /personalvoice/.test(hay) ||
+    /\.personal\b/.test(hay)
   );
 }
 
@@ -137,8 +151,7 @@ function voiceScore(v: SpeechSynthesisVoice): number {
   return score;
 }
 
-export async function buildVoiceRoster(): Promise<RosterEntry[]> {
-  const voices = await loadVoices(isIosPlatform() ? 10000 : 6000);
+function rosterFromVoices(voices: SpeechSynthesisVoice[]): RosterEntry[] {
   const junk =
     /compact|fred|albert|zarvox|bad news|bells|trinoids|whisper|jester|organ|cellos|boing|bubbles/i;
   return voices
@@ -154,7 +167,27 @@ export async function buildVoiceRoster(): Promise<RosterEntry[]> {
     .sort((a, b) => b.score - a.score);
 }
 
-export function dedupeRoster(roster: RosterEntry[], max = 16): RosterEntry[] {
+export function rosterMaxCount(): number {
+  return isIosPlatform() ? 32 : 16;
+}
+
+export async function buildVoiceRoster(timeoutMs?: number, force = false): Promise<RosterEntry[]> {
+  const ms = timeoutMs ?? (isIosPlatform() ? 10000 : 6000);
+  const voices = await loadVoices(ms, force);
+  return rosterFromVoices(voices);
+}
+
+function mergeRosterEntries(a: RosterEntry[], b: RosterEntry[]): RosterEntry[] {
+  const seen = new Map<string, RosterEntry>();
+  for (const entry of [...a, ...b]) {
+    const key = entry.uri || cleanVoiceName(entry.name).toLowerCase();
+    const prev = seen.get(key);
+    if (!prev || entry.score > prev.score) seen.set(key, entry);
+  }
+  return [...seen.values()].sort((x, y) => y.score - x.score);
+}
+
+export function dedupeRoster(roster: RosterEntry[], max = rosterMaxCount()): RosterEntry[] {
   const seen = new Map<string, RosterEntry>();
   for (const entry of roster) {
     const key = entry.uri || cleanVoiceName(entry.name).toLowerCase();
@@ -286,7 +319,19 @@ export async function setFamiliarGreeted(): Promise<void> {
 }
 
 export function familiarVoiceCopy(): string {
-  return 'Personal Voice appears here when enabled in Settings → Accessibility → Personal Voice, with “Allow Apps to Request to Use” turned on. Tap Listen once, then open the voice list.';
+  return 'Enable Personal Voice in Settings → Accessibility → Personal Voice, turn on “Allow Apps to Request to Use My Personal Voice,” then tap Refresh voices. Your smooth Personal Voice and other installed voices will appear here.';
+}
+
+export async function getSavedVoiceMeta(): Promise<SavedVoiceMeta> {
+  const [uri, name] = await Promise.all([idbGet(VOICE_URI_KEY), idbGet(VOICE_KEY)]);
+  return { uri, name };
+}
+
+export function isSavedVoiceEntry(entry: RosterEntry, saved: SavedVoiceMeta): boolean {
+  if (saved.uri && entry.uri === saved.uri) return true;
+  const cleaned = cleanVoiceName(entry.name);
+  if (saved.name && (cleaned === saved.name || entry.name === saved.name)) return true;
+  return false;
 }
 
 export async function initStationSpeech(): Promise<RosterEntry[]> {
@@ -311,6 +356,32 @@ export async function ensureVoicesReady(): Promise<RosterEntry[]> {
   return initStationSpeech();
 }
 
+/** Aggressive refresh for iPhone — re-kicks speech engine and polls twice for Personal Voice. */
+export async function refreshStationVoices(): Promise<RosterEntry[]> {
+  primeSpeechEngineForRefresh();
+  _stationVoice = null;
+  _voicesPromise = null;
+
+  const syn = synthesis();
+  syn?.cancel();
+  if (syn?.paused) syn.resume();
+
+  const firstTimeout = isIosPlatform() ? 15000 : 8000;
+  let roster = dedupeRoster(await buildVoiceRoster(firstTimeout, true));
+
+  if (isIosPlatform()) {
+    await new Promise<void>(resolve => window.setTimeout(resolve, 500));
+    kickVoiceListLoad();
+    _voicesPromise = null;
+    const second = dedupeRoster(await buildVoiceRoster(8000, true));
+    if (second.length >= roster.length) roster = second;
+    else roster = dedupeRoster(mergeRosterEntries(roster, second));
+  }
+
+  _stationVoice = await pickDefaultVoice(roster);
+  return roster;
+}
+
 export async function chooseStationVoice(entry: RosterEntry): Promise<void> {
   _stationVoice = entry.voice;
   await idbSet(VOICE_KEY, cleanVoiceName(entry.name));
@@ -325,7 +396,7 @@ export function platformVoiceHint(): string {
   }
   const ua = navigator.userAgent;
   if (/iPhone|iPad|iPod/i.test(ua)) {
-    return 'On iPhone, voices load after your first tap. Enable Personal Voice under Settings → Accessibility → Personal Voice, then tap a voice below to audition.';
+    return 'On iPhone, tap Refresh voices after enabling Personal Voice (Settings → Accessibility → Personal Voice → Allow Apps to Request to Use). Tap a voice to audition, then Listen now to hear your prose.';
   }
   if (/Android/i.test(ua)) {
     return 'Add voices in Settings → Text-to-speech output. New voices appear here automatically.';
