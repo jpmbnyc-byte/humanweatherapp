@@ -6,7 +6,9 @@ export function registerAudioStop(handler: () => void): () => void {
 }
 
 export type StopAllAudioOptions = {
+  /** When true, registered handlers are not invoked (e.g. Tender starting its own playback). */
   skipHandlers?: boolean;
+  /** When true, speechSynthesis.cancel() is skipped. */
   skipSpeechCancel?: boolean;
 };
 
