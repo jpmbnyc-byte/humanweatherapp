@@ -11,7 +11,7 @@ import { runWhenIdle } from './lib/deferredWork';
 import { primeSpeechEngine, warmSpeechVoicesFromGesture } from './lib/stationSpeech';
 import { EntitlementProvider } from './lib/EntitlementContext';
 import BootSplashFallback, { dismissBootSplash } from './components/BootSplashFallback';
-import MembershipButton from './components/MembershipButton';
+import { formatHeaderClock, formatHeaderReference } from './lib/headerClock';
 
 const SunIcon = () => (
   <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-accent" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
@@ -68,7 +68,7 @@ async function resolvePlace(): Promise<WhereAreWeResult> {
 export default function App() {
   const [currentTheme, setCurrentTheme] = useState<'day' | 'night'>('day');
   const [manualOverride, setManualOverride] = useState(false);
-  const [currentTime, setCurrentTime] = useState<Date | null>(null);
+  const [currentTime, setCurrentTime] = useState(() => new Date());
   const [activeTab, setActiveTab] = useState<AppTab>(THRESHOLD_TAB);
   const [activeWeather, setActiveWeather] = useState<WeatherState>(DEFAULT_WEATHER);
   const [activeCoordinates, setActiveCoordinates] = useState<[number, number][]>([]);
@@ -101,6 +101,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    refreshPlace();
     runWhenIdle(refreshPlace, 3500);
   }, [refreshPlace]);
 
@@ -115,6 +116,7 @@ export default function App() {
         stopAllAudio();
         return;
       }
+      setCurrentTime(new Date());
       refreshPlace();
       setActiveTab(THRESHOLD_TAB);
     };
@@ -128,8 +130,8 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
-  const timeString = currentTime?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) ?? '--:--';
-  const dateString = currentTime?.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) ?? '---';
+  const { time: timeString, date: dateString } = formatHeaderClock(currentTime);
+  const referenceString = formatHeaderReference(place);
 
   const toggleTheme = () => {
     setManualOverride(true);
@@ -177,9 +179,18 @@ export default function App() {
 
           <div className="flex items-center gap-3">
             <MembershipButton isNight={isNight} themeStyles={themeStyles} />
-            <div className={`hidden sm:flex flex-col items-end px-3 border-r ${themeStyles.border}`}>
-              <span className="font-mono text-xs font-medium tracking-wider leading-none">{timeString}</span>
-              <span className="hw-meta opacity-45 leading-none mt-1">{dateString}</span>
+            <div className={`flex flex-col items-end px-2 sm:px-3 border-r min-w-0 ${themeStyles.border}`}>
+              <span className="font-mono text-[11px] sm:text-xs font-medium tracking-wider leading-none tabular-nums">
+                {timeString}
+              </span>
+              <span className="hw-meta opacity-45 leading-none mt-1 text-[10px] sm:text-xs whitespace-nowrap">
+                {dateString}
+              </span>
+              {referenceString && (
+                <span className="font-mono text-[9px] sm:text-[10px] tracking-wide uppercase opacity-40 leading-tight mt-1 text-right max-w-[11rem] sm:max-w-none">
+                  {referenceString}
+                </span>
+              )}
             </div>
             <button
               type="button"
