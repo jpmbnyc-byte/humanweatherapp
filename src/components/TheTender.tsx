@@ -6,8 +6,9 @@ import { getThemeStyles } from '../lib/theme';
 import { registerAudioStop, stopAllAudio } from '../lib/stopAllAudio';
 import {
   stationSpeak,
+  stationSpeakFromUserGesture,
   stationStop,
-  chooseStationVoice,
+  chooseStationVoiceFromGesture,
   ensureVoicesReady,
   refreshStationVoices,
   primeSpeechEngine,
@@ -60,6 +61,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const noiseSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const envGainNodeRef = useRef<GainNode | null>(null);
   const speakSessionRef = useRef(0);
+  const suppressTenderStopRef = useRef(false);
   const proseRef = useRef<HTMLDivElement | null>(null);
 
   const syncVoiceHeader = useCallback((list: RosterEntry[]) => {
@@ -193,6 +195,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
 
   useEffect(() => {
     return registerAudioStop(() => {
+      if (suppressTenderStopRef.current) return;
       speakSessionRef.current += 1;
       stationStop();
       if (noiseSourceRef.current) {
@@ -225,8 +228,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     setCurrentVoiceFamiliar(isFamiliarEntry(entry));
     setSpeaking(true);
     primeSpeechEngine();
-    void ensureVoicesReady()
-      .then(() => chooseStationVoice(entry))
+    void chooseStationVoiceFromGesture(entry)
       .then(() => getSavedVoiceMeta())
       .then(meta => {
         setSavedVoice(meta);
@@ -248,16 +250,29 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
 
     if (showFamiliarGreeting) dismissFamiliarGreeting();
 
-    // Stop any other audio (music, breathwork) BEFORE flipping our speaking
-    // state, so the registered stop handler doesn't immediately reset it.
+    primeSpeechEngine();
+    suppressTenderStopRef.current = true;
     stopAllAudio();
+    suppressTenderStopRef.current = false;
+
     const session = ++speakSessionRef.current;
     if (soundEnv !== 'silence') startSoundEnvironment(soundEnv);
     setSpeaking(true);
 
-    void ensureVoicesReady().then(() => stationSpeak(textSrc)).finally(() => {
+    const finish = () => {
       if (speakSessionRef.current === session) setSpeaking(false);
-    });
+    };
+
+    if (isIosPlatform()) {
+      void stationSpeakFromUserGesture(textSrc).finally(finish);
+      void ensureVoicesReady().then(list => {
+        setRoster(list);
+        syncVoiceHeader(list);
+      });
+      return;
+    }
+
+    void ensureVoicesReady().then(() => stationSpeak(textSrc)).finally(finish);
   };
 
   const handleRefreshVoices = () => {
@@ -595,7 +610,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                   <span className={`hw-eyebrow block mb-1 ${styles.mutedText}`}>Current voice</span>
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className={`font-serif text-base ${
-                      currentVoiceFamiliar || (currentVoiceLabel && savedVoice.name === currentVoiceLabel)
+                      currentVoiceLabel || currentVoiceFamiliar || savedVoice.name
                         ? goldVoiceText
                         : styles.titleText
                     }`}>

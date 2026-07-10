@@ -228,10 +228,120 @@ async function selectStationVoice(): Promise<SpeechSynthesisVoice | null> {
 }
 
 let _speakToken = 0;
+let _iosResumeInterval: ReturnType<typeof setInterval> | null = null;
 
 export function stationStop(): void {
   _speakToken += 1;
+  stopIosSpeechKeepAlive();
   synthesis()?.cancel();
+}
+
+function startIosSpeechKeepAlive(): void {
+  if (!isIosPlatform()) return;
+  stopIosSpeechKeepAlive();
+  _iosResumeInterval = window.setInterval(() => {
+    const syn = synthesis();
+    if (syn?.paused) syn.resume();
+  }, 8000);
+}
+
+function stopIosSpeechKeepAlive(): void {
+  if (_iosResumeInterval !== null) {
+    window.clearInterval(_iosResumeInterval);
+    _iosResumeInterval = null;
+  }
+}
+
+function splitSentences(text: string): string[] {
+  return text.match(/[^.!?]+[.!?]+["']?|[^.!?]+$/g) || [text];
+}
+
+function pickVoiceSync(): SpeechSynthesisVoice | null {
+  if (_stationVoice) return _stationVoice;
+  const syn = synthesis();
+  if (!syn) return null;
+  syn.getVoices();
+  const voices = syn.getVoices().filter(v => v.lang.startsWith('en'));
+  if (!voices.length) return null;
+  const personal = voices.find(isPersonalVoice);
+  return personal ?? voices.find(v => v.default) ?? voices[0] ?? null;
+}
+
+function speakSentence(
+  syn: SpeechSynthesis,
+  trimmed: string,
+  voice: SpeechSynthesisVoice | null,
+  token: number,
+): Promise<void> {
+  return new Promise<void>(resolve => {
+    if (token !== _speakToken) {
+      resolve();
+      return;
+    }
+    const utterance = new SpeechSynthesisUtterance(trimmed);
+    if (voice) utterance.voice = voice;
+    utterance.lang = voice?.lang ?? 'en-US';
+    utterance.rate = _paceRate;
+    utterance.pitch = 0.95;
+    utterance.volume = 1;
+    utterance.onend = () => resolve();
+    utterance.onerror = () => resolve();
+    syn.resume();
+    syn.speak(utterance);
+  });
+}
+
+/**
+ * Start speech synchronously from a user tap — required for iOS Safari.
+ * Must be called directly from the click/touch handler (no await before this call).
+ */
+export function stationSpeakFromUserGesture(text: string): Promise<void> {
+  const syn = synthesis();
+  if (!syn) return Promise.resolve();
+
+  primeSpeechEngineForRefresh();
+  syn.resume();
+
+  const token = ++_speakToken;
+  startIosSpeechKeepAlive();
+
+  const sentences = splitSentences(text).map(s => s.trim()).filter(Boolean);
+  const voice = pickVoiceSync();
+  if (!sentences.length) {
+    stopIosSpeechKeepAlive();
+    return Promise.resolve();
+  }
+
+  return new Promise<void>(resolve => {
+    let idx = 0;
+
+    const speakNext = () => {
+      if (token !== _speakToken || idx >= sentences.length) {
+        stopIosSpeechKeepAlive();
+        resolve();
+        return;
+      }
+
+      const utterance = new SpeechSynthesisUtterance(sentences[idx++]);
+      if (voice) utterance.voice = voice;
+      utterance.lang = voice?.lang ?? 'en-US';
+      utterance.rate = _paceRate;
+      utterance.pitch = 0.95;
+      utterance.volume = 1;
+      utterance.onend = () => speakNext();
+      utterance.onerror = () => speakNext();
+      syn.resume();
+      syn.speak(utterance);
+    };
+
+    // First syn.speak() runs in the same turn as the user gesture.
+    speakNext();
+  });
+}
+
+/** Set active voice immediately (sync) before iOS audition from a tap. */
+export function setStationVoice(entry: RosterEntry): void {
+  _stationVoice = entry.voice;
 }
 
 async function iosUnlockAfterCancel(): Promise<void> {
@@ -243,36 +353,30 @@ async function iosUnlockAfterCancel(): Promise<void> {
 }
 
 export async function stationSpeak(text: string): Promise<void> {
+  if (isIosPlatform()) {
+    return stationSpeakFromUserGesture(text);
+  }
+
   primeSpeechEngine();
   synthesis()?.cancel();
   await iosUnlockAfterCancel();
 
   const token = ++_speakToken;
-  const sentences = text.match(/[^.!?]+[.!?]+["']?|[^.!?]+$/g) || [text];
+  startIosSpeechKeepAlive();
+  const sentences = splitSentences(text);
   const voice = await selectStationVoice();
   const syn = synthesis();
   if (!syn) return;
 
-  for (const sentence of sentences) {
-    if (token !== _speakToken) return;
-    const trimmed = sentence.trim();
-    if (!trimmed) continue;
-
-    await new Promise<void>(resolve => {
-      const utterance = new SpeechSynthesisUtterance(trimmed);
-      if (voice) utterance.voice = voice;
-      utterance.lang = voice?.lang ?? 'en-US';
-      utterance.rate = _paceRate;
-      utterance.pitch = 0.95;
-      utterance.onend = () => resolve();
-      utterance.onerror = () => resolve();
-      if (token !== _speakToken) {
-        resolve();
-        return;
-      }
-      syn.resume();
-      syn.speak(utterance);
-    });
+  try {
+    for (const sentence of sentences) {
+      if (token !== _speakToken) return;
+      const trimmed = sentence.trim();
+      if (!trimmed) continue;
+      await speakSentence(syn, trimmed, voice, token);
+    }
+  } finally {
+    if (token === _speakToken) stopIosSpeechKeepAlive();
   }
 }
 
@@ -382,12 +486,19 @@ export async function refreshStationVoices(): Promise<RosterEntry[]> {
   return roster;
 }
 
+export function chooseStationVoiceFromGesture(entry: RosterEntry): Promise<void> {
+  setStationVoice(entry);
+  void idbSet(VOICE_KEY, cleanVoiceName(entry.name));
+  void idbSet(VOICE_URI_KEY, entry.uri);
+  return stationSpeakFromUserGesture(AUDITION_LINE);
+}
+
 export async function chooseStationVoice(entry: RosterEntry): Promise<void> {
-  _stationVoice = entry.voice;
+  setStationVoice(entry);
   await idbSet(VOICE_KEY, cleanVoiceName(entry.name));
   await idbSet(VOICE_URI_KEY, entry.uri);
   stationStop();
-  await stationSpeak(AUDITION_LINE);
+  return stationSpeakFromUserGesture(AUDITION_LINE);
 }
 
 export function platformVoiceHint(): string {
