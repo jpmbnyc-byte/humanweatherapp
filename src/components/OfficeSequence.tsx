@@ -3,7 +3,7 @@ import { ChevronRight, Check, Lock } from 'lucide-react';
 import type { WhereAreWeResult } from '../lib/whereAreWe';
 import type { Office } from '../lib/officeObserved';
 import { markOfficeComplete } from '../lib/officeObserved';
-import { stationSpeak, ensureVoicesReady, primeSpeechEngine } from '../lib/stationSpeech';
+import { stationSpeak, stationSpeakFromUserGesture, ensureVoicesReady, primeSpeechEngine, warmSpeechVoicesFromGesture, isIosPlatform } from '../lib/stationSpeech';
 import { useEntitlement } from '../lib/EntitlementContext';
 import PurchaseOffer from './PurchaseOffer';
 
@@ -173,7 +173,18 @@ export default function OfficeSequence({ place, currentTheme, onNavigateTab }: P
   const handleSpeak = () => {
     if (!step?.speak) return;
     primeSpeechEngine();
+    if (isIosPlatform()) {
+      warmSpeechVoicesFromGesture();
+      void stationSpeakFromUserGesture(step.speak);
+      return;
+    }
     void ensureVoicesReady().then(() => stationSpeak(step.speak!));
+  };
+
+  const handleSpeakGesture = (e: React.SyntheticEvent) => {
+    if (!isIosPlatform() || !step?.speak) return;
+    e.preventDefault();
+    handleSpeak();
   };
 
   if (!officesEnabled) {
@@ -275,6 +286,8 @@ export default function OfficeSequence({ place, currentTheme, onNavigateTab }: P
             <button
               type="button"
               onClick={handleSpeak}
+              onPointerDown={handleSpeakGesture}
+              onTouchStart={handleSpeakGesture}
               className={`px-3 py-1.5 rounded-lg border text-xs font-mono uppercase tracking-wide cursor-pointer ${
                 isNight
                   ? 'border-white/15 text-white/70 hover:border-accent/40'

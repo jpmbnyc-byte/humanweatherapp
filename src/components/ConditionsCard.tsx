@@ -1,9 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Volume2, Square } from 'lucide-react';
 import type { WeatherState } from '../types';
 import { getConditionCopy } from '../data/conditions';
 import { prescriptionTab, routePrescription } from '../lib/prescriptionRouter';
-import { stationSpeak, stationStop, ensureVoicesReady, primeSpeechEngine } from '../lib/stationSpeech';
+import {
+  stationSpeak,
+  stationSpeakFromUserGesture,
+  stationStop,
+  ensureVoicesReady,
+  primeSpeechEngine,
+  warmSpeechVoicesFromGesture,
+  isIosPlatform,
+} from '../lib/stationSpeech';
 import { useEntitlement } from '../lib/EntitlementContext';
 import PurchaseOffer from './PurchaseOffer';
 
@@ -22,25 +30,50 @@ export default function ConditionsCard({
 }: Props) {
   const { can } = useEntitlement();
   const [speaking, setSpeaking] = useState(false);
+  const iosTapLockRef = useRef(false);
   const register = getConditionCopy(activeWeather.id);
   const prescription = routePrescription(activeWeather.id);
   const showPrescription = can('prescriptions');
 
-  const handleListen = async () => {
+  const speakText = () => {
+    const text = register?.spoken ?? `${activeWeather.title}. ${activeWeather.description}`;
+    setSpeaking(true);
+    const finish = () => setSpeaking(false);
+
+    if (isIosPlatform()) {
+      primeSpeechEngine();
+      warmSpeechVoicesFromGesture();
+      void stationSpeakFromUserGesture(text).finally(finish);
+      return;
+    }
+
+    void ensureVoicesReady()
+      .then(() => stationSpeak(text))
+      .finally(finish);
+  };
+
+  const handleListen = () => {
     primeSpeechEngine();
     if (speaking) {
       stationStop();
       setSpeaking(false);
       return;
     }
-    const text = register?.spoken ?? `${activeWeather.title}. ${activeWeather.description}`;
-    setSpeaking(true);
-    try {
-      await ensureVoicesReady();
-      await stationSpeak(text);
-    } finally {
-      setSpeaking(false);
+    if (isIosPlatform()) {
+      if (iosTapLockRef.current) {
+        iosTapLockRef.current = false;
+        return;
+      }
     }
+    speakText();
+  };
+
+  const handleListenGesture = (e: React.SyntheticEvent) => {
+    if (!isIosPlatform() || speaking) return;
+    e.preventDefault();
+    iosTapLockRef.current = true;
+    primeSpeechEngine();
+    speakText();
   };
 
   const handlePrescription = () => {
@@ -60,7 +93,9 @@ export default function ConditionsCard({
         </span>
         <button
           type="button"
-          onClick={() => void handleListen()}
+          onClick={handleListen}
+          onPointerDown={handleListenGesture}
+          onTouchStart={handleListenGesture}
           className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-mono uppercase tracking-wide transition-colors cursor-pointer shrink-0 ${
             isNight
               ? 'border-white/15 text-white/70 hover:border-accent/40 hover:text-accent'

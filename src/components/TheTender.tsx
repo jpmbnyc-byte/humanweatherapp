@@ -13,7 +13,6 @@ import {
   loadVoiceRosterInBackground,
   refreshStationVoices,
   primeSpeechEngine,
-  unlockIosSpeechSession,
   setPaceRate,
   getPaceRate,
   getActiveVoiceLabel,
@@ -33,6 +32,7 @@ import {
   setFamiliarGreeted,
   familiarVoiceCopy,
   FAMILIAR_GREETING_LINE,
+  warmSpeechVoicesFromGesture,
   type RosterEntry,
   type PaceOption,
   type SavedVoiceMeta,
@@ -127,6 +127,10 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   }, [ambientVolume, soundEnv, speaking]);
 
   useEffect(() => {
+    if (isIosPlatform()) {
+      stopSoundEnvironment();
+      return;
+    }
     if (soundEnv !== 'silence') startSoundEnvironment(soundEnv);
     else stopSoundEnvironment();
   }, [soundEnv]);
@@ -229,7 +233,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     setCurrentTier(tier);
     setCurrentVoiceFamiliar(isFamiliarEntry(entry));
     setSpeaking(true);
-    unlockIosSpeechSession();
+    warmSpeechVoicesFromGesture();
     primeSpeechEngine();
     void chooseStationVoiceFromGesture(entry)
       .then(() => getSavedVoiceMeta())
@@ -249,10 +253,9 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
 
     if (showFamiliarGreeting) dismissFamiliarGreeting();
 
-    unlockIosSpeechSession();
     primeSpeechEngine();
     suppressTenderStopRef.current = true;
-    stopAllAudio({ skipSpeechCancel: isIosPlatform() });
+    stopAllAudio({ skipHandlers: isIosPlatform(), skipSpeechCancel: isIosPlatform() });
     suppressTenderStopRef.current = false;
 
     const session = ++speakSessionRef.current;
@@ -263,6 +266,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     };
 
     if (isIosPlatform()) {
+      warmSpeechVoicesFromGesture();
       void stationSpeakFromUserGesture(textSrc).finally(finish);
       void loadVoiceRosterInBackground().then(list => {
         setRoster(list);
@@ -293,6 +297,13 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   };
 
   const handleListenPointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!isIosPlatform() || speaking || isEditMode || !inputText.trim()) return;
+    e.preventDefault();
+    iosGestureLockRef.current = true;
+    beginProsePlayback();
+  };
+
+  const handleListenTouchStart = (e: React.TouchEvent<HTMLButtonElement>) => {
     if (!isIosPlatform() || speaking || isEditMode || !inputText.trim()) return;
     e.preventDefault();
     iosGestureLockRef.current = true;
@@ -600,6 +611,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                 disabled={isEditMode || !inputText.trim()}
                 onClick={handleListenStop}
                 onPointerDown={handleListenPointerDown}
+                onTouchStart={handleListenTouchStart}
                 aria-label={speaking ? 'Stop reading' : 'Listen now'}
                 aria-pressed={speaking}
                 className={`px-5 py-2.5 rounded-full hw-btn-label flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-30 ${
