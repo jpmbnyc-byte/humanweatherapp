@@ -83,6 +83,17 @@ export function primeSpeechEngine(): void {
   _speechPrimed = true;
   syn.getVoices();
   if (syn.paused) syn.resume();
+  // iOS Safari won't populate getVoices() until the synth actually speaks once
+  // after a user gesture. Speak a near-silent utterance to force the voice
+  // list to load. Harmless on desktop.
+  try {
+    const kick = new SpeechSynthesisUtterance(' ');
+    kick.volume = 0;
+    kick.rate = 1;
+    syn.speak(kick);
+  } catch {
+    /* noop */
+  }
 }
 
 export function isIosPlatform(): boolean {
