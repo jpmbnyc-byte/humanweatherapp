@@ -7,7 +7,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import type { WeatherState } from '../types';
+import type { WeatherState } from '../../types';
 import { DustField } from './dust';
 import { buildFormSeed, drawForm } from './seed';
 import { runCaptureSequence } from './capture';
