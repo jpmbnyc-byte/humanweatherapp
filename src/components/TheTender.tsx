@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Volume2, Play, Square, Music, Headphones, Sliders, Edit2, Check, RefreshCw } from 'lucide-react';
-import { PRESETS } from '../data/presets';
+import { PRESETS, UPCOMING_PRESETS } from '../data/presets';
 import { getThemeStyles } from '../lib/theme';
 import { registerAudioStop, stopAllAudio } from '../lib/stopAllAudio';
 import { useSpokenProse } from '../hooks/useSpokenProse';
@@ -670,6 +670,36 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
           </div>
         </div>
       </div>
+
+      {UPCOMING_PRESETS.length > 0 && (
+        <div className="relative z-10 mt-8 pt-6 border-t border-accent/10" id="tender-upcoming-series">
+          <span className={`hw-eyebrow block mb-4 ${styles.mutedText}`}>Coming in this series</span>
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4" role="list">
+            {UPCOMING_PRESETS.map(entry => (
+              <li
+                key={entry.id}
+                className={`p-4 rounded-xl border text-left ${
+                  isNight ? 'border-white/10 bg-black/20' : 'border-stone-200/80 bg-white/50'
+                }`}
+              >
+                <span className={`font-mono text-[10px] tracking-[0.2em] uppercase block mb-2 ${styles.mutedText}`}>
+                  {entry.chapter} · {entry.series}
+                </span>
+                <h3 className={`font-serif text-lg font-medium leading-snug mb-2 ${styles.titleText}`}>
+                  {entry.title}
+                  <span className={`italic ${isNight ? 'text-[#d4b05a]/90' : 'text-[#7a3318]'}`}>
+                    {' '}— {entry.subtitle}
+                  </span>
+                </h3>
+                <p className={`font-sans text-sm leading-relaxed ${styles.mutedText}`}>{entry.description}</p>
+                <span className={`font-mono text-[10px] tracking-widest uppercase block mt-3 ${styles.accentText} opacity-70`}>
+                  {entry.status}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

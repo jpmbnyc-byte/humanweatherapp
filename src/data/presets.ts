@@ -123,3 +123,27 @@ I invite you to take that first step into solitude, whether it's for five minute
 In a world that glorifies busyness, the real magic happens when you dare to slow down.`
   }
 ];
+
+export type UpcomingPreset = {
+  id: string;
+  chapter: string;
+  series: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  status: string;
+};
+
+/** Book preview — not yet playable in The Tender. */
+export const UPCOMING_PRESETS: UpcomingPreset[] = [
+  {
+    id: 'on-bliss-02',
+    chapter: 'CH. 02',
+    series: 'On Bliss Series',
+    title: 'On Bliss',
+    subtitle: 'The Biochemistry of Already Knowing',
+    description:
+      'The founding document thesis enters the book. The body as a system designed for joy. Nature as the home environment. The naturalistic argument for why bliss is not earned but activated.',
+    status: 'Publishing next issue',
+  },
+];
