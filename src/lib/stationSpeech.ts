@@ -1,5 +1,4 @@
 import { idbGet, idbSet } from './idb';
-import { stopAllAudio } from './stopAllAudio';
 
 const VOICE_KEY = 'hw-station-voice';
 const VOICE_URI_KEY = 'hw-station-voice-uri';
@@ -212,7 +211,7 @@ async function iosUnlockAfterCancel(): Promise<void> {
 
 export async function stationSpeak(text: string): Promise<void> {
   primeSpeechEngine();
-  stopAllAudio();
+  synthesis()?.cancel();
   await iosUnlockAfterCancel();
 
   const token = ++_speakToken;
