@@ -4,15 +4,12 @@ import { Volume2, Play, Square, Music, Headphones, Sliders, Edit2, Check, Refres
 import { PRESETS } from '../data/presets';
 import { getThemeStyles } from '../lib/theme';
 import { registerAudioStop, stopAllAudio } from '../lib/stopAllAudio';
+import { useSpokenProse } from '../hooks/useSpokenProse';
 import {
-  stationSpeak,
-  stationSpeakFromUserGesture,
-  stationStop,
-  chooseStationVoiceFromGesture,
   ensureVoicesReady,
-  loadVoiceRosterInBackground,
   refreshStationVoices,
   primeSpeechEngine,
+  persistStationVoice,
   setPaceRate,
   getPaceRate,
   getActiveVoiceLabel,
@@ -31,8 +28,8 @@ import {
   getFamiliarGreeted,
   setFamiliarGreeted,
   familiarVoiceCopy,
+  AUDITION_LINE,
   FAMILIAR_GREETING_LINE,
-  warmSpeechVoicesFromGesture,
   type RosterEntry,
   type PaceOption,
   type SavedVoiceMeta,
@@ -45,7 +42,8 @@ interface TheTenderProps {
 export default function TheTender({ currentTheme }: TheTenderProps) {
   const [inputText, setInputText] = useState(PRESETS[0].text);
   const [soundEnv, setSoundEnv] = useState<'rain' | 'forest' | 'ocean' | 'hearth' | 'crickets' | 'silence'>('silence');
-  const [speaking, setSpeaking] = useState(false);
+  const { speak: speakProse, stop: stopProse, status: proseStatus } = useSpokenProse();
+  const isProseSpeaking = proseStatus === 'speaking';
   const [roster, setRoster] = useState<RosterEntry[]>([]);
   const [currentVoiceLabel, setCurrentVoiceLabel] = useState('');
   const [currentTier, setCurrentTier] = useState<'PREMIUM' | 'ENHANCED' | 'STANDARD' | 'FAMILIAR'>('STANDARD');
@@ -62,9 +60,14 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const audioCtxRef = useRef<AudioContext | null>(null);
   const noiseSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const envGainNodeRef = useRef<GainNode | null>(null);
-  const speakSessionRef = useRef(0);
   const suppressTenderStopRef = useRef(false);
   const proseRef = useRef<HTMLDivElement | null>(null);
+
+  const preferredVoiceName = useCallback(() => {
+    const label = currentVoiceLabel || getActiveVoiceLabel();
+    const match = dedupeRoster(roster).find(e => cleanVoiceName(e.name) === label);
+    return match?.name ?? null;
+  }, [currentVoiceLabel, roster]);
 
   const syncVoiceHeader = useCallback((list: RosterEntry[]) => {
     const label = getActiveVoiceLabel();
@@ -107,11 +110,11 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     return () => {
       cancelled = true;
       syn.removeEventListener('voiceschanged', onVoicesChanged);
-      stationStop();
+      stopProse();
       stopSoundEnvironment();
       if (audioCtxRef.current) audioCtxRef.current.close().catch(() => {});
     };
-  }, [syncVoiceHeader]);
+  }, [syncVoiceHeader, stopProse]);
 
   useEffect(() => {
     if (envGainNodeRef.current && audioCtxRef.current) {
@@ -124,7 +127,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
         envGainNodeRef.current.gain.setValueAtTime(target, ctx.currentTime);
       }
     }
-  }, [ambientVolume, soundEnv, speaking]);
+  }, [ambientVolume, soundEnv, isProseSpeaking]);
 
   useEffect(() => {
     if (isIosPlatform()) {
@@ -137,7 +140,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
 
   const getAmbientVolumeTarget = () => {
     if (soundEnv === 'silence') return 0;
-    if (speaking) return ambientVolume * 0.15;
+    if (isProseSpeaking) return ambientVolume * 0.15;
     return ambientVolume * 0.45;
   };
 
@@ -193,17 +196,14 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   };
 
   const stopReading = (stopAmbient = true) => {
-    speakSessionRef.current += 1;
-    stationStop();
-    setSpeaking(false);
+    stopProse();
     if (stopAmbient) stopSoundEnvironment();
   };
 
   useEffect(() => {
     return registerAudioStop(() => {
       if (suppressTenderStopRef.current) return;
-      speakSessionRef.current += 1;
-      stationStop();
+      stopProse();
       if (noiseSourceRef.current) {
         try { noiseSourceRef.current.stop(); noiseSourceRef.current.disconnect(); } catch { /* noop */ }
         noiseSourceRef.current = null;
@@ -212,9 +212,8 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
         try { envGainNodeRef.current.disconnect(); } catch { /* noop */ }
         envGainNodeRef.current = null;
       }
-      setSpeaking(false);
     });
-  }, []);
+  }, [stopProse]);
 
   const dismissFamiliarGreeting = useCallback(() => {
     setFamiliarGreetingFading(true);
@@ -228,86 +227,32 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const handleVoiceSelect = (entry: RosterEntry) => {
     const cleaned = cleanVoiceName(entry.name);
     const tier = rosterTier(entry);
-    if (speaking) stopReading(false);
+    if (isProseSpeaking) stopProse();
     setCurrentVoiceLabel(cleaned);
     setCurrentTier(tier);
     setCurrentVoiceFamiliar(isFamiliarEntry(entry));
-    setSpeaking(true);
-    warmSpeechVoicesFromGesture();
-    primeSpeechEngine();
-    void chooseStationVoiceFromGesture(entry)
-      .then(() => getSavedVoiceMeta())
-      .then(meta => {
-        setSavedVoice(meta);
-      })
-      .finally(() => {
-        setSpeaking(false);
-        setInlineVoiceOpen(false);
-        proseRef.current?.focus();
-      });
+    persistStationVoice(entry);
+    speakProse(AUDITION_LINE, entry.name, { rate: PACE_VALUES[pace] });
+    void getSavedVoiceMeta().then(meta => {
+      setSavedVoice(meta);
+      setInlineVoiceOpen(false);
+      proseRef.current?.focus();
+    });
   };
-
-  const beginProsePlayback = () => {
-    const textSrc = inputText.trim();
-    if (!textSrc || isEditMode) return;
-
-    if (showFamiliarGreeting) dismissFamiliarGreeting();
-
-    primeSpeechEngine();
-    suppressTenderStopRef.current = true;
-    stopAllAudio({ skipHandlers: isIosPlatform(), skipSpeechCancel: isIosPlatform() });
-    suppressTenderStopRef.current = false;
-
-    const session = ++speakSessionRef.current;
-    setSpeaking(true);
-
-    const finish = () => {
-      if (speakSessionRef.current === session) setSpeaking(false);
-    };
-
-    if (isIosPlatform()) {
-      warmSpeechVoicesFromGesture();
-      void stationSpeakFromUserGesture(textSrc).finally(finish);
-      void loadVoiceRosterInBackground().then(list => {
-        setRoster(list);
-        syncVoiceHeader(list);
-      });
-      return;
-    }
-
-    if (soundEnv !== 'silence') startSoundEnvironment(soundEnv);
-    void ensureVoicesReady().then(() => stationSpeak(textSrc)).finally(finish);
-  };
-
-  const iosGestureLockRef = useRef(false);
-  const iosVoiceLockRef = useRef<string | null>(null);
 
   const handleListenStop = () => {
-    if (isIosPlatform()) {
-      if (iosGestureLockRef.current) {
-        iosGestureLockRef.current = false;
-        return;
-      }
-    }
-    if (speaking) {
-      stopReading(false);
+    if (proseStatus === 'speaking') {
+      stopProse();
       return;
     }
-    beginProsePlayback();
-  };
-
-  const handleListenPointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
-    if (!isIosPlatform() || speaking || isEditMode || !inputText.trim()) return;
-    e.preventDefault();
-    iosGestureLockRef.current = true;
-    beginProsePlayback();
-  };
-
-  const handleListenTouchStart = (e: React.TouchEvent<HTMLButtonElement>) => {
-    if (!isIosPlatform() || speaking || isEditMode || !inputText.trim()) return;
-    e.preventDefault();
-    iosGestureLockRef.current = true;
-    beginProsePlayback();
+    const textSrc = inputText.trim();
+    if (!textSrc || isEditMode) return;
+    if (showFamiliarGreeting) dismissFamiliarGreeting();
+    suppressTenderStopRef.current = true;
+    stopAllAudio({ skipSpeechCancel: true });
+    suppressTenderStopRef.current = false;
+    if (!isIosPlatform() && soundEnv !== 'silence') startSoundEnvironment(soundEnv);
+    speakProse(textSrc, preferredVoiceName(), { rate: PACE_VALUES[pace] });
   };
 
   const handleRefreshVoices = () => {
@@ -330,7 +275,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   };
 
   const handlePaceChange = (next: PaceOption) => {
-    if (speaking) stopReading(false);
+    if (isProseSpeaking) stopReading(false);
     setPace(next);
     void setPaceRate(PACE_VALUES[next]);
   };
@@ -395,22 +340,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
             type="button"
             aria-label={`Try and select ${cleaned}, ${tier}`}
             aria-pressed={selected}
-            onClick={() => {
-              if (isIos && iosVoiceLockRef.current === entry.uri) {
-                iosVoiceLockRef.current = null;
-                return;
-              }
-              onSelect(entry);
-            }}
-            onPointerDown={
-              isIos
-                ? e => {
-                    e.preventDefault();
-                    iosVoiceLockRef.current = entry.uri;
-                    onSelect(entry);
-                  }
-                : undefined
-            }
+            onClick={() => onSelect(entry)}
             className={`w-full text-left px-4 py-3 rounded-lg border transition-all cursor-pointer flex items-center justify-between gap-2 min-h-[48px] ${
               selected
                 ? isNight ? 'border-[#d4b05a] bg-[#d4b05a]/10' : 'border-[#2c2824] bg-stone-100'
@@ -478,7 +408,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
         <div className="md:col-span-7">
           <div className={`p-5 sm:p-6 rounded-xl border text-left flex flex-col min-h-[280px] ${styles.innerBg}`}>
             <AnimatePresence>
-              {speaking && (
+              {isProseSpeaking && (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -490,7 +420,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
 
             <div className="flex items-center justify-between border-b pb-2 mb-4 border-accent/10">
               <Headphones className={`w-4 h-4 ${styles.accentText}`} />
-              {speaking && (
+              {isProseSpeaking && (
                 <span className="flex items-end gap-[2px] h-3" aria-hidden="true">
                   {[0.4, 1, 0.65].map((h, i) => (
                     <span
@@ -535,7 +465,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                 />
               ) : inputText.trim() ? (
                 inputText.split('\n\n').map((paragraph, pIdx) => (
-                  <p key={pIdx} className={`mb-4 hw-body text-left ${speaking ? (isNight ? 'text-white/85' : 'text-[#2c2824]') : isNight ? 'text-white/85' : 'text-[#2c2824]'}`}>
+                  <p key={pIdx} className={`mb-4 hw-body text-left ${isNight ? 'text-white/85' : 'text-[#2c2824]'}`}>
                     {paragraph}
                   </p>
                 ))
@@ -610,20 +540,21 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                 id="tender-play-toggle-btn"
                 disabled={isEditMode || !inputText.trim()}
                 onClick={handleListenStop}
-                onPointerDown={handleListenPointerDown}
-                onTouchStart={handleListenTouchStart}
-                aria-label={speaking ? 'Stop reading' : 'Listen now'}
-                aria-pressed={speaking}
+                aria-label={isProseSpeaking ? 'Stop reading' : 'Listen now'}
+                aria-pressed={isProseSpeaking}
                 className={`px-5 py-2.5 rounded-full hw-btn-label flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-30 ${
-                  speaking
+                  isProseSpeaking
                     ? isNight ? 'text-red-300/90 border border-red-500/30' : 'text-red-800 border border-red-300'
                     : isNight ? 'bg-[#d4b05a] text-white' : 'bg-[#2c2824] text-white'
                 }`}
               >
-                {speaking ? (
+                {isProseSpeaking ? (
                   <><Square className="w-3.5 h-3.5 fill-current" /> Stop</>
                 ) : (
                   <><Play className="w-3.5 h-3.5 fill-current" /> Listen now</>
+                )}
+                {proseStatus === 'error' && (
+                  <span className="text-[10px] font-mono normal-case tracking-normal opacity-80">voice unavailable</span>
                 )}
               </button>
             </div>
