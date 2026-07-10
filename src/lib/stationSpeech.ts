@@ -1,26 +1,17 @@
 /**
- * Speech facade — Tender and narration use Kokoro WASM + HTMLAudio (HW_HARNESS §6).
- * Web Speech API removed from playback path (unreliable on iOS Safari).
+ * Speech facade — Kokoro WASM + HTMLAudio on the client only (HW_HARNESS §6).
+ * SSR-safe: Kokoro lives in *.client.ts modules via createClientOnlyFn.
  */
+import { createClientOnlyFn } from '@tanstack/react-start';
 import { idbGet, idbSet } from './idb';
 import {
   KOKORO_VOICES,
-  kokoroAudition,
-  kokoroSpeak,
-  kokoroSpeakFromGesture,
-  kokoroStop,
-  loadKokoroEngine,
-  getActiveKokoroVoiceKey,
-  getActiveKokoroVoiceLabel,
-  setActiveKokoroVoice,
-  getKokoroLoadState,
-  onKokoroLoadState,
+  kokoroVoiceLabel,
   type KokoroVoiceKey,
   type KokoroLoadState,
-} from './kokoroEngine';
-import { unlockAudioPlayback } from './audioPlayback';
+} from './kokoroVoices';
 
-export { onKokoroLoadState, getKokoroLoadState, type KokoroLoadState };
+export type { KokoroLoadState };
 
 export const AUDITION_LINE = 'What is your weather right now?';
 export const FAMILIAR_GREETING_LINE = 'A familiar voice is here.';
@@ -44,7 +35,62 @@ export const PACE_VALUES: Record<PaceOption, number> = {
   brisk: 1.0,
 };
 
+let _activeVoiceKey: KokoroVoiceKey = 'joan';
 let _paceRate = 0.88;
+
+const unlockPlayback = createClientOnlyFn(() => {
+  void import('./audioPlayback.client').then(m => m.unlockAudioPlayback());
+});
+
+const clientOnKokoroLoadState = createClientOnlyFn(
+  (cb: (state: KokoroLoadState, detail?: string) => void) =>
+    import('./kokoroEngine.client').then(m => m.onKokoroLoadState(cb)),
+);
+
+const clientGetKokoroLoadState = createClientOnlyFn(() =>
+  import('./kokoroEngine.client').then(m => m.getKokoroLoadState()),
+);
+
+const clientSetActiveKokoroVoice = createClientOnlyFn((key: KokoroVoiceKey) =>
+  import('./kokoroEngine.client').then(m => m.setActiveKokoroVoice(key)),
+);
+
+const clientLoadKokoroEngine = createClientOnlyFn(() =>
+  import('./kokoroEngine.client').then(m => m.loadKokoroEngine()),
+);
+
+const clientKokoroStop = createClientOnlyFn(() =>
+  import('./kokoroEngine.client').then(m => m.kokoroStop()),
+);
+
+const clientKokoroSpeakFromGesture = createClientOnlyFn((text: string) =>
+  import('./kokoroEngine.client').then(m => m.kokoroSpeakFromGesture(text)),
+);
+
+const clientKokoroSpeak = createClientOnlyFn((text: string) =>
+  import('./kokoroEngine.client').then(m => m.kokoroSpeak(text)),
+);
+
+const clientKokoroAudition = createClientOnlyFn((voiceKey: KokoroVoiceKey) =>
+  import('./kokoroEngine.client').then(m => m.kokoroAudition(voiceKey)),
+);
+
+export function onKokoroLoadState(cb: (state: KokoroLoadState, detail?: string) => void): () => void {
+  let disposed = false;
+  let innerDispose: (() => void) | undefined;
+  void clientOnKokoroLoadState(cb).then(unsub => {
+    if (disposed) unsub();
+    else innerDispose = unsub;
+  });
+  return () => {
+    disposed = true;
+    innerDispose?.();
+  };
+}
+
+export function getKokoroLoadState(): KokoroLoadState {
+  return 'idle';
+}
 
 export function isIosPlatform(): boolean {
   if (typeof navigator === 'undefined') return false;
@@ -56,15 +102,15 @@ export function cleanVoiceName(name: string): string {
 }
 
 export function primeSpeechEngine(): void {
-  unlockAudioPlayback();
+  unlockPlayback();
 }
 
 export function unlockIosSpeechSession(): void {
-  unlockAudioPlayback();
+  unlockPlayback();
 }
 
 export function primeSpeechEngineForRefresh(): void {
-  unlockAudioPlayback();
+  unlockPlayback();
 }
 
 function buildStaticRoster(): RosterEntry[] {
@@ -111,7 +157,7 @@ export async function getFamiliarGreeted(): Promise<boolean> {
 }
 
 export async function setFamiliarGreeted(): Promise<void> {
-  /* no-op — Kokoro voices are always available */
+  /* no-op */
 }
 
 export function familiarVoiceCopy(): string {
@@ -119,7 +165,7 @@ export function familiarVoiceCopy(): string {
 }
 
 export function getActiveVoiceLabel(): string {
-  return getActiveKokoroVoiceLabel();
+  return kokoroVoiceLabel(_activeVoiceKey);
 }
 
 export function getPaceRate(): number {
@@ -150,7 +196,7 @@ export function isSavedVoiceEntry(entry: RosterEntry, saved: SavedVoiceMeta): bo
 }
 
 export async function initStationSpeech(): Promise<RosterEntry[]> {
-  unlockAudioPlayback();
+  unlockPlayback();
   const savedPace = await idbGet('hw-pace');
   if (savedPace) {
     const n = parseFloat(savedPace);
@@ -158,7 +204,8 @@ export async function initStationSpeech(): Promise<RosterEntry[]> {
   }
   const saved = await idbGet('hw-station-voice');
   if (saved && saved in KOKORO_VOICES) {
-    setActiveKokoroVoice(saved as KokoroVoiceKey);
+    _activeVoiceKey = saved as KokoroVoiceKey;
+    await clientSetActiveKokoroVoice(_activeVoiceKey);
   }
   return buildStaticRoster();
 }
@@ -168,11 +215,11 @@ export async function ensureVoicesReady(): Promise<RosterEntry[]> {
 }
 
 export async function refreshStationVoices(): Promise<RosterEntry[]> {
-  unlockAudioPlayback();
+  unlockPlayback();
   try {
-    await loadKokoroEngine();
+    await clientLoadKokoroEngine();
   } catch {
-    /* roster still shown even if model pending */
+    /* roster still shown */
   }
   return buildStaticRoster();
 }
@@ -182,27 +229,29 @@ export async function loadVoiceRosterInBackground(): Promise<RosterEntry[]> {
 }
 
 export function stationStop(): void {
-  kokoroStop();
+  void clientKokoroStop();
 }
 
 export function stationSpeakFromUserGesture(text: string): Promise<void> {
-  return kokoroSpeakFromGesture(text);
+  return clientKokoroSpeakFromGesture(text);
 }
 
 export async function stationSpeak(text: string): Promise<void> {
-  return kokoroSpeak(text);
+  await clientKokoroSpeak(text);
 }
 
 export function setStationVoice(entry: RosterEntry): void {
-  setActiveKokoroVoice(entry.voiceKey);
+  _activeVoiceKey = entry.voiceKey;
+  void clientSetActiveKokoroVoice(entry.voiceKey);
 }
 
 export function chooseStationVoiceFromGesture(entry: RosterEntry): Promise<void> {
-  return kokoroAudition(entry.voiceKey);
+  _activeVoiceKey = entry.voiceKey;
+  return clientKokoroAudition(entry.voiceKey);
 }
 
 export async function chooseStationVoice(entry: RosterEntry): Promise<void> {
-  return kokoroAudition(entry.voiceKey);
+  return chooseStationVoiceFromGesture(entry);
 }
 
 export function platformVoiceHint(): string {
@@ -216,3 +265,5 @@ export function buildVoiceRoster(): Promise<RosterEntry[]> {
 export function getActiveVoice(): null {
   return null;
 }
+
+export { KOKORO_VOICES };
