@@ -601,10 +601,14 @@ export async function refreshStationVoices(): Promise<RosterEntry[]> {
   return roster;
 }
 
-export function chooseStationVoiceFromGesture(entry: RosterEntry): Promise<void> {
+export function persistStationVoice(entry: RosterEntry): void {
   setStationVoice(entry);
   void idbSet(VOICE_KEY, cleanVoiceName(entry.name));
   void idbSet(VOICE_URI_KEY, entry.uri);
+}
+
+export function chooseStationVoiceFromGesture(entry: RosterEntry): Promise<void> {
+  persistStationVoice(entry);
   return stationSpeakFromUserGesture(AUDITION_LINE);
 }
 
