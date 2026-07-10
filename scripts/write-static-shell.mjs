@@ -3,17 +3,47 @@
  * Writes a static index.html to .output/public so Cloudflare can serve
  * the boot splash instantly from CDN — before the worker cold-starts.
  */
-import { readdir, readFile, writeFile } from 'node:fs/promises';
+import { access, readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 const ROOT = join(import.meta.dirname, '..');
-const PUBLIC = join(ROOT, 'dist/client');
-const SERVER = join(ROOT, 'dist/server');
+
+const OUTPUT_CANDIDATES = [
+  { public: '.output/public', server: '.output/server' },
+  { public: 'dist/client', server: 'dist/server' },
+];
+
+let PUBLIC;
+let SERVER;
+
+async function pathExists(path) {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function resolveOutputPaths() {
+  for (const candidate of OUTPUT_CANDIDATES) {
+    const server = join(ROOT, candidate.server);
+    const publicDir = join(ROOT, candidate.public);
+    if (await pathExists(server)) {
+      PUBLIC = publicDir;
+      SERVER = server;
+      return;
+    }
+  }
+  throw new Error(
+    'Build output not found. Expected .output/server or dist/server after vite build.',
+  );
+}
 
 async function findManifestFile() {
   const files = await readdir(SERVER);
   const name = files.find(f => f.startsWith('_tanstack-start-manifest_v-') && f.endsWith('.mjs'));
-  if (!name) throw new Error('TanStack start manifest not found in .output/server');
+  if (!name) throw new Error(`TanStack start manifest not found in ${SERVER}`);
   return join(SERVER, name);
 }
 
@@ -127,6 +157,7 @@ async function patchHeaders() {
 }
 
 async function main() {
+  await resolveOutputPaths();
   const manifestPath = await findManifestFile();
   const manifestSource = await readFile(manifestPath, 'utf8');
   const indexScript = extractIndexScript(manifestSource);
@@ -135,7 +166,7 @@ async function main() {
   await writeFile(join(PUBLIC, 'index.html'), html, 'utf8');
   await patchWrangler();
   await patchHeaders();
-  console.log(`[write-static-shell] Wrote index.html → ${indexScript}`);
+  console.log(`[write-static-shell] Wrote index.html → ${indexScript} (${PUBLIC})`);
 }
 
 main().catch(err => {

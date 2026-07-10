@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Volume2, Square } from 'lucide-react';
 import type { WeatherState } from '../types';
 import { getConditionCopy } from '../data/conditions';
-import { prescriptionTab, routePrescription } from '../lib/prescriptionRouter';
+import { prescriptionTab, routePrescription, type PrescriptionModality, type SupplementalModality } from '../lib/prescriptionRouter';
 import { stationSpeak, stationStop, ensureVoicesReady, primeSpeechEngine } from '../lib/stationSpeech';
 import { useEntitlement } from '../lib/EntitlementContext';
 import PurchaseOffer from './PurchaseOffer';
@@ -43,9 +43,9 @@ export default function ConditionsCard({
     }
   };
 
-  const handlePrescription = () => {
-    if (prescription.target === 'clear') return;
-    const tab = prescriptionTab(prescription.target);
+  const handlePrescription = (modality: PrescriptionModality | SupplementalModality) => {
+    if (modality === 'clear') return;
+    const tab = prescriptionTab(modality);
     if (tab) onNavigateTab(tab);
   };
 
@@ -124,25 +124,49 @@ export default function ConditionsCard({
           <span className="font-mono text-xs uppercase tracking-widest opacity-40 block mb-2">
             Prescription
           </span>
-          {prescription.target === 'clear' ? (
+          {prescription.modality === 'clear' ? (
             <p className="font-serif text-lg italic opacity-80">{prescription.clearMessage}</p>
           ) : (
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-              <div className="flex-1">
-                <p className="font-sans text-sm opacity-75 mb-1">{prescription.reason}</p>
-                <p className="font-mono text-sm uppercase tracking-wide opacity-90">{prescription.label}</p>
+            <div className="flex flex-col gap-5">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="flex-1">
+                  <p className="font-sans text-sm opacity-75 mb-1">{prescription.reason}</p>
+                  <p className="font-mono text-sm uppercase tracking-wide opacity-90">{prescription.label}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handlePrescription(prescription.modality)}
+                  className={`px-4 py-2 rounded-xl border text-xs font-mono uppercase tracking-widest cursor-pointer transition-colors shrink-0 ${
+                    isNight
+                      ? 'border-accent/30 text-accent hover:bg-accent/10'
+                      : 'border-accent/40 text-[#8a6f2e] hover:bg-accent/5'
+                  }`}
+                >
+                  Open {prescription.label}
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={handlePrescription}
-                className={`px-4 py-2 rounded-xl border text-xs font-mono uppercase tracking-widest cursor-pointer transition-colors ${
-                  isNight
-                    ? 'border-accent/30 text-accent hover:bg-accent/10'
-                    : 'border-accent/40 text-[#8a6f2e] hover:bg-accent/5'
-                }`}
-              >
-                Open {prescription.label}
-              </button>
+
+              {prescription.supplemental && (
+                <div
+                  className={`rounded-xl border px-4 py-3 ${
+                    isNight ? 'border-white/10 bg-white/[0.03]' : 'border-stone-200/80 bg-stone-50/80'
+                  }`}
+                >
+                  <span className="font-mono text-[10px] uppercase tracking-[0.2em] opacity-45 block mb-1.5">
+                    Supplemental
+                  </span>
+                  <p className="font-sans text-sm opacity-70 mb-2">{prescription.supplemental.reason}</p>
+                  <button
+                    type="button"
+                    onClick={() => handlePrescription('shinrin')}
+                    className={`font-mono text-xs uppercase tracking-wide underline-offset-2 hover:underline cursor-pointer ${
+                      isNight ? 'text-white/55 hover:text-accent' : 'text-stone-600 hover:text-[#8a6f2e]'
+                    }`}
+                  >
+                    {prescription.supplemental.label}
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
