@@ -43,7 +43,7 @@ async function resolveOutputPaths() {
 async function findManifestFile() {
   const files = await readdir(SERVER);
   const name = files.find(f => f.startsWith('_tanstack-start-manifest_v-') && f.endsWith('.mjs'));
-  if (!name) throw new Error('TanStack start manifest not found in .output/server');
+  if (!name) throw new Error(`TanStack start manifest not found in ${SERVER}`);
   return join(SERVER, name);
 }
 
@@ -166,7 +166,7 @@ async function main() {
   await writeFile(join(PUBLIC, 'index.html'), html, 'utf8');
   await patchWrangler();
   await patchHeaders();
-  console.log(`[write-static-shell] Wrote index.html → ${indexScript}`);
+  console.log(`[write-static-shell] Wrote index.html → ${indexScript} (${PUBLIC})`);
 }
 
 main().catch(err => {
