@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { ChevronRight, Check, Lock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ChevronRight, Check, Lock, Play, Square } from 'lucide-react';
 import type { WhereAreWeResult } from '../lib/whereAreWe';
 import type { Office } from '../lib/officeObserved';
 import { markOfficeComplete } from '../lib/officeObserved';
-import { stationSpeak, stationSpeakFromUserGesture, ensureVoicesReady, primeSpeechEngine, warmSpeechVoicesFromGesture, isIosPlatform } from '../lib/stationSpeech';
+import { useSpokenProse } from '../hooks/useSpokenProse';
 import { useEntitlement } from '../lib/EntitlementContext';
 import PurchaseOffer from './PurchaseOffer';
 
@@ -147,8 +147,16 @@ function formatHour(decimal: number): string {
 
 export default function OfficeSequence({ place, currentTheme, onNavigateTab }: Props) {
   const { can } = useEntitlement();
+  const { speak, stop, status } = useSpokenProse();
   const [stepIndex, setStepIndex] = useState(0);
   const [filed, setFiled] = useState(false);
+  const isSpeaking = status === 'speaking';
+
+  useEffect(() => () => stop(), [stop]);
+
+  useEffect(() => {
+    stop();
+  }, [stepIndex, stop]);
 
   const isNight = currentTheme === 'night';
   const officesEnabled = can('offices');
@@ -170,21 +178,13 @@ export default function OfficeSequence({ place, currentTheme, onNavigateTab }: P
     setStepIndex(i => i + 1);
   };
 
-  const handleSpeak = () => {
+  const handleListen = () => {
     if (!step?.speak) return;
-    primeSpeechEngine();
-    if (isIosPlatform()) {
-      warmSpeechVoicesFromGesture();
-      void stationSpeakFromUserGesture(step.speak);
+    if (isSpeaking) {
+      stop();
       return;
     }
-    void ensureVoicesReady().then(() => stationSpeak(step.speak!));
-  };
-
-  const handleSpeakGesture = (e: React.SyntheticEvent) => {
-    if (!isIosPlatform() || !step?.speak) return;
-    e.preventDefault();
-    handleSpeak();
+    speak(step.speak);
   };
 
   if (!officesEnabled) {
@@ -285,16 +285,24 @@ export default function OfficeSequence({ place, currentTheme, onNavigateTab }: P
           {step.speak && (
             <button
               type="button"
-              onClick={handleSpeak}
-              onPointerDown={handleSpeakGesture}
-              onTouchStart={handleSpeakGesture}
-              className={`px-3 py-1.5 rounded-lg border text-xs font-mono uppercase tracking-wide cursor-pointer ${
+              onClick={handleListen}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-mono uppercase tracking-wide cursor-pointer ${
                 isNight
                   ? 'border-white/15 text-white/70 hover:border-accent/40'
                   : 'border-stone-300 text-stone-600 hover:border-accent/40'
               }`}
+              aria-label={isSpeaking ? 'Stop reading' : 'Listen to this step'}
+              aria-pressed={isSpeaking}
             >
-              Listen
+              {isSpeaking ? (
+                <>
+                  <Square className="w-3 h-3 fill-current" /> Stop
+                </>
+              ) : (
+                <>
+                  <Play className="w-3 h-3 fill-current" /> Listen
+                </>
+              )}
             </button>
           )}
           {step.navigate && (
