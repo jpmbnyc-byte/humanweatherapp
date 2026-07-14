@@ -14,6 +14,7 @@ import { drawSketchMarkToCanvas, parseCoherenceFromSummary } from './sketchMark'
 import { runCaptureSequence } from './capture';
 import { localDateKey } from '../dailyMarks';
 import { createMementoFromSeed, getMementoForDate, saveMemento, getRecentMementos } from './genesis';
+import { getSceneAnswer } from './sketchScenes';
 import { prefersReducedMotion } from './motion';
 import {
   FORMING_CYCLE_COUNT,
@@ -178,7 +179,7 @@ export function FormingProvider({ weather, conditionsSummary, active = true, chi
     setCoalesce(1);
 
     const memento = await createMementoFromSeed(seed);
-    setCaption(`Mark recorded · ${seed.weatherName}`);
+    setCaption(`Mark recorded · ${getSceneAnswer(seed.weatherId).voice}`);
 
     await runCaptureSequence(
       {

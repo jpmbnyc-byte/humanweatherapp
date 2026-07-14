@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { useFormingOptional } from '../lib/forming/FormingContext';
 import { drawSketchMarkToCanvas, parseCoherenceFromSummary } from '../lib/forming/sketchMark';
+import { getSceneAnswer } from '../lib/forming/sketchScenes';
 import { formatMarkDateLabel } from '../lib/forming/markDates';
 import { getConditionCopy } from '../data/conditions';
 import { useEntitlement } from '../lib/EntitlementContext';
@@ -97,6 +98,7 @@ function MarkTile({
   const faith =
     getConditionCopy(memento.formSeed.weatherId)?.faith ??
     'Stillness is not absence. It is the threshold before the first true mark.';
+  const sceneVoice = getSceneAnswer(memento.formSeed.weatherId).voice;
   const coherence = parseCoherenceFromSummary(memento.formSeed.conditionsSummary);
 
   useEffect(() => {
@@ -127,7 +129,10 @@ function MarkTile({
         <span className={`font-sans text-sm ${isNight ? 'text-white/60' : 'text-stone-600'}`}>
           {memento.weatherName} · {coherence}% coherence
         </span>
-        <p className={`font-serif text-sm italic leading-relaxed mt-1 ${isNight ? 'text-white/55' : 'text-stone-600'}`}>
+        <p className={`font-serif text-sm italic leading-relaxed mt-1.5 ${isNight ? 'text-accent/80' : 'text-[#8a6f2e]'}`}>
+          {sceneVoice}
+        </p>
+        <p className={`font-serif text-xs italic leading-relaxed mt-1 opacity-75 ${isNight ? 'text-white/50' : 'text-stone-500'}`}>
           {faith}
         </p>
       </div>

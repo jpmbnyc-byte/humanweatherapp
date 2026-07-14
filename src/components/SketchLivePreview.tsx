@@ -71,7 +71,7 @@ export default function SketchLivePreview({ currentTheme }: Props) {
           isNight ? 'text-white/35' : 'text-stone-500'
         }`}
       >
-        Field sketch · internal climate
+        Field sketch · the field answers your climate
       </p>
       <div
         className={`w-full rounded-xl border overflow-hidden shadow-sm ${
