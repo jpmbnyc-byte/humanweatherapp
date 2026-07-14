@@ -164,9 +164,15 @@ export default function App() {
       <div className="relative z-10 flex flex-col flex-1 w-full max-w-5xl mx-auto px-6 md:px-10 lg:px-12">
 
         {/* Header */}
-        <header className={`w-full py-8 md:py-10 flex items-center justify-between border-b ${themeStyles.border}`} id="app-header">
-          <div className="flex flex-col text-left max-w-md">
-            <span className="hw-eyebrow tracking-[0.25em] opacity-40 mb-3">human weather</span>
+        <header className={`w-full py-8 md:py-10 flex items-start sm:items-center justify-between gap-4 border-b ${themeStyles.border}`} id="app-header">
+          <div className="flex flex-col text-left max-w-md min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-3 w-full mb-3">
+              <span className="hw-eyebrow tracking-[0.25em] opacity-40">human weather</span>
+              <div className={`flex sm:hidden flex-col items-end shrink-0 ${themeStyles.textMuted}`}>
+                <span className="font-mono text-[10px] font-medium tracking-wider leading-none">{timeString}</span>
+                <span className="font-mono text-[10px] opacity-45 leading-none mt-1">{dateString}</span>
+              </div>
+            </div>
             <h1 className="font-serif text-4xl md:text-5xl font-medium tracking-tight leading-[1.1]">
               Human <span className="italic text-accent">Weather</span>
             </h1>
@@ -175,7 +181,7 @@ export default function App() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <MembershipButton isNight={isNight} themeStyles={themeStyles} />
             <div className={`hidden sm:flex flex-col items-end px-3 border-r ${themeStyles.border}`}>
               <span className="font-mono text-xs font-medium tracking-wider leading-none">{timeString}</span>
