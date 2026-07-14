@@ -24,7 +24,7 @@ export default function PurchaseOffer({ currentTheme, variant = 'card', classNam
 
   if (isMember) return null;
 
-  const ctaLabel = effective === 'lapsed' ? 'Restore full access' : 'Get lifetime access';
+  const ctaLabel = effective === 'lapsed' ? 'Renew annual access' : 'Get annual access';
 
   if (variant === 'compact') {
     return (
@@ -68,8 +68,8 @@ export default function PurchaseOffer({ currentTheme, variant = 'card', classNam
           </h3>
           <p className={`font-sans text-sm mt-2 leading-relaxed ${isNight ? 'text-white/60' : 'text-stone-600'}`}>
             {effective === 'lapsed'
-              ? 'Your trial has ended. Core Field Station stays free — unlock everything you had during trial.'
-              : 'One purchase. No subscription. Everything below stays on this device after checkout.'}
+              ? 'Your access has ended. Core Field Station stays free — renew for another year when you are ready.'
+              : '$60 unlocks one full year. No monthly plan — renew manually when your year ends.'}
           </p>
         </div>
       </div>
@@ -104,8 +104,8 @@ export default function PurchaseOffer({ currentTheme, variant = 'card', classNam
 
       {!configured && (
         <p className={`mt-4 font-mono text-[10px] leading-relaxed ${isNight ? 'text-white/40' : 'text-stone-400'}`}>
-          Add VITE_PURCHASE_URL (Stripe Payment Link or checkout URL) and set its success redirect to{' '}
-          <code className="opacity-80">?purchase=success</code> on this site.
+          Add env vars from <code className="opacity-80">docs/STRIPE_SETUP.md</code> — Payment Link redirect must include{' '}
+          <code className="opacity-80">session_id={'{CHECKOUT_SESSION_ID}'}</code>.
         </p>
       )}
     </div>
