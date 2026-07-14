@@ -8,10 +8,12 @@ import {
   hasFeature,
   loadEntitlement,
   parsePurchaseReturn,
+  parsePurchaseSessionId,
   stripPurchaseReturnParams,
   trialFootline,
 } from './entitlement';
-import { openPurchaseCheckout } from './purchaseConfig';
+import { isStripeCheckoutUrl, openPurchaseCheckout } from './purchaseConfig';
+import { verifyStripeCheckout } from './stripe.functions';
 import { runWhenIdle } from './deferredWork';
 
 type EntitlementContextValue = {
@@ -22,7 +24,9 @@ type EntitlementContextValue = {
   can: (feature: EntitlementFeature) => boolean;
   footline: string | null;
   purchaseJustCompleted: boolean;
+  purchaseVerifyError: string | null;
   dismissPurchaseSuccess: () => void;
+  dismissPurchaseVerifyError: () => void;
   startPurchase: () => void;
   refresh: () => Promise<void>;
   membershipExpiresLabel: string | null;
@@ -35,6 +39,7 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
   const [effective, setEffective] = useState<EffectiveEntitlement>('trial');
   const [loading, setLoading] = useState(true);
   const [purchaseJustCompleted, setPurchaseJustCompleted] = useState(false);
+  const [purchaseVerifyError, setPurchaseVerifyError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const { record: next, effective: eff } = await loadEntitlement();
@@ -51,14 +56,41 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const outcome = parsePurchaseReturn(window.location.search);
-    if (outcome !== 'success') return;
+    const search = window.location.search;
+    if (parsePurchaseReturn(search) !== 'success') return;
 
     void (async () => {
-      await grantMembership();
-      const clean = stripPurchaseReturnParams(window.location.search);
+      const sessionId = parsePurchaseSessionId(search);
+      const stripeCheckout = isStripeCheckoutUrl();
+
+      if (stripeCheckout) {
+        if (!sessionId) {
+          setPurchaseVerifyError(
+            'Stripe did not return a checkout session. Confirm your Payment Link redirect includes session_id.',
+          );
+          return;
+        }
+
+        const result = await verifyStripeCheckout({ data: { sessionId } });
+        if (!result.verified) {
+          setPurchaseVerifyError(
+            'Payment could not be verified. If you were charged, contact support with your receipt.',
+          );
+          return;
+        }
+
+        await grantMembership(new Date(), {
+          expiresAt: result.expiresAt,
+          stripeSessionId: result.sessionId,
+        });
+      } else {
+        await grantMembership();
+      }
+
+      const clean = stripPurchaseReturnParams(search);
       window.history.replaceState({}, '', `${window.location.pathname}${clean}`);
       setPurchaseJustCompleted(true);
+      setPurchaseVerifyError(null);
       await refresh();
     })();
   }, [refresh]);
@@ -71,6 +103,10 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
     setPurchaseJustCompleted(false);
   }, []);
 
+  const dismissPurchaseVerifyError = useCallback(() => {
+    setPurchaseVerifyError(null);
+  }, []);
+
   const value = useMemo<EntitlementContextValue>(
     () => ({
       record,
@@ -81,11 +117,23 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
       footline: record ? trialFootline(record) : null,
       membershipExpiresLabel: record ? formatMembershipExpiry(record) : null,
       purchaseJustCompleted,
+      purchaseVerifyError,
       dismissPurchaseSuccess,
+      dismissPurchaseVerifyError,
       startPurchase,
       refresh,
     }),
-    [record, effective, loading, purchaseJustCompleted, dismissPurchaseSuccess, startPurchase, refresh],
+    [
+      record,
+      effective,
+      loading,
+      purchaseJustCompleted,
+      purchaseVerifyError,
+      dismissPurchaseSuccess,
+      dismissPurchaseVerifyError,
+      startPurchase,
+      refresh,
+    ],
   );
 
   return <EntitlementContext.Provider value={value}>{children}</EntitlementContext.Provider>;

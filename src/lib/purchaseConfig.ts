@@ -23,6 +23,15 @@ export function getPurchaseUrl(): string {
   return readEnv('VITE_PURCHASE_URL')?.trim() || DEFAULT_PURCHASE_URL;
 }
 
+export function isStripeCheckoutUrl(url = getPurchaseUrl()): boolean {
+  try {
+    const host = new URL(url).hostname;
+    return host === 'buy.stripe.com' || host.endsWith('.stripe.com');
+  } catch {
+    return url.includes('buy.stripe.com');
+  }
+}
+
 export function getPurchasePriceLabel(): string {
   return readEnv('VITE_PURCHASE_PRICE_LABEL')?.trim() || 'Annual access · no monthly plan';
 }
@@ -39,9 +48,16 @@ export function isPurchaseConfigured(): boolean {
   return Boolean(explicit && !explicit.includes('PLACEHOLDER'));
 }
 
-/** Return URL appended for checkout providers that accept client_reference_id / success_url params. */
+/** Configure this exact URL in Stripe Payment Link → After payment → Redirect */
+export function getStripeSuccessRedirectUrl(origin: string): string {
+  return `${origin.replace(/\/$/, '')}/?${PURCHASE_SUCCESS_QUERY}=${PURCHASE_SUCCESS_VALUE}&session_id={CHECKOUT_SESSION_ID}`;
+}
+
+/** Stripe Payment Links use dashboard redirect; other hosts may accept query params. */
 export function buildPurchaseCheckoutUrl(origin: string, pathname: string): string {
   const base = getPurchaseUrl();
+  if (isStripeCheckoutUrl(base)) return base;
+
   const returnTo = `${origin}${pathname}?${PURCHASE_SUCCESS_QUERY}=${PURCHASE_SUCCESS_VALUE}`;
 
   try {

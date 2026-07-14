@@ -104,8 +104,8 @@ export default function PurchaseOffer({ currentTheme, variant = 'card', classNam
 
       {!configured && (
         <p className={`mt-4 font-mono text-[10px] leading-relaxed ${isNight ? 'text-white/40' : 'text-stone-400'}`}>
-          Add VITE_PURCHASE_URL (Stripe Payment Link or checkout URL) and set its success redirect to{' '}
-          <code className="opacity-80">?purchase=success</code> on this site.
+          Add env vars from <code className="opacity-80">docs/STRIPE_SETUP.md</code> — Payment Link redirect must include{' '}
+          <code className="opacity-80">session_id={'{CHECKOUT_SESSION_ID}'}</code>.
         </p>
       )}
     </div>

@@ -9,7 +9,7 @@ export const ANNUAL_ACCESS_DAYS = 365;
 
 export type EntitlementRecord =
   | { state: 'trial'; startedAt: string }
-  | { state: 'member'; since: string; expiresAt?: string }
+  | { state: 'member'; since: string; expiresAt?: string; stripeSessionId?: string }
   | { state: 'lapsed'; trialStartedAt: string; lapsedAt: string };
 
 export type EffectiveEntitlement = 'trial' | 'member' | 'lapsed';
@@ -128,17 +128,32 @@ export async function loadEntitlement(now: Date = new Date()): Promise<{
 }
 
 /** Grant one year of access after successful checkout return. */
-export async function grantMembership(now: Date = new Date()): Promise<EntitlementRecord> {
+export async function grantMembership(
+  now: Date = new Date(),
+  opts?: { expiresAt?: string; stripeSessionId?: string },
+): Promise<EntitlementRecord> {
   const since = now.toISOString();
-  const expires = new Date(now);
-  expires.setDate(expires.getDate() + ANNUAL_ACCESS_DAYS);
+  const expires = opts?.expiresAt
+    ? new Date(opts.expiresAt)
+    : (() => {
+        const d = new Date(now);
+        d.setDate(d.getDate() + ANNUAL_ACCESS_DAYS);
+        return d;
+      })();
   const record: EntitlementRecord = {
     state: 'member',
     since,
     expiresAt: expires.toISOString(),
+    ...(opts?.stripeSessionId ? { stripeSessionId: opts.stripeSessionId } : {}),
   };
   await idbSetJson(ENTITLEMENT_KEY, record);
   return record;
+}
+
+export function parsePurchaseSessionId(search: string): string | null {
+  const params = new URLSearchParams(search);
+  const sessionId = params.get('session_id')?.trim();
+  return sessionId && sessionId.startsWith('cs_') ? sessionId : null;
 }
 
 export function parsePurchaseReturn(search: string): 'success' | null {
