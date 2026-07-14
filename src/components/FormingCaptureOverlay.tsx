@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useFormingOptional } from '../lib/forming/FormingContext';
+import { drawSketchMarkToCanvas, parseCoherenceFromSummary } from '../lib/forming/sketchMark';
+import { FORMING_CYCLE_COUNT } from '../lib/forming/types';
 
 type Props = {
   currentTheme: 'day' | 'night';
@@ -8,13 +10,40 @@ type Props = {
 
 export default function FormingCaptureOverlay({ currentTheme }: Props) {
   const forming = useFormingOptional();
-  if (!forming) return null;
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const active =
-    forming.mounting ||
-    forming.stillness ||
-    forming.stage === 'capturing' ||
-    forming.warmthBloom > 0;
+  const active = Boolean(
+    forming &&
+      (forming.mounting ||
+        forming.stillness ||
+        forming.stage === 'capturing' ||
+        forming.warmthBloom > 0),
+  );
+
+  const seed = forming?.displaySeed ?? forming?.formSeed ?? null;
+  const showFrame = forming?.showFrame ?? false;
+  const coalesce = forming?.coalesce ?? 1;
+
+  useEffect(() => {
+    if (!active || !seed || !showFrame) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    let raf = 0;
+    const tick = () => {
+      drawSketchMarkToCanvas(canvas, seed, {
+        coalesce,
+        coherence: parseCoherenceFromSummary(seed.conditionsSummary),
+        breathCycles: FORMING_CYCLE_COUNT,
+        pathProgress: 1,
+      });
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [active, seed, showFrame, coalesce]);
+
+  if (!forming) return null;
 
   return (
     <AnimatePresence>
@@ -23,7 +52,7 @@ export default function FormingCaptureOverlay({ currentTheme }: Props) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center pointer-events-none"
           aria-hidden
         >
           <motion.div
@@ -40,26 +69,31 @@ export default function FormingCaptureOverlay({ currentTheme }: Props) {
                 }}
               />
             )}
-            {forming.showFrame && forming.displaySeed && (
+            {showFrame && seed && (
               <div
-                className={`relative w-32 h-40 border ${
-                  currentTheme === 'night' ? 'border-white/30' : 'border-stone-400'
+                className={`relative overflow-hidden rounded-sm border shadow-2xl ${
+                  currentTheme === 'night' ? 'border-white/25' : 'border-stone-400/80'
                 }`}
                 style={{
-                  boxShadow: forming.mounting ? '0 8px 32px rgba(0,0,0,0.25)' : 'none',
+                  width: 160,
+                  height: 200,
+                  boxShadow: forming.mounting ? '0 12px 40px rgba(0,0,0,0.35)' : '0 8px 24px rgba(0,0,0,0.2)',
                   transform: forming.mounting ? 'scale(0.35) translateY(120px)' : 'scale(1)',
                   transition: forming.reduceMotion ? 'transform 0.8s ease' : 'transform 2s ease',
                   opacity: forming.stillness ? 0 : 1,
                 }}
-              />
+              >
+                <canvas ref={canvasRef} className="w-full h-full block" width={160} height={200} />
+              </div>
             )}
           </motion.div>
           {forming.caption && forming.mounting && (
             <motion.p
               initial={{ opacity: 0 }}
-              animate={{ opacity: 0.7 }}
-              className="absolute bottom-1/3 font-mono text-[11px] tracking-wide uppercase text-center px-6"
-              style={{ color: currentTheme === 'night' ? 'rgba(255,255,255,0.5)' : 'rgba(44,40,36,0.55)' }}
+              animate={{ opacity: 0.75 }}
+              className={`absolute bottom-1/3 font-sans text-sm text-center px-6 ${
+                currentTheme === 'night' ? 'text-white/70' : 'text-stone-700'
+              }`}
             >
               {forming.caption}
             </motion.p>

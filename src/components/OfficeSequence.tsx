@@ -53,7 +53,7 @@ const OFFICES: Record<Office, OfficeDef> = {
       {
         id: 'vault-breath',
         title: 'Three breath cycles',
-        body: 'Follow the orb through three full cycles. If Il Nascimento is active, dust coalesces on the exhale and a memento may form.',
+        body: 'Follow the orb through three full cycles. Dust coalesces on the exhale and your daily field sketch forms.',
         hint: 'Complete three cycles in the breath orb below.',
       },
       {
@@ -65,7 +65,7 @@ const OFFICES: Record<Office, OfficeDef> = {
       {
         id: 'vault-file',
         title: 'File the observation',
-        body: 'When the grid, Conditions, and breath are complete, file this morning office. The diurnal spine records that the Vault was held.',
+        body: 'When the grid, Conditions, and breath are complete, file this morning office.',
       },
     ],
   },
@@ -115,7 +115,7 @@ const OFFICES: Record<Office, OfficeDef> = {
       {
         id: 'marrow-compare',
         title: 'Day comparison',
-        body: 'Compare morning Conditions to now. The Fascia holds mementos if Il Nascimento ran; otherwise hold the comparison in one sentence.',
+        body: 'Compare morning Conditions to now. Marked days hold your field sketches when the ritual ran; otherwise hold the comparison in one sentence.',
       },
       {
         id: 'marrow-wind',
@@ -131,7 +131,7 @@ const OFFICES: Record<Office, OfficeDef> = {
       {
         id: 'marrow-close',
         title: 'Close the Marrow',
-        body: 'File the evening office. The diurnal spine rests until tomorrow\'s Vault.',
+        body: 'File the evening office. The field rests until tomorrow\'s Vault.',
       },
     ],
   },
@@ -198,9 +198,12 @@ export default function OfficeSequence({ place, currentTheme, onNavigateTab }: P
           <div className="flex items-start gap-3">
             <Lock className={`w-4 h-4 mt-0.5 shrink-0 ${isNight ? 'text-white/40' : 'text-stone-400'}`} />
             <div>
-              <span className="hw-eyebrow block mb-1">Diurnal spine · {def.designation}</span>
+              <span className="hw-eyebrow block mb-2">Daily office</span>
+              <h2 className={`font-serif text-2xl md:text-3xl mb-2 ${isNight ? 'text-accent' : 'text-[#2c2824]'}`}>
+                {def.designation}
+              </h2>
               <p className={`font-sans text-sm leading-relaxed ${isNight ? 'text-white/60' : 'text-stone-600'}`}>
-                {def.explainer} The Diurnal Spine opens during trial and membership. Field Station core
+                {def.explainer} Daily offices open during trial and membership. Field Station core
                 remains available.
               </p>
             </div>
@@ -221,11 +224,10 @@ export default function OfficeSequence({ place, currentTheme, onNavigateTab }: P
       >
         <Check className="w-4 h-4 text-accent shrink-0" />
         <div>
-          <span className="font-mono text-xs uppercase tracking-widest opacity-60">
-            {def.designation} · observed today
-          </span>
+          <span className="font-serif text-lg">{def.designation}</span>
+          <span className="font-mono text-xs uppercase tracking-widest opacity-60"> · observed today</span>
           <p className={`font-serif text-sm italic mt-1 ${isNight ? 'text-white/70' : 'text-stone-600'}`}>
-            This office is filed. The diurnal spine continues in its window.
+            This office is filed for today.
           </p>
         </div>
       </div>
@@ -253,7 +255,10 @@ export default function OfficeSequence({ place, currentTheme, onNavigateTab }: P
       id="office-sequence"
     >
       <div className="mb-5">
-        <span className="hw-eyebrow block mb-1">Diurnal spine · {def.designation}</span>
+        <span className="hw-eyebrow block mb-2">Daily office</span>
+        <h2 className={`font-serif text-2xl md:text-3xl mb-2 ${isNight ? 'text-accent' : 'text-[#2c2824]'}`}>
+          {def.designation}
+        </h2>
         <p className={`font-mono text-[10px] uppercase tracking-widest opacity-45 mb-3`}>
           {def.subtitle} · {formatHour(windowStart)} – {formatHour(windowEnd)}
         </p>

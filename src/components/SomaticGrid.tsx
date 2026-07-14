@@ -4,6 +4,7 @@ import { WeatherState, Pathway } from '../types';
 import { Trash2 } from 'lucide-react';
 import { useFormingOptional } from '../lib/forming/FormingContext';
 import FormingDustLayer from './FormingDustLayer';
+import SketchLivePreview from './SketchLivePreview';
 
 interface SomaticGridProps {
   onStateChange: (state: WeatherState, activeCoordinates: [number, number][]) => void;
@@ -278,6 +279,8 @@ export default function SomaticGrid({ onStateChange, currentTheme }: SomaticGrid
           })
         )}
       </div>
+
+      <SketchLivePreview currentTheme={currentTheme} />
 
       {/* Guide Pathways Entry points */}
       <div className="w-full mt-6">

@@ -1,5 +1,9 @@
-import React, { useEffect, useRef } from 'react';
-import { useFormingOptional, drawFormToCanvas } from '../lib/forming/FormingContext';
+import React, { useEffect, useRef, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
+import { useFormingOptional } from '../lib/forming/FormingContext';
+import { drawSketchMarkToCanvas, parseCoherenceFromSummary, markRenderSeed } from '../lib/forming/sketchMark';
+import { resolveSceneAnswer } from '../lib/forming/sketchScenes';
+import { formatMarkDateLabel } from '../lib/forming/markDates';
 import { useEntitlement } from '../lib/EntitlementContext';
 import PurchaseOffer from './PurchaseOffer';
 
@@ -11,14 +15,16 @@ export default function TheFascia({ currentTheme }: Props) {
   const forming = useFormingOptional();
   const { can } = useEntitlement();
   const fasciaEnabled = can('fascia');
+  const [open, setOpen] = useState(false);
+  const isNight = currentTheme === 'night';
 
   if (!fasciaEnabled) {
     return (
-      <div className="w-full mt-8 pt-6 border-t border-accent/10 flex flex-col gap-4" id="the-fascia">
+      <div className="w-full mt-8 pt-6 border-t border-accent/10 flex flex-col gap-4" id="marked-days">
         <div>
-          <span className="hw-eyebrow block mb-1">The Fascia</span>
-          <p className={`font-mono text-[11px] ${currentTheme === 'night' ? 'text-white/35' : 'text-stone-500'}`}>
-            Full Fascia — your observation log and Il Nascimento mementos — opens with membership.
+          <span className="hw-eyebrow block mb-1">Marked days</span>
+          <p className={`font-sans text-sm ${isNight ? 'text-white/50' : 'text-stone-600'}`}>
+            Daily internal climate marks open with membership.
           </p>
         </div>
         <PurchaseOffer currentTheme={currentTheme} variant="compact" />
@@ -26,67 +32,103 @@ export default function TheFascia({ currentTheme }: Props) {
     );
   }
 
-  if (!forming || forming.mementos.length === 0) {
+  const marks = forming?.mementos ?? [];
+  const count = marks.length;
+
+  if (!forming || count === 0) {
     return (
-      <div className="w-full mt-8 pt-6 border-t border-accent/10" id="the-fascia">
-        <span className="hw-eyebrow block mb-1">The Fascia</span>
-        <p className={`font-mono text-[11px] ${currentTheme === 'night' ? 'text-white/35' : 'text-stone-500'}`}>
-          A quiet sequence. Unfilled days leave no mark.
+      <div className="w-full mt-8 pt-6 border-t border-accent/10" id="marked-days">
+        <span className="hw-eyebrow block mb-1">Marked days</span>
+        <p className={`font-sans text-sm italic ${isNight ? 'text-white/45' : 'text-stone-500'}`}>
+          Unmarked days leave no trace.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="w-full mt-8 pt-6 border-t border-accent/10" id="the-fascia">
-      <span className="hw-eyebrow block mb-3">The Fascia</span>
-      <ul className="flex flex-col gap-4" role="list">
-        {forming.mementos.map(m => (
-          <li key={m.id} className="flex flex-col gap-1.5">
-            <MementoTile memento={m} currentTheme={currentTheme} />
-          </li>
-        ))}
-      </ul>
+    <div className="w-full mt-8 pt-6 border-t border-accent/10" id="marked-days">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-start justify-between gap-3 text-left cursor-pointer group"
+        aria-expanded={open}
+      >
+        <div>
+          <span className="hw-eyebrow block mb-1">Marked days</span>
+          <p className={`font-sans text-sm ${isNight ? 'text-white/55' : 'text-stone-600'}`}>
+            {count} mark{count === 1 ? '' : 's'} kept on this device
+            {!open && count > 0 ? ' · tap to open' : ''}
+          </p>
+          {open && (
+            <p className={`font-sans text-xs mt-1 ${isNight ? 'text-white/40' : 'text-stone-500'}`}>
+              Daily internal climate — last {Math.min(30, count)} shown
+            </p>
+          )}
+        </div>
+        <ChevronDown
+          className={`w-4 h-4 shrink-0 mt-1 transition-transform opacity-50 group-hover:opacity-80 ${
+            open ? 'rotate-180' : ''
+          } ${isNight ? 'text-white/60' : 'text-stone-500'}`}
+        />
+      </button>
+
+      {open && (
+        <ul className="flex flex-col gap-5 mt-5 pl-3 border-l border-accent/25" role="list">
+          {marks.map(m => (
+            <li key={m.id}>
+              <MarkTile memento={m} isNight={isNight} />
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
 
-function MementoTile({
+function MarkTile({
   memento,
-  currentTheme,
+  isNight,
 }: {
   memento: import('../lib/forming/types').Memento;
-  currentTheme: 'day' | 'night';
+  isNight: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const resolved = resolveSceneAnswer(memento.formSeed.weatherId, markRenderSeed(memento.formSeed));
+  const coherence = parseCoherenceFromSummary(memento.formSeed.conditionsSummary);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    drawFormToCanvas(canvas, memento.formSeed, 1, 'Hold Out', 0.1);
-  }, [memento]);
+    drawSketchMarkToCanvas(canvas, memento.formSeed, {
+      coalesce: 1,
+      coherence,
+      breathCycles: 3,
+      pathProgress: 1,
+    });
+  }, [memento, coherence]);
 
   return (
-    <div
-      className={`flex items-center gap-3 p-2 rounded-lg border ${
-        currentTheme === 'night' ? 'border-white/8 bg-black/20' : 'border-stone-200/80 bg-white/50'
-      }`}
-    >
+    <article className="flex flex-col sm:flex-row gap-3 sm:gap-4">
       <div
-        className={`shrink-0 rounded border ${
-          currentTheme === 'night' ? 'border-white/15' : 'border-stone-300'
+        className={`shrink-0 rounded-lg border overflow-hidden shadow-sm ${
+          isNight ? 'border-white/12 bg-black/30' : 'border-stone-300/90 bg-stone-100/80'
         }`}
-        style={{ width: 56, height: 56 }}
+        style={{ width: 88, height: 110 }}
       >
-        <canvas ref={canvasRef} className="w-full h-full" width={56} height={56} aria-hidden />
+        <canvas ref={canvasRef} className="w-full h-full block" width={88} height={110} aria-hidden />
       </div>
-      <span
-        className={`font-mono text-[10px] tracking-wide uppercase ${
-          currentTheme === 'night' ? 'text-white/45' : 'text-stone-500'
-        }`}
-      >
-        NASCIMENTO/{memento.index} · MEMENTO · {memento.weatherName}
-      </span>
-    </div>
+      <div className="flex flex-col gap-1 min-w-0">
+        <span className={`font-serif text-base ${isNight ? 'text-white/85' : 'text-[#2c2824]'}`}>
+          {formatMarkDateLabel(memento.date)}
+        </span>
+        <span className={`font-sans text-sm ${isNight ? 'text-white/60' : 'text-stone-600'}`}>
+          {resolved.caption} · {memento.weatherName} · {coherence}%
+        </span>
+        <p className={`font-serif text-sm italic leading-relaxed mt-1.5 ${isNight ? 'text-accent/80' : 'text-[#8a6f2e]'}`}>
+          {resolved.prose}
+        </p>
+      </div>
+    </article>
   );
 }
