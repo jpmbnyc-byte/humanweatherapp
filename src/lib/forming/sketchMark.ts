@@ -163,8 +163,8 @@ export function drawSketchMark(
 ): void {
   const { coalesce, pathProgress = 1 } = options;
   const breathCycles = options.breathCycles ?? (coalesce >= 1 ? 3 : Math.floor(coalesce * 3));
-  const answer = resolveSceneAnswer(seed.weatherId, renderSeed);
   const renderSeed = markRenderSeed(seed);
+  const answer = resolveSceneAnswer(seed.weatherId, renderSeed);
   const rng = mulberry32(renderSeed);
 
   fillPaper(ctx, width, height, renderSeed);
@@ -211,9 +211,9 @@ export function drawSketchMarkToCanvas(
 ): void {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
-  const dpr = window.devicePixelRatio || 1;
-  const w = canvas.clientWidth;
-  const h = canvas.clientHeight;
+  const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+  const w = canvas.clientWidth || canvas.width / dpr || canvas.width;
+  const h = canvas.clientHeight || canvas.height / dpr || canvas.height;
   if (w <= 0 || h <= 0) return;
   canvas.width = w * dpr;
   canvas.height = h * dpr;
