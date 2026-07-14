@@ -127,7 +127,7 @@ export default function BreathworkOrb({ weatherState, currentTheme }: Breathwork
       <h3 className={`font-serif text-xl md:text-2xl italic mb-8 ${currentTheme === 'night' ? 'text-accent' : 'text-[#2c2824]'}`}>{weatherState.title} Pacing</h3>
 
       {/* Breathing Canvas Stage */}
-      <div className="relative w-72 h-72 flex items-center justify-center mb-8">
+      <div className="relative w-72 h-72 flex items-center justify-center mb-8 overflow-hidden">
         
         {/* Continuous ripple rings — outside orb so they stay visible */}
         {isPlaying && (

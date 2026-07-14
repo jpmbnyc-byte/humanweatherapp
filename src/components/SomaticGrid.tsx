@@ -224,7 +224,7 @@ export default function SomaticGrid({ onStateChange, currentTheme }: SomaticGrid
         ref={gridRef}
         onTouchMove={handleTouchMove}
         onTouchEnd={() => setIsDrawing(false)}
-        className={`grid grid-cols-8 gap-1.5 p-3 rounded-2xl border backdrop-blur-md transition-all duration-300 w-full aspect-square relative ${
+        className={`grid grid-cols-8 gap-1.5 p-3 rounded-2xl border backdrop-blur-md transition-all duration-300 w-full aspect-square relative overflow-hidden ${
           currentTheme === 'night' 
             ? 'bg-[#1e1c18]/90 border-white/[0.06]' 
             : 'bg-white/90 border-stone-200/60 shadow-sm shadow-stone-900/5'

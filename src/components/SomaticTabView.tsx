@@ -70,7 +70,7 @@ export default function SomaticTabView({
         </Suspense>
       )}
       <SomaticScaleWrap>
-        <div className="hw-view-enter flex flex-col">
+        <div className="hw-view-enter flex flex-col overflow-x-hidden w-full min-w-0">
           <TrialFootline currentTheme={currentTheme} />
           {purchaseJustCompleted && (
             <PurchaseSuccessBanner
@@ -86,15 +86,15 @@ export default function SomaticTabView({
             />
           </Suspense>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
-            <div className="lg:col-span-5 flex flex-col items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start w-full min-w-0">
+            <div className="lg:col-span-5 flex flex-col items-center w-full min-w-0">
               <SomaticGrid onStateChange={onStateChange} currentTheme={currentTheme} />
               <Suspense fallback={<div className="h-32 w-full mt-8 animate-pulse rounded-xl bg-accent/5" aria-hidden />}>
                 <TheFascia currentTheme={currentTheme} />
               </Suspense>
             </div>
 
-            <div className="lg:col-span-7 flex flex-col gap-10 w-full">
+            <div className="lg:col-span-7 flex flex-col gap-10 w-full min-w-0">
               <ConditionsCard
                 activeWeather={activeWeather}
                 themeStyles={themeStyles}

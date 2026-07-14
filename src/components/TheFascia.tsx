@@ -7,6 +7,7 @@ import { formatMarkDateLabel } from '../lib/forming/markDates';
 import { localDateKey } from '../lib/dailyMarks';
 import { useEntitlement } from '../lib/EntitlementContext';
 import PurchaseOffer from './PurchaseOffer';
+import SaveSketchButton from './SaveSketchButton';
 import type { Memento } from '../lib/forming/types';
 
 type Props = {
@@ -113,7 +114,7 @@ export default function TheFascia({ currentTheme }: Props) {
             <p className={`font-sans text-xs mb-4 ${isNight ? 'text-white/45' : 'text-stone-500'}`}>
               Earlier marks — last {Math.min(30, count)} on this device
             </p>
-            <ul className="flex flex-col gap-5 pl-3 border-l border-accent/25" role="list">
+            <ul className="flex flex-col gap-5 pl-3 border-l border-accent/25 max-h-[min(420px,50vh)] overflow-y-auto pr-1" role="list">
               {historyMarks.map(m => (
                 <li key={m.id}>
                   <MarkTile memento={m} isNight={isNight} />
@@ -197,6 +198,7 @@ function MarkTile({
         >
           {resolved.prose}
         </p>
+        <SaveSketchButton seed={memento.formSeed} isNight={isNight} compact={!highlight} />
       </div>
     </article>
   );
