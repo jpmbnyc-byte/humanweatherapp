@@ -1,15 +1,17 @@
-import { drawSketchMark, parseCoherenceFromSummary } from './sketchMark';
+import {
+  drawSketchMark,
+  exportMarkDrawOptions,
+} from './sketchMark';
 import type { FormSeed } from './types';
 
-/** 4×5 postcard at ~300 DPI — sand stock, charcoal lines, enlarged sketch */
+/** 4×5 notebook page at ~300 DPI — matches thumbnail, crisp detail */
 const EXPORT_WIDTH = 1800;
 const EXPORT_HEIGHT = 2250;
-const POSTCARD_CONTENT_SCALE = 1.38;
 
 export type SketchSaveResult = 'shared' | 'downloaded' | 'opened' | 'failed';
 
 export function sketchMarkFilename(seed: FormSeed): string {
-  return `human-weather-postcard-${seed.date}.png`;
+  return `human-weather-mark-${seed.date}.png`;
 }
 
 export function renderSketchMarkBlob(
@@ -28,14 +30,7 @@ export function renderSketchMarkBlob(
       return;
     }
 
-    drawSketchMark(ctx, seed, w, h, {
-      coalesce: 1,
-      coherence: parseCoherenceFromSummary(seed.conditionsSummary),
-      breathCycles: 3,
-      pathProgress: 1,
-      tone: 'postcard',
-      contentScale: POSTCARD_CONTENT_SCALE,
-    });
+    drawSketchMark(ctx, seed, w, h, exportMarkDrawOptions(seed, w, h));
 
     canvas.toBlob(blob => resolve(blob), 'image/png');
   });
@@ -53,7 +48,7 @@ export async function saveSketchMarkToDevice(seed: FormSeed): Promise<SketchSave
     try {
       await navigator.share({
         files: [file],
-        title: 'Field sketch postcard',
+        title: 'Field sketch',
         text: 'Human Weather field sketch',
       });
       return 'shared';

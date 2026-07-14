@@ -9,11 +9,47 @@ export type SketchMarkOptions = {
   coherence?: number;
   breathCycles?: number;
   pathProgress?: number;
-  /** Export-only: sand paper + charcoal ink */
+  /** notebook = thumbnail look; postcard = legacy sand export */
   tone?: SketchMarkTone;
-  /** Export-only: enlarges sketch within frame (postcard feel) */
+  /** Legacy postcard enlargement within frame */
   contentScale?: number;
+  /** Scales stroke/scene size vs thumbnail reference (auto from canvas if omitted) */
+  pixelScale?: number;
+  /** Export: punch up ink opacity for crisp PNG detail */
+  detailBoost?: number;
 };
+
+/** Thumbnail min dimension — export pixelScale = min(w,h) / this */
+export const THUMB_REF_MIN = 110;
+
+function boostAlpha(alpha: number, boost: number): number {
+  return Math.min(1, alpha * boost);
+}
+
+export function markDrawOptions(
+  seed: FormSeed,
+  overrides: Partial<SketchMarkOptions> = {},
+): SketchMarkOptions {
+  return {
+    coalesce: 1,
+    coherence: parseCoherenceFromSummary(seed.conditionsSummary),
+    breathCycles: 3,
+    pathProgress: 1,
+    tone: 'notebook',
+    ...overrides,
+  };
+}
+
+export function exportMarkDrawOptions(
+  seed: FormSeed,
+  width: number,
+  height: number,
+): SketchMarkOptions {
+  return markDrawOptions(seed, {
+    pixelScale: Math.min(width, height) / THUMB_REF_MIN,
+    detailBoost: 1.32,
+  });
+}
 
 type PathSample = { x: number; y: number; w: number };
 
@@ -117,10 +153,12 @@ function drawArchedFrame(
   ink: [number, number, number],
   coalesce: number,
   rng: () => number,
+  pixelScale: number,
+  detailBoost: number,
 ): void {
   ctx.save();
-  ctx.strokeStyle = `rgba(${ink[0]}, ${ink[1]}, ${ink[2]}, ${0.07 + coalesce * 0.1})`;
-  ctx.lineWidth = 0.55;
+  ctx.strokeStyle = `rgba(${ink[0]}, ${ink[1]}, ${ink[2]}, ${boostAlpha(0.07 + coalesce * 0.1, detailBoost)})`;
+  ctx.lineWidth = 0.55 * pixelScale;
   const left = padX + drawW * 0.1;
   const right = padX + drawW * 0.9;
   const base = padY + drawH * 0.9;
@@ -140,18 +178,20 @@ function drawGestureToAnswer(
   ink: [number, number, number],
   coalesce: number,
   rng: () => number,
+  pixelScale: number,
+  detailBoost: number,
 ): void {
   if (samples.length < 2) return;
   ctx.save();
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   for (let pass = 0; pass < 3; pass++) {
-    ctx.strokeStyle = `rgba(${ink[0]}, ${ink[1]}, ${ink[2]}, ${(0.04 + pass * 0.02) * coalesce})`;
+    ctx.strokeStyle = `rgba(${ink[0]}, ${ink[1]}, ${ink[2]}, ${boostAlpha((0.04 + pass * 0.02) * coalesce, detailBoost)})`;
     ctx.beginPath();
     ctx.moveTo(samples[0].x + (rng() - 0.5), samples[0].y + (rng() - 0.5));
     const end = Math.max(2, Math.floor(samples.length * (0.4 + coalesce * 0.5)));
     for (let i = 1; i < end; i++) {
-      ctx.lineWidth = samples[i].w * 0.45;
+      ctx.lineWidth = samples[i].w * 0.45 * pixelScale;
       ctx.lineTo(samples[i].x + (rng() - 0.5) * 1.5, samples[i].y + (rng() - 0.5) * 1.5);
     }
     ctx.lineTo(anchorX + (rng() - 0.5), anchorY + (rng() - 0.5));
@@ -167,16 +207,18 @@ function drawMarginTicks(
   count: number,
   ink: [number, number, number],
   coalesce: number,
+  pixelScale: number,
+  detailBoost: number,
 ): void {
   ctx.save();
-  ctx.strokeStyle = `rgba(${ink[0]}, ${ink[1]}, ${ink[2]}, ${0.35 + coalesce * 0.35})`;
-  ctx.lineWidth = 0.65;
+  ctx.strokeStyle = `rgba(${ink[0]}, ${ink[1]}, ${ink[2]}, ${boostAlpha(0.35 + coalesce * 0.35, detailBoost)})`;
+  ctx.lineWidth = 0.65 * pixelScale;
   for (let i = 0; i < 3; i++) {
     const filled = i < count;
-    const ty = y + i * 5;
+    const ty = y + i * 5 * pixelScale;
     ctx.beginPath();
     ctx.moveTo(x, ty);
-    ctx.lineTo(x + (filled ? 5 : 3), ty);
+    ctx.lineTo(x + (filled ? 5 : 3) * pixelScale, ty);
     ctx.stroke();
   }
   ctx.restore();
@@ -191,6 +233,8 @@ export function drawSketchMark(
   options: SketchMarkOptions,
 ): void {
   const { coalesce, pathProgress = 1, tone = 'notebook', contentScale = 1 } = options;
+  const detailBoost = options.detailBoost ?? 1;
+  const pixelScale = options.pixelScale ?? Math.min(width, height) / THUMB_REF_MIN;
   const breathCycles = options.breathCycles ?? (coalesce >= 1 ? 3 : Math.floor(coalesce * 3));
   const renderSeed = markRenderSeed(seed);
   const answer = resolveSceneAnswer(seed.weatherId, renderSeed);
@@ -211,7 +255,7 @@ export function drawSketchMark(
   const anchorX = padX + gcx * drawW;
   const anchorY = padY + gcy * drawH * 0.75;
 
-  drawArchedFrame(ctx, padX, padY, drawW, drawH, ink, coalesce, rng);
+  drawArchedFrame(ctx, padX, padY, drawW, drawH, ink, coalesce, rng, pixelScale, detailBoost);
 
   const rawPoints = seed.gesturePoints.length
     ? seed.gesturePoints
@@ -220,7 +264,17 @@ export function drawSketchMark(
   const samples = mapPath(sliced, padX, padY, drawW, drawH);
 
   if (coalesce > 0.12) {
-    drawGestureToAnswer(ctx, samples, anchorX, anchorY, ink, coalesce, mulberry32(renderSeed ^ 0x7001));
+    drawGestureToAnswer(
+      ctx,
+      samples,
+      anchorX,
+      anchorY,
+      ink,
+      coalesce,
+      mulberry32(renderSeed ^ 0x7001),
+      pixelScale,
+      detailBoost,
+    );
   }
 
   if (coalesce > 0.2) {
@@ -231,11 +285,21 @@ export function drawSketchMark(
       anchorY: gcy * 0.82,
       pathSpread: seed.pathSpread,
       ink,
-      contentScale,
+      pixelScale,
+      detailBoost,
     });
   }
 
-  drawMarginTicks(ctx, padX + drawW + 2, padY + drawH * 0.7, breathCycles, ink, coalesce);
+  drawMarginTicks(
+    ctx,
+    padX + drawW + 2 * pixelScale,
+    padY + drawH * 0.7,
+    breathCycles,
+    ink,
+    coalesce,
+    pixelScale,
+    detailBoost,
+  );
 }
 
 export function drawSketchMarkToCanvas(

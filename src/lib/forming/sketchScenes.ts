@@ -637,6 +637,8 @@ export type SceneDrawOptions = {
   pathSpread: number;
   ink?: [number, number, number];
   contentScale?: number;
+  pixelScale?: number;
+  detailBoost?: number;
 };
 
 export function drawLeonardoAnswer(
@@ -649,6 +651,8 @@ export function drawLeonardoAnswer(
   const answer = resolveSceneAnswer(form.weatherId, opts.renderSeed);
   const { coalesce, renderSeed, anchorX, anchorY, pathSpread } = opts;
   const ink = opts.ink ?? answer.ink;
+  const pixelScale = opts.pixelScale ?? 1;
+  const detailBoost = opts.detailBoost ?? 1;
   const contentScale = opts.contentScale ?? 1;
 
   const margin = Math.min(canvasW, canvasH) * 0.12 / contentScale;
@@ -656,7 +660,8 @@ export function drawLeonardoAnswer(
   const drawH = canvasH - margin * 2;
   const ox = margin + anchorX * drawW;
   const oy = margin + anchorY * drawH * 0.92;
-  const scale = (0.55 + coalesce * 0.45) * (0.85 + pathSpread * 0.35) * contentScale;
+  const scale =
+    (0.55 + coalesce * 0.45) * (0.85 + pathSpread * 0.35) * pixelScale * contentScale;
   const rot = ((renderSeed % 360) / 360) * 0.28 - 0.14;
 
   ctx.save();
@@ -670,7 +675,9 @@ export function drawLeonardoAnswer(
     const d: DrawCtx = {
       ctx,
       ink,
-      alpha: isFinal ? 0.32 + coalesce * 0.55 : 0.05 + passRng() * 0.06,
+      alpha: isFinal
+        ? Math.min(1, (0.32 + coalesce * 0.55) * detailBoost)
+        : Math.min(1, (0.05 + passRng() * 0.06) * detailBoost),
       scale: scale * (isFinal ? 1 : 0.92 + passRng() * 0.08),
       ox: ox + Math.cos(passRng() * Math.PI * 2) * (isFinal ? 0 : 2 + pass),
       oy: oy + Math.sin(passRng() * Math.PI * 2) * (isFinal ? 0 : 2 + pass),

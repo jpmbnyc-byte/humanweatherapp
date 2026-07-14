@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { useFormingOptional } from '../lib/forming/FormingContext';
-import { drawSketchMarkToCanvas, parseCoherenceFromSummary, markRenderSeed } from '../lib/forming/sketchMark';
+import { drawSketchMarkToCanvas, markDrawOptions, markRenderSeed } from '../lib/forming/sketchMark';
 import { resolveSceneAnswer } from '../lib/forming/sketchScenes';
 import { formatMarkDateLabel } from '../lib/forming/markDates';
 import { localDateKey } from '../lib/dailyMarks';
@@ -139,26 +139,24 @@ function MarkTile({
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const resolved = resolveSceneAnswer(memento.formSeed.weatherId, markRenderSeed(memento.formSeed));
-  const coherence = parseCoherenceFromSummary(memento.formSeed.conditionsSummary);
+  const drawOptions = useMemo(
+    () => markDrawOptions(memento.formSeed, { pixelScale: 1 }),
+    [memento.formSeed],
+  );
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const draw = () => {
-      drawSketchMarkToCanvas(canvas, memento.formSeed, {
-        coalesce: 1,
-        coherence,
-        breathCycles: 3,
-        pathProgress: 1,
-      });
+      drawSketchMarkToCanvas(canvas, memento.formSeed, drawOptions);
     };
 
     draw();
     const ro = new ResizeObserver(draw);
     ro.observe(canvas);
     return () => ro.disconnect();
-  }, [memento, coherence]);
+  }, [memento, drawOptions]);
 
   const thumbSize = highlight ? { w: 104, h: 130 } : { w: 88, h: 110 };
 
@@ -189,7 +187,7 @@ function MarkTile({
           {formatMarkDateLabel(memento.date)}
         </span>
         <span className={`font-sans text-sm ${isNight ? 'text-white/60' : 'text-stone-600'}`}>
-          {resolved.caption} · {memento.weatherName} · {coherence}%
+          {resolved.caption} · {memento.weatherName} · {drawOptions.coherence}%
         </span>
         <p
           className={`font-serif text-sm italic leading-relaxed mt-1.5 ${
