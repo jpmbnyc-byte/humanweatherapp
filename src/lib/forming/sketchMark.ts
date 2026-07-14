@@ -1,6 +1,6 @@
 import type { FormSeed, GesturePoint } from './types';
 import { mulberry32 } from './seed';
-import { drawLeonardoAnswer, getSceneAnswer } from './sketchScenes';
+import { drawLeonardoAnswer, resolveSceneAnswer } from './sketchScenes';
 
 export type SketchMarkOptions = {
   coalesce: number;
@@ -163,7 +163,7 @@ export function drawSketchMark(
 ): void {
   const { coalesce, pathProgress = 1 } = options;
   const breathCycles = options.breathCycles ?? (coalesce >= 1 ? 3 : Math.floor(coalesce * 3));
-  const answer = getSceneAnswer(seed.weatherId);
+  const answer = resolveSceneAnswer(seed.weatherId, renderSeed);
   const renderSeed = markRenderSeed(seed);
   const rng = mulberry32(renderSeed);
 
@@ -222,4 +222,4 @@ export function drawSketchMarkToCanvas(
   drawSketchMark(ctx, seed, w, h, options);
 }
 
-export { getSceneAnswer } from './sketchScenes';
+export { resolveSceneAnswer } from './sketchScenes';
