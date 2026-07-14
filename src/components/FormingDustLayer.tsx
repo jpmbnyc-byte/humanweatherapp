@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { useFormingOptional, drawFormToCanvas } from '../lib/forming/FormingContext';
+import { useFormingOptional } from '../lib/forming/FormingContext';
 
 export default function FormingDustLayer() {
   const forming = useFormingOptional();
@@ -32,10 +32,7 @@ export default function FormingDustLayer() {
         }
         ctx.clearRect(0, 0, w, h);
 
-        const seed = forming.displaySeed;
-        if (seed && forming.coalesce > 0.08) {
-          drawFormToCanvas(canvas, seed, forming.coalesce, forming.breathPhase, forming.breathScatter);
-        } else if (forming.stage === 'gathering' || forming.stage === 'breathing') {
+        if (forming.stage === 'gathering' || forming.stage === 'breathing') {
           forming.dust.render(ctx, w, h, forming.stage === 'breathing' ? 0.85 : 1);
         } else if (forming.dust.count > 0) {
           forming.dust.render(ctx, w, h, 0.5);
