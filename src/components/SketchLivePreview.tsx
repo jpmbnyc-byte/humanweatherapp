@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useFormingOptional } from '../lib/forming/FormingContext';
 import { drawSketchMarkToCanvas, parseCoherenceFromSummary } from '../lib/forming/sketchMark';
+import { getFormingStatusMessage } from '../lib/forming/formingStatus';
 import { FORMING_CYCLE_COUNT } from '../lib/forming/types';
 
 type Props = {
@@ -12,15 +13,22 @@ export default function SketchLivePreview({ currentTheme }: Props) {
   const forming = useFormingOptional();
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const visible =
+  const activeStage =
     forming &&
     !forming.todaySaved &&
     forming.displaySeed &&
     forming.dust.count > 0 &&
-    ['gathering', 'breathing', 'capturing', 'complete'].includes(forming.stage);
+    ['gathering', 'breathing', 'capturing', 'mounting', 'stillness', 'complete'].includes(forming.stage);
+
+  const statusMessage = forming
+    ? getFormingStatusMessage(forming.stage, {
+        hasTouch: forming.dust.count > 0,
+        todaySaved: forming.todaySaved,
+      })
+    : '';
 
   useEffect(() => {
-    if (!visible || !forming?.displaySeed) return;
+    if (!activeStage || !forming?.displaySeed) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -51,7 +59,7 @@ export default function SketchLivePreview({ currentTheme }: Props) {
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [
-    visible,
+    activeStage,
     forming?.displaySeed,
     forming?.coalesce,
     forming?.stage,
@@ -60,27 +68,39 @@ export default function SketchLivePreview({ currentTheme }: Props) {
     forming?.dust.count,
   ]);
 
-  if (!visible) return null;
+  if (!activeStage && !statusMessage) return null;
 
   const isNight = currentTheme === 'night';
 
   return (
     <div className="w-full mt-4" id="sketch-live-preview">
       <p
-        className={`font-mono text-[10px] uppercase tracking-widest mb-2 ${
+        className={`font-mono text-[10px] uppercase tracking-widest mb-1.5 ${
           isNight ? 'text-white/35' : 'text-stone-500'
         }`}
       >
-        Field sketch · the field answers your climate
+        Field sketch
       </p>
-      <div
-        className={`w-full rounded-xl border overflow-hidden shadow-sm ${
-          isNight ? 'border-white/10 bg-black/20' : 'border-stone-300/80 bg-stone-100/50'
-        }`}
-        style={{ aspectRatio: '4 / 5', maxHeight: 220 }}
-      >
-        <canvas ref={canvasRef} className="w-full h-full block" aria-label="Live field sketch from grid input" />
-      </div>
+      {statusMessage && (
+        <p
+          className={`font-sans text-sm mb-2.5 min-h-[1.25rem] ${
+            isNight ? 'text-white/70' : 'text-stone-700'
+          }`}
+          aria-live="polite"
+        >
+          {statusMessage}
+        </p>
+      )}
+      {activeStage && (
+        <div
+          className={`w-full rounded-xl border overflow-hidden shadow-sm ${
+            isNight ? 'border-white/10 bg-black/20' : 'border-stone-300/80 bg-stone-100/50'
+          }`}
+          style={{ aspectRatio: '4 / 5', maxHeight: 220 }}
+        >
+          <canvas ref={canvasRef} className="w-full h-full block" aria-label="Live field sketch from grid input" />
+        </div>
+      )}
     </div>
   );
 }

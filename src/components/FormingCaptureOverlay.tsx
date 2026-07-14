@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useFormingOptional } from '../lib/forming/FormingContext';
 import { drawSketchMarkToCanvas, parseCoherenceFromSummary } from '../lib/forming/sketchMark';
+import { getFormingStatusMessage } from '../lib/forming/formingStatus';
 import { FORMING_CYCLE_COUNT } from '../lib/forming/types';
 
 type Props = {
@@ -23,6 +24,11 @@ export default function FormingCaptureOverlay({ currentTheme }: Props) {
   const seed = forming?.displaySeed ?? forming?.formSeed ?? null;
   const showFrame = forming?.showFrame ?? false;
   const coalesce = forming?.coalesce ?? 1;
+
+  const statusMessage =
+    forming && active
+      ? getFormingStatusMessage(forming.stage, { todaySaved: forming.todaySaved })
+      : '';
 
   useEffect(() => {
     if (!active || !seed || !showFrame) return;
@@ -80,22 +86,23 @@ export default function FormingCaptureOverlay({ currentTheme }: Props) {
                   boxShadow: forming.mounting ? '0 12px 40px rgba(0,0,0,0.35)' : '0 8px 24px rgba(0,0,0,0.2)',
                   transform: forming.mounting ? 'scale(0.35) translateY(120px)' : 'scale(1)',
                   transition: forming.reduceMotion ? 'transform 0.8s ease' : 'transform 2s ease',
-                  opacity: forming.stillness ? 0 : 1,
+                  opacity: 1,
                 }}
               >
                 <canvas ref={canvasRef} className="w-full h-full block" width={160} height={200} />
               </div>
             )}
           </motion.div>
-          {forming.caption && forming.mounting && (
+          {(statusMessage || forming.caption) && (
             <motion.p
               initial={{ opacity: 0 }}
-              animate={{ opacity: 0.75 }}
-              className={`absolute bottom-1/3 font-sans text-sm text-center px-6 ${
-                currentTheme === 'night' ? 'text-white/70' : 'text-stone-700'
+              animate={{ opacity: 0.85 }}
+              className={`absolute bottom-1/3 font-sans text-sm text-center px-6 max-w-sm ${
+                currentTheme === 'night' ? 'text-white/80' : 'text-stone-700'
               }`}
+              aria-live="polite"
             >
-              {forming.caption}
+              {statusMessage || forming.caption}
             </motion.p>
           )}
         </motion.div>
