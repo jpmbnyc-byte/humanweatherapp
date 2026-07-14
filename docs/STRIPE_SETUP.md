@@ -22,17 +22,19 @@ In [Stripe Dashboard](https://dashboard.stripe.com):
 https://YOUR-LIVE-DOMAIN/?purchase=success&session_id={CHECKOUT_SESSION_ID}
 ```
 
-Example for production:
+Example for production on Render:
 
 ```text
-https://humanweather.app/?purchase=success&session_id={CHECKOUT_SESSION_ID}
+https://humanwetaher.social/?purchase=success&session_id={CHECKOUT_SESSION_ID}
 ```
+
+(Use your exact Namecheap domain. While testing on Lovable preview only, use `https://humanweatherapp.lovable.app/...` temporarily.)
 
 Copy the Payment Link URL (e.g. `https://buy.stripe.com/...`).
 
 ## 3. Environment variables
 
-Add in **Lovable → Project settings → Environment variables** (or your deploy host):
+Add in **Render → Environment** (primary) or Lovable env (preview only):
 
 | Variable | Where | Example |
 |----------|--------|---------|
@@ -51,8 +53,10 @@ Redeploy after saving env vars.
 2. URL:
 
 ```text
-https://YOUR-LIVE-DOMAIN/api/stripe/webhook
+https://humanwetaher.social/api/stripe/webhook
 ```
+
+Full Render setup: see `docs/DEPLOY_RENDER.md`.
 
 3. Events: `checkout.session.completed`
 4. Copy the **Signing secret** → `STRIPE_WEBHOOK_SECRET`

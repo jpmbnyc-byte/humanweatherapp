@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: humanweather
+    runtime: node
+    plan: free
+    branch: main
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NITRO_PRESET
+        value: node-server
+      - key: VITE_PURCHASE_URL
+        sync: false
+      - key: VITE_PURCHASE_PRICE
+        value: "60"
+      - key: VITE_PURCHASE_PRICE_LABEL
+        value: Annual access · no monthly plan
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_ANNUAL_AMOUNT_CENTS
+        value: "6000"
