@@ -3,6 +3,7 @@ import {
   type EffectiveEntitlement,
   type EntitlementFeature,
   type EntitlementRecord,
+  formatMembershipExpiry,
   grantMembership,
   hasFeature,
   loadEntitlement,
@@ -24,6 +25,7 @@ type EntitlementContextValue = {
   dismissPurchaseSuccess: () => void;
   startPurchase: () => void;
   refresh: () => Promise<void>;
+  membershipExpiresLabel: string | null;
 };
 
 const EntitlementContext = createContext<EntitlementContextValue | null>(null);
@@ -77,6 +79,7 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
       isMember: effective === 'member',
       can: (feature: EntitlementFeature) => hasFeature(effective, feature),
       footline: record ? trialFootline(record) : null,
+      membershipExpiresLabel: record ? formatMembershipExpiry(record) : null,
       purchaseJustCompleted,
       dismissPurchaseSuccess,
       startPurchase,

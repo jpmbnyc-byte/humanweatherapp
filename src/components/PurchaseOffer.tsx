@@ -24,7 +24,7 @@ export default function PurchaseOffer({ currentTheme, variant = 'card', classNam
 
   if (isMember) return null;
 
-  const ctaLabel = effective === 'lapsed' ? 'Restore full access' : 'Get lifetime access';
+  const ctaLabel = effective === 'lapsed' ? 'Renew annual access' : 'Get annual access';
 
   if (variant === 'compact') {
     return (
@@ -68,8 +68,8 @@ export default function PurchaseOffer({ currentTheme, variant = 'card', classNam
           </h3>
           <p className={`font-sans text-sm mt-2 leading-relaxed ${isNight ? 'text-white/60' : 'text-stone-600'}`}>
             {effective === 'lapsed'
-              ? 'Your trial has ended. Core Field Station stays free — unlock everything you had during trial.'
-              : 'One purchase. No subscription. Everything below stays on this device after checkout.'}
+              ? 'Your access has ended. Core Field Station stays free — renew for another year when you are ready.'
+              : '$60 unlocks one full year. No monthly plan — renew manually when your year ends.'}
           </p>
         </div>
       </div>

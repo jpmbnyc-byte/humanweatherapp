@@ -41,8 +41,8 @@ export default function TrialFootline({ currentTheme }: Props) {
         >
           <p className={`font-sans text-sm ${isNight ? 'text-white/60' : 'text-stone-600'}`}>
             {showEndingSoon
-              ? 'Lock in lifetime access before the trial closes.'
-              : 'Enjoying the full Field Station? Keep it with a one-time purchase.'}
+              ? 'Lock in annual access before the trial closes.'
+              : 'Enjoying the full Field Station? Keep it with $60/year — no monthly plan.'}
           </p>
           <PurchaseOffer currentTheme={currentTheme} variant="compact" />
         </div>

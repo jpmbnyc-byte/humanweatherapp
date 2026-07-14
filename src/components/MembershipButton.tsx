@@ -14,7 +14,7 @@ export default function MembershipButton({ isNight, themeStyles }: Props) {
 
   if (isMember) return null;
 
-  const label = effective === 'lapsed' ? 'Restore access' : 'Get access';
+  const label = effective === 'lapsed' ? 'Renew access' : 'Annual access';
 
   return (
     <button
