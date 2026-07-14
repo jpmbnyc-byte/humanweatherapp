@@ -164,7 +164,9 @@ async function main() {
   const cssHref = await findStylesheet();
   const html = shellHtml({ indexScript, cssHref });
   await writeFile(join(PUBLIC, 'index.html'), html, 'utf8');
-  await patchWrangler();
+  if (await pathExists(join(SERVER, 'wrangler.json'))) {
+    await patchWrangler();
+  }
   await patchHeaders();
   console.log(`[write-static-shell] Wrote index.html → ${indexScript}`);
 }
