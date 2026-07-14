@@ -27,10 +27,11 @@ export default function SketchLivePreview({ currentTheme }: Props) {
     let raf = 0;
     const tick = () => {
       const seed = forming.displaySeed!;
+      const sortedLen = seed.gesturePoints.length;
       const pathProgress =
         forming.stage === 'gathering'
-          ? Math.min(1, seed.gesturePoints.length / 24)
-          : 1;
+          ? Math.min(1, sortedLen / 18)
+          : Math.min(1, 0.35 + forming.coalesce * 0.65);
       const breathCycles =
         forming.coalesce >= 1
           ? FORMING_CYCLE_COUNT
