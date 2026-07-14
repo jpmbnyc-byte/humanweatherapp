@@ -101,6 +101,7 @@ You can keep Lovable connected to GitHub for editing, but **production traffic a
 ## 6. Verify deploy
 
 ```bash
+curl -I https://humanwetaher.social/healthz   # expect 200
 curl -I https://humanwetaher.social/
 curl -I https://humanwetaher.social/api/stripe/webhook
 ```
@@ -111,6 +112,37 @@ In browser:
 2. **Get annual access** → Stripe checkout
 3. Return with `?purchase=success&session_id=cs_...`
 4. **Annual access active** banner appears
+
+---
+
+## 7. “This page didn’t load” on Render
+
+That message is the app’s **500 error page** — the server started but something failed while handling the request.
+
+### Fix checklist (do in order)
+
+1. **Redeploy latest `main`** — must include PR #29+ (Node `node-server` preset + build verification).
+2. **Render → Environment** — confirm:
+   - `NITRO_PRESET=node-server`
+   - `HOST=0.0.0.0` (optional; set in `render.yaml`)
+3. **Render → Logs → Build** — look for:
+   - `[verify-node-build] OK — preset=node-server` at the end
+   - If you see `Wrong Nitro preset "cloudflare-module"`, the build targeted Cloudflare; fix env and redeploy.
+4. **Render → Logs → Runtime** — after a failed page load, look for `[server] GET https://...` lines with the stack trace.
+5. **Manual deploy** — Dashboard → your service → **Manual Deploy → Deploy latest commit**.
+
+### Common causes
+
+| Symptom | Cause | Fix |
+|---------|--------|-----|
+| Build fails on `wrangler.json` | Old commit before Render host fix | Pull latest `main`, redeploy |
+| Site times out (no response) | Cloudflare build + `npm start` | Set `NITRO_PRESET=node-server`, redeploy |
+| Page loads then error | Client/React crash | Check browser DevTools console; share with support |
+| DNS not resolving | Namecheap not pointed at Render | Finish custom domain setup in Render dashboard |
+
+### Stripe env vars (won’t crash the homepage)
+
+Missing `STRIPE_SECRET_KEY` only blocks **unlock after checkout** — the Field Station home page should still load.
 
 ---
 

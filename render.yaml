@@ -6,10 +6,12 @@ services:
     branch: main
     buildCommand: npm install && npm run build
     startCommand: npm start
-    healthCheckPath: /
+    healthCheckPath: /healthz
     envVars:
       - key: NODE_VERSION
         value: "22"
+      - key: HOST
+        value: "0.0.0.0"
       - key: NITRO_PRESET
         value: node-server
       - key: VITE_PURCHASE_URL
