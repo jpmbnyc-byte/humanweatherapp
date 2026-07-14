@@ -2,11 +2,17 @@ import type { FormSeed, GesturePoint } from './types';
 import { mulberry32 } from './seed';
 import { drawLeonardoAnswer, resolveSceneAnswer } from './sketchScenes';
 
+export type SketchMarkTone = 'notebook' | 'postcard';
+
 export type SketchMarkOptions = {
   coalesce: number;
   coherence?: number;
   breathCycles?: number;
   pathProgress?: number;
+  /** Export-only: sand paper + charcoal ink */
+  tone?: SketchMarkTone;
+  /** Export-only: enlarges sketch within frame (postcard feel) */
+  contentScale?: number;
 };
 
 type PathSample = { x: number; y: number; w: number };
@@ -31,11 +37,24 @@ export function markRenderSeed(form: FormSeed): number {
   return h >>> 0;
 }
 
-function paperGrain(ctx: CanvasRenderingContext2D, w: number, h: number, seed: number): void {
+/** Charcoal black — used for postcard PNG export only */
+const POSTCARD_INK: [number, number, number] = [36, 34, 32];
+
+function paperGrain(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  seed: number,
+  sand = false,
+): void {
   const rng = mulberry32(seed);
   ctx.save();
   for (let i = 0; i < Math.floor(w * h * 0.04); i++) {
-    ctx.fillStyle = `rgba(${88 + rng() * 28}, ${78 + rng() * 18}, ${58 + rng() * 14}, ${0.012 + rng() * 0.025})`;
+    if (sand) {
+      ctx.fillStyle = `rgba(${168 + rng() * 24}, ${148 + rng() * 20}, ${118 + rng() * 18}, ${0.018 + rng() * 0.028})`;
+    } else {
+      ctx.fillStyle = `rgba(${88 + rng() * 28}, ${78 + rng() * 18}, ${58 + rng() * 14}, ${0.012 + rng() * 0.025})`;
+    }
     ctx.fillRect(rng() * w, rng() * h, 1, 1);
   }
   ctx.restore();
@@ -48,7 +67,17 @@ function fillPaper(ctx: CanvasRenderingContext2D, w: number, h: number, seed: nu
   grad.addColorStop(1, '#e9dfca');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, w, h);
-  paperGrain(ctx, w, h, seed);
+  paperGrain(ctx, w, h, seed, false);
+}
+
+function fillPostcardSand(ctx: CanvasRenderingContext2D, w: number, h: number, seed: number): void {
+  const grad = ctx.createLinearGradient(0, 0, w * 0.25, h);
+  grad.addColorStop(0, '#ede4d2');
+  grad.addColorStop(0.45, '#e4d6bc');
+  grad.addColorStop(1, '#d8c8a8');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+  paperGrain(ctx, w, h, seed ^ 0x5a3c, true);
 }
 
 function sortByTime(points: GesturePoint[]): GesturePoint[] {
@@ -161,15 +190,18 @@ export function drawSketchMark(
   height: number,
   options: SketchMarkOptions,
 ): void {
-  const { coalesce, pathProgress = 1 } = options;
+  const { coalesce, pathProgress = 1, tone = 'notebook', contentScale = 1 } = options;
   const breathCycles = options.breathCycles ?? (coalesce >= 1 ? 3 : Math.floor(coalesce * 3));
   const renderSeed = markRenderSeed(seed);
   const answer = resolveSceneAnswer(seed.weatherId, renderSeed);
+  const ink = tone === 'postcard' ? POSTCARD_INK : answer.ink;
   const rng = mulberry32(renderSeed);
 
-  fillPaper(ctx, width, height, renderSeed);
+  if (tone === 'postcard') fillPostcardSand(ctx, width, height, renderSeed);
+  else fillPaper(ctx, width, height, renderSeed);
 
-  const margin = Math.min(width, height) * 0.1;
+  const marginBase = tone === 'postcard' ? 0.055 : 0.1;
+  const margin = (Math.min(width, height) * marginBase) / contentScale;
   const drawW = width - margin * 2;
   const drawH = height - margin * 2.1;
   const padX = margin;
@@ -179,7 +211,7 @@ export function drawSketchMark(
   const anchorX = padX + gcx * drawW;
   const anchorY = padY + gcy * drawH * 0.75;
 
-  drawArchedFrame(ctx, padX, padY, drawW, drawH, answer.ink, coalesce, rng);
+  drawArchedFrame(ctx, padX, padY, drawW, drawH, ink, coalesce, rng);
 
   const rawPoints = seed.gesturePoints.length
     ? seed.gesturePoints
@@ -188,7 +220,7 @@ export function drawSketchMark(
   const samples = mapPath(sliced, padX, padY, drawW, drawH);
 
   if (coalesce > 0.12) {
-    drawGestureToAnswer(ctx, samples, anchorX, anchorY, answer.ink, coalesce, mulberry32(renderSeed ^ 0x7001));
+    drawGestureToAnswer(ctx, samples, anchorX, anchorY, ink, coalesce, mulberry32(renderSeed ^ 0x7001));
   }
 
   if (coalesce > 0.2) {
@@ -198,10 +230,12 @@ export function drawSketchMark(
       anchorX: gcx,
       anchorY: gcy * 0.82,
       pathSpread: seed.pathSpread,
+      ink,
+      contentScale,
     });
   }
 
-  drawMarginTicks(ctx, padX + drawW + 2, padY + drawH * 0.7, breathCycles, answer.ink, coalesce);
+  drawMarginTicks(ctx, padX + drawW + 2, padY + drawH * 0.7, breathCycles, ink, coalesce);
 }
 
 export function drawSketchMarkToCanvas(

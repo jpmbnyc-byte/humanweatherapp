@@ -184,8 +184,6 @@ export function resolveSceneAnswer(weatherId: string, renderSeed: number): Resol
   return { ...variant, ink: set.ink, searchPasses: set.searchPasses, variantIndex };
 }
 
-import { resolveSceneAnswer } from './sketchScenes';
-
 /** @deprecated use resolveSceneAnswer */
 export function getSceneAnswer(weatherId: string, renderSeed = 0) {
   return resolveSceneAnswer(weatherId, renderSeed);
@@ -637,6 +635,8 @@ export type SceneDrawOptions = {
   anchorX: number;
   anchorY: number;
   pathSpread: number;
+  ink?: [number, number, number];
+  contentScale?: number;
 };
 
 export function drawLeonardoAnswer(
@@ -648,13 +648,15 @@ export function drawLeonardoAnswer(
 ): void {
   const answer = resolveSceneAnswer(form.weatherId, opts.renderSeed);
   const { coalesce, renderSeed, anchorX, anchorY, pathSpread } = opts;
+  const ink = opts.ink ?? answer.ink;
+  const contentScale = opts.contentScale ?? 1;
 
-  const margin = Math.min(canvasW, canvasH) * 0.12;
+  const margin = Math.min(canvasW, canvasH) * 0.12 / contentScale;
   const drawW = canvasW - margin * 2;
   const drawH = canvasH - margin * 2;
   const ox = margin + anchorX * drawW;
   const oy = margin + anchorY * drawH * 0.92;
-  const scale = (0.55 + coalesce * 0.45) * (0.85 + pathSpread * 0.35);
+  const scale = (0.55 + coalesce * 0.45) * (0.85 + pathSpread * 0.35) * contentScale;
   const rot = ((renderSeed % 360) / 360) * 0.28 - 0.14;
 
   ctx.save();
@@ -667,7 +669,7 @@ export function drawLeonardoAnswer(
     const isFinal = pass === answer.searchPasses - 1;
     const d: DrawCtx = {
       ctx,
-      ink: answer.ink,
+      ink,
       alpha: isFinal ? 0.32 + coalesce * 0.55 : 0.05 + passRng() * 0.06,
       scale: scale * (isFinal ? 1 : 0.92 + passRng() * 0.08),
       ox: ox + Math.cos(passRng() * Math.PI * 2) * (isFinal ? 0 : 2 + pass),
