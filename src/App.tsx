@@ -154,7 +154,7 @@ export default function App() {
   return (
     <EntitlementProvider>
     <div
-      className={`min-h-screen w-full flex flex-col ${themeStyles.bg} ${themeStyles.text} theme-transition relative overflow-x-hidden`}
+      className={`min-h-dvh w-full flex flex-col ${themeStyles.bg} ${themeStyles.text} theme-transition relative overflow-x-hidden`}
       id="app-root-container"
       data-active-office={place?.activeOffice ?? 'none'}
       data-office-state={place?.officeState ?? 'none'}
@@ -229,7 +229,7 @@ export default function App() {
         </nav>
 
         {/* Main views */}
-        <main className="flex-1 w-full py-10 md:py-12" id="app-main-view">
+        <main className="flex-1 w-full py-10 md:py-12 overflow-x-hidden min-w-0" id="app-main-view">
             {activeTab === 'somatic' && (
               <Suspense fallback={<BootSplashFallback />}>
                 <SomaticTabView
