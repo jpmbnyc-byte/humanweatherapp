@@ -36,6 +36,13 @@ export async function getAllMementos(): Promise<Memento[]> {
   return mementos.filter((m): m is Memento => m !== null);
 }
 
+/** Newest first, capped for display. Storage keeps all marks. */
+export async function getRecentMementos(limit = 30): Promise<Memento[]> {
+  const all = await getAllMementos();
+  if (all.length <= limit) return [...all].reverse();
+  return all.slice(-limit).reverse();
+}
+
 async function nextMementoIndex(): Promise<number> {
   const raw = await idbGet(INDEX_KEY);
   const n = raw ? parseInt(raw, 10) : 0;

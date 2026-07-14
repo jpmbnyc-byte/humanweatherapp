@@ -9,10 +9,11 @@ import React, {
 } from 'react';
 import type { WeatherState } from '../../types';
 import { DustField } from './dust';
-import { buildFormSeed, drawForm } from './seed';
+import { buildFormSeed } from './seed';
+import { drawSketchMarkToCanvas, parseCoherenceFromSummary } from './sketchMark';
 import { runCaptureSequence } from './capture';
 import { localDateKey } from '../dailyMarks';
-import { createMementoFromSeed, getMementoForDate, saveMemento, getAllMementos } from './genesis';
+import { createMementoFromSeed, getMementoForDate, saveMemento, getRecentMementos } from './genesis';
 import { prefersReducedMotion } from './motion';
 import {
   FORMING_CYCLE_COUNT,
@@ -90,7 +91,7 @@ export function FormingProvider({ weather, conditionsSummary, active = true, chi
   const reduceMotion = prefersReducedMotion();
 
   const refreshMementos = useCallback(() => {
-    void getAllMementos().then(setMementos);
+    void getRecentMementos(30).then(setMementos);
     void getMementoForDate(localDateKey()).then(m => setTodaySaved(!!m));
   }, []);
 
@@ -177,7 +178,7 @@ export function FormingProvider({ weather, conditionsSummary, active = true, chi
     setCoalesce(1);
 
     const memento = await createMementoFromSeed(seed);
-    setCaption(`NASCIMENTO/${memento.index} · MEMENTO · ${seed.weatherName}`);
+    setCaption(`Mark recorded · ${seed.weatherName}`);
 
     await runCaptureSequence(
       {
@@ -285,24 +286,13 @@ export function drawFormToCanvas(
   canvas: HTMLCanvasElement,
   seed: FormSeed,
   coalesce: number,
-  breathPhase: BreathPhase,
-  breathScatter: number,
+  _breathPhase: BreathPhase,
+  _breathScatter: number,
 ): void {
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
-  const dpr = window.devicePixelRatio || 1;
-  const w = canvas.clientWidth;
-  const h = canvas.clientHeight;
-  canvas.width = w * dpr;
-  canvas.height = h * dpr;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, w, h);
-  const phase =
-    breathPhase === 'Inhale' ? 'inhale' : breathPhase === 'Exhale' ? 'exhale' : 'hold';
-  drawForm(ctx, seed, {
+  drawSketchMarkToCanvas(canvas, seed, {
     coalesce,
-    breathPhase: phase,
-    breathScatter,
-    size: Math.min(w, h),
+    coherence: parseCoherenceFromSummary(seed.conditionsSummary),
+    breathCycles: coalesce >= 1 ? FORMING_CYCLE_COUNT : Math.floor(coalesce * FORMING_CYCLE_COUNT),
+    pathProgress: 1,
   });
 }
