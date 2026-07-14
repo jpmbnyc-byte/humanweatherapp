@@ -3,6 +3,7 @@ import SomaticGrid from './SomaticGrid';
 import ConditionsCard from './ConditionsCard';
 import TrialFootline from './TrialFootline';
 import PurchaseSuccessBanner from './PurchaseSuccessBanner';
+import PurchaseVerifyErrorBanner from './PurchaseVerifyErrorBanner';
 import { useFormingOptional } from '../lib/forming/FormingContext';
 import { useEntitlement } from '../lib/EntitlementContext';
 import { runWhenIdle } from '../lib/deferredWork';
@@ -52,7 +53,8 @@ export default function SomaticTabView({
   onStateChange,
   onNavigateTab,
 }: Props) {
-  const { can, purchaseJustCompleted, dismissPurchaseSuccess } = useEntitlement();
+  const { can, purchaseJustCompleted, dismissPurchaseSuccess, purchaseVerifyError, dismissPurchaseVerifyError } =
+    useEntitlement();
   const nascimentoEnabled = can('nascimento');
   const conditionsSummary = `${activeWeather.clinicalIndex} · HRV ${activeWeather.hrv}%`;
   const [formingReady, setFormingReady] = useState(false);
@@ -76,6 +78,13 @@ export default function SomaticTabView({
             <PurchaseSuccessBanner
               currentTheme={currentTheme}
               onDismiss={dismissPurchaseSuccess}
+            />
+          )}
+          {purchaseVerifyError && (
+            <PurchaseVerifyErrorBanner
+              currentTheme={currentTheme}
+              message={purchaseVerifyError}
+              onDismiss={dismissPurchaseVerifyError}
             />
           )}
           <Suspense fallback={<div className="h-24 animate-pulse rounded-xl bg-accent/5 mb-6" aria-hidden />}>

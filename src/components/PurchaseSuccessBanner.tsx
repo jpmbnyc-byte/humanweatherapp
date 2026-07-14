@@ -1,5 +1,6 @@
 import React from 'react';
 import { CheckCircle2 } from 'lucide-react';
+import { useEntitlement } from '../lib/EntitlementContext';
 
 type Props = {
   currentTheme: 'day' | 'night';
@@ -8,6 +9,7 @@ type Props = {
 
 export default function PurchaseSuccessBanner({ currentTheme, onDismiss }: Props) {
   const isNight = currentTheme === 'night';
+  const { membershipExpiresLabel } = useEntitlement();
 
   return (
     <div
@@ -19,9 +21,10 @@ export default function PurchaseSuccessBanner({ currentTheme, onDismiss }: Props
     >
       <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
       <div className="flex-1">
-        <p className="font-serif text-base">Membership active.</p>
+        <p className="font-serif text-base">Annual access active.</p>
         <p className={`font-sans text-sm mt-1 ${isNight ? 'text-white/65' : 'text-stone-600'}`}>
-          Il Nascimento, the Diurnal Spine, Fascia, and prescriptions are unlocked on this device.
+          Il Nascimento, the Diurnal Spine, Fascia, and prescriptions are unlocked on this device
+          {membershipExpiresLabel ? ` through ${membershipExpiresLabel}.` : ' for one year.'}
         </p>
       </div>
       <button
