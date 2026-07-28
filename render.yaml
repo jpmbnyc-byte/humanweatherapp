@@ -13,7 +13,7 @@ services:
       - key: NITRO_PRESET
         value: node-server
       - key: VITE_PURCHASE_URL
-        sync: false
+        value: https://buy.stripe.com/5kQ28r28T8OY9s56G34ow00
       - key: VITE_PURCHASE_PRICE
         value: "60"
       - key: VITE_PURCHASE_PRICE_LABEL

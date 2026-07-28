@@ -30,7 +30,7 @@ Copy from Stripe / your notes:
 NODE_VERSION=22
 NITRO_PRESET=node-server
 
-VITE_PURCHASE_URL=https://buy.stripe.com/YOUR_LINK
+VITE_PURCHASE_URL=https://buy.stripe.com/5kQ28r28T8OY9s56G34ow00
 VITE_PURCHASE_PRICE=60
 VITE_PURCHASE_PRICE_LABEL=Annual access · no monthly plan
 

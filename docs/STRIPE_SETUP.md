@@ -30,7 +30,13 @@ https://humanwetaher.social/?purchase=success&session_id={CHECKOUT_SESSION_ID}
 
 (Use your exact Namecheap domain. While testing on Lovable preview only, use `https://humanweatherapp.lovable.app/...` temporarily.)
 
-Copy the Payment Link URL (e.g. `https://buy.stripe.com/...`).
+Copy the Payment Link URL:
+
+```text
+https://buy.stripe.com/5kQ28r28T8OY9s56G34ow00
+```
+
+(Wired in `render.yaml` and `.env.example`.)
 
 ## 3. Environment variables
 
@@ -38,7 +44,7 @@ Add in **Render → Environment** (primary) or Lovable env (preview only):
 
 | Variable | Where | Example |
 |----------|--------|---------|
-| `VITE_PURCHASE_URL` | Client | `https://buy.stripe.com/xxxxx` |
+| `VITE_PURCHASE_URL` | Client | `https://buy.stripe.com/5kQ28r28T8OY9s56G34ow00` |
 | `VITE_PURCHASE_PRICE` | Client | `60` |
 | `VITE_PURCHASE_PRICE_LABEL` | Client | `Annual access · no monthly plan` |
 | `STRIPE_SECRET_KEY` | Server only | `sk_live_...` or `sk_test_...` |
