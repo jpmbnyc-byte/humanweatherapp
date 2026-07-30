@@ -1,4 +1,5 @@
 services:
+  # Human Weather — Node web service (existing)
   - type: web
     name: humanweather
     runtime: node
@@ -7,6 +8,10 @@ services:
     buildCommand: npm install && npm run build
     startCommand: npm start
     healthCheckPath: /
+    buildFilter:
+      ignoredPaths:
+        - tally-ctrl/**
+        - docs/**
     envVars:
       - key: NODE_VERSION
         value: "22"
@@ -24,3 +29,44 @@ services:
         sync: false
       - key: STRIPE_ANNUAL_AMOUNT_CENTS
         value: "6000"
+
+  # Tally CTRL — static free-tool surface (Estimator + VIN Preview)
+  # Custom domain: preview.tallyctrl.com (see tally-ctrl/docs/DEPLOY_RENDER.md)
+  - type: web
+    name: tally-ctrl-preview
+    runtime: static
+    plan: free
+    branch: main
+    rootDir: tally-ctrl
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    buildFilter:
+      paths:
+        - tally-ctrl/**
+        - render.yaml
+    routes:
+      # SPA client routes: /estimate, /p/:token
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /index.html
+        name: Cache-Control
+        value: no-cache
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Optional — franchise seeding via Gemini (leave unset to use curated library only)
+      - key: VITE_GEMINI_API_KEY
+        sync: false
+      - key: VITE_GEMINI_MODEL
+        value: gemini-2.0-flash
