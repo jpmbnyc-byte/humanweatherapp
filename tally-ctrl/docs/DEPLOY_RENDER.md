@@ -44,8 +44,10 @@ Optional env (Dashboard → Environment), then **Manual Deploy**:
 
 | Key | Notes |
 | --- | --- |
-| `VITE_GEMINI_API_KEY` | Only if you want Gemini franchise seeding |
+| `VITE_GEMINI_API_KEY` | Enables live refresh of the three VIN Preview preset cars |
 | `VITE_GEMINI_MODEL` | Default `gemini-2.0-flash` |
+
+Without the key, presets still work from the curated mid-market library.
 
 Vite bakes env at **build** time — change → redeploy.
 
