@@ -4,9 +4,9 @@ import { EconomicsInputs } from "@/components/EconomicsInputs";
 import { CostWaterfall } from "@/components/CostWaterfall";
 import { Extrapolation } from "@/components/Extrapolation";
 import { FindingCards } from "@/components/FindingCards";
+import { PortalOutput } from "@/components/PortalOutput";
 import { PresetCarPicker } from "@/components/PresetCarPicker";
 import { PreviewCta } from "@/components/PreviewCta";
-import { ValueReveal } from "@/components/ValueReveal";
 import { SiteChrome } from "@/components/layout/SiteChrome";
 import {
   curatedEconomicsForPreset,
@@ -53,7 +53,7 @@ export function PreviewPage() {
   const [economics, setEconomics] = useState<ReconEconomics | null>(null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [bootstrapped, setBootstrapped] = useState(false);
-  /** Forces ValueReveal + waterfall to re-autoplay on unit / rate commits. */
+  /** Forces portal output + waterfall to re-autoplay on unit / live refresh. */
   const [demoNonce, setDemoNonce] = useState(0);
 
   const selectedPreset = getPresetById(selectedId);
@@ -68,7 +68,6 @@ export function PreviewPage() {
     }
     recordTokenOpen(record.token);
 
-    // Seed curated immediately so the page is interactive without waiting on Gemini.
     const curatedMap: Record<string, LivePresetResult> = {};
     for (const preset of PRESET_CARS) {
       curatedMap[preset.id] = {
@@ -103,7 +102,6 @@ export function PreviewPage() {
         return {
           ...selected.economics,
           ...record.defaults,
-          // Keep any rates the visitor already typed
           ...(prev && prev !== curatedMap[starter.id].economics
             ? {
                 internalLaborRateCents: prev.internalLaborRateCents,
@@ -184,8 +182,8 @@ export function PreviewPage() {
     return (
       <SiteChrome active="preview">
         <StatusShell
-          title="Preparing your preview…"
-          body="Loading three mid-market sample units — the strip starts automatically."
+          title="Opening preview portal…"
+          body="Loading sample VIN deal profiles — diagnostic output starts automatically."
         />
       </SiteChrome>
     );
@@ -196,7 +194,6 @@ export function PreviewPage() {
     record.sampleUnitCount,
   );
 
-  // Replay auto-demo on unit switch / live refresh — not on every rate keystroke.
   const demoKey = `${selectedId}-${demoNonce}`;
 
   const cards: PreviewFindingCard[] = [
@@ -237,20 +234,17 @@ export function PreviewPage() {
     <SiteChrome active="preview">
       <header className="mt-12 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div className="max-w-xl">
-          <h1 className="font-display text-[2.75rem] leading-[1.05] md:text-5xl">
-            VIN Preview
+          <p className="tc-eyebrow">Preview portal</p>
+          <h1 className="mt-3 font-display text-[2.75rem] leading-[1.05] md:text-5xl">
+            {record.prospectName}
           </h1>
           <p className="mt-4 text-[1.05rem] leading-relaxed text-[var(--tc-ink-muted)]">
-            Prepared for{" "}
-            <span className="font-semibold text-[var(--tc-ink)]">
-              {record.prospectName}
-            </span>
-            {" — "}
-            the strip runs on load. No DMS upload.
+            Deal-console strip on sample VINs — your economics, our units. Output
+            engine runs on load. No DMS upload.
           </p>
         </div>
         <div className="space-y-1.5 text-left text-[0.8125rem] leading-snug text-[var(--tc-ink-muted)] md:max-w-xs md:text-right">
-          <p>Your economics · our sample VINs</p>
+          <p>Token {record.token}</p>
           <p>
             Active: {vehicle.year} {vehicle.make} {vehicle.model}
           </p>
@@ -263,7 +257,7 @@ export function PreviewPage() {
         </div>
       </header>
 
-      <div className="mt-14 space-y-24">
+      <div className="mt-10 space-y-16">
         <PresetCarPicker
           selectedId={selectedId}
           liveById={liveById}
@@ -272,11 +266,12 @@ export function PreviewPage() {
           onRefresh={refreshPreset}
         />
 
-        <ValueReveal
+        <PortalOutput
           vehicle={vehicle}
           result={result}
           sampleUnitCount={record.sampleUnitCount}
           extrapolatedCents={extrapolated}
+          prospectName={record.prospectName}
           demoKey={demoKey}
         />
 
@@ -286,13 +281,13 @@ export function PreviewPage() {
           demoKey={demoKey}
         />
 
+        <EconomicsInputs value={economics} onChange={setEconomics} />
+
         <Extrapolation
           unitMarkupCents={result.internalRoMarkupCents}
           sampleUnitCount={record.sampleUnitCount}
           extrapolatedCents={extrapolated}
         />
-
-        <EconomicsInputs value={economics} onChange={setEconomics} />
 
         <FindingCards cards={cards} />
 
@@ -304,11 +299,11 @@ export function PreviewPage() {
 
       <footer className="mt-20 border-t border-[var(--tc-line)] pt-6 text-xs text-[var(--tc-ink-muted)]">
         <p>
-          Three illustrative sample units. The markup strip auto-plays on load
-          and when you switch cars. Live acquisition and recon figures refresh
-          via Gemini when configured; math stays client-side. No customer VINs
-          leave your building. Total is identified — only recoverable cash is
-          collectible.
+          Preview portal — Stage-6 mechanism proof. Three illustrative sample
+          units; diagnostic output auto-plays on load and when you switch deal
+          profiles. Live acquisition and recon figures refresh via Gemini when
+          configured; math stays client-side. No customer VINs leave your
+          building. Total is identified — only recoverable cash is collectible.
         </p>
       </footer>
     </SiteChrome>

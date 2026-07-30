@@ -42,7 +42,7 @@ export function SiteChrome({
                 : "text-[var(--tc-ink-muted)] hover:text-[var(--tc-ink)]"
             }
           >
-            VIN Preview
+            Preview portal
           </Link>
         </nav>
       </header>

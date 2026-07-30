@@ -29,7 +29,7 @@ export function LandingPage() {
             to="/p/demo-faulkner"
             className="inline-flex items-center justify-center rounded-md border border-[var(--tc-line)] bg-white/60 px-6 py-3.5 text-sm font-semibold text-[var(--tc-ink)] transition hover:border-[var(--tc-accent)]"
           >
-            See how the strip works
+            Open preview portal
           </Link>
         </div>
       </section>
@@ -51,10 +51,10 @@ export function LandingPage() {
           </p>
         </div>
         <div>
-          <p className="tc-label">VIN Preview</p>
+          <p className="tc-label">Preview portal</p>
           <p className="font-display mt-3 text-2xl leading-tight">Free</p>
           <p className="mt-3 text-[0.95rem] leading-relaxed text-[var(--tc-ink-muted)]">
-            How — one unit waterfall on sample VINs at your rates.
+            How — deal-console strip on sample VINs; output runs on load.
           </p>
         </div>
         <div>

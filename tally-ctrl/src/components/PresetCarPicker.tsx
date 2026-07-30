@@ -25,17 +25,22 @@ export function PresetCarPicker({
 }: Props) {
   return (
     <section aria-labelledby="preset-cars" className="scroll-mt-24">
-      <p className="tc-eyebrow">Sample units — tap to re-run</p>
-      <h2 id="preset-cars" className="tc-display text-[2rem] md:text-[2.5rem]">
-        Three boringly typical cars.
-      </h2>
-      <p className="tc-support">
-        The strip starts on load. Switch cars to watch the same markup mechanism
-        on a trade, an auction buy, and a lease return — still our VINs, never
-        yours.
-      </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="tc-eyebrow">Select VIN deal profile</p>
+          <h2
+            id="preset-cars"
+            className="tc-display text-[1.65rem] md:text-[1.9rem]"
+          >
+            Three boringly typical cars.
+          </h2>
+        </div>
+        <p className="max-w-sm text-[0.875rem] leading-snug text-[var(--tc-ink-muted)] sm:text-right">
+          Tap a profile — live portal output fills below. Our VINs, never yours.
+        </p>
+      </div>
 
-      <div className="mt-10 grid gap-5 md:grid-cols-3">
+      <div className="mt-6 grid gap-3 md:grid-cols-3">
         {PRESET_CARS.map((preset, i) => {
           const live = liveById[preset.id];
           const vehicle = live?.vehicle;
@@ -51,93 +56,72 @@ export function PresetCarPicker({
             <motion.button
               key={preset.id}
               type="button"
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.06, duration: 0.4 }}
+              transition={{ delay: i * 0.05, duration: 0.35 }}
               onClick={() => onSelect(preset)}
               aria-pressed={selected}
               className="group text-left transition"
               style={{
-                borderRadius: "1rem",
+                borderRadius: "0.85rem",
                 border: selected
                   ? `2px solid ${accent.ink}`
                   : "1px solid var(--tc-line)",
-                boxShadow: selected ? `0 0 0 4px ${accent.ring}` : "none",
+                boxShadow: selected ? `0 0 0 3px ${accent.ring}` : "none",
                 background: "rgba(255,255,255,0.55)",
                 overflow: "hidden",
               }}
             >
               <div
-                className="relative h-28 overflow-hidden px-5 pt-5"
+                className="relative h-16 overflow-hidden px-4 pt-3"
                 style={{ background: accent.wash }}
               >
                 <CarSilhouette accent={preset.accent} />
                 <p
-                  className="relative z-[1] text-[0.6875rem] font-semibold uppercase tracking-[0.12em]"
+                  className="relative z-[1] text-[0.625rem] font-semibold uppercase tracking-[0.12em]"
                   style={{ color: accent.ink }}
                 >
                   {preset.channelLabel}
                 </p>
                 <p
-                  className="relative z-[1] mt-1 font-display text-2xl leading-tight"
+                  className="relative z-[1] font-display text-xl leading-tight"
                   style={{ color: accent.ink }}
                 >
                   {preset.label}
                 </p>
               </div>
 
-              <div className="space-y-3 px-5 py-4">
-                <p className="text-[0.98rem] font-medium text-[var(--tc-ink)]">
+              <div className="space-y-2 px-4 py-3">
+                <p className="text-[0.9rem] font-medium leading-snug text-[var(--tc-ink)]">
                   {vehicle
-                    ? `${vehicle.year} ${vehicle.make} ${vehicle.model} ${vehicle.trim}`
-                    : "Loading sample…"}
+                    ? `${vehicle.year} ${vehicle.make} ${vehicle.model}`
+                    : "Loading…"}
                 </p>
-                <p className="text-[0.9rem] leading-relaxed text-[var(--tc-ink-muted)]">
-                  {preset.blurb}
-                </p>
-
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.75rem] text-[var(--tc-ink-muted)]">
-                  {vehicle ? (
-                    <span className="tabular-nums">
-                      {vehicle.mileage.toLocaleString()} mi
-                    </span>
-                  ) : null}
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.72rem] text-[var(--tc-ink-muted)]">
                   {markup != null ? (
                     <span className="font-semibold tabular-nums text-[var(--tc-delta)]">
                       ~{formatUsd(markup)} markup
                     </span>
                   ) : null}
-                  {live ? (
-                    <span
-                      className={
-                        live.source === "live"
-                          ? "font-semibold text-[var(--tc-accent)]"
-                          : ""
-                      }
-                    >
-                      {live.source === "live" ? "Live · Gemini" : live.asOfLabel}
+                  {live?.source === "live" ? (
+                    <span className="font-semibold text-[var(--tc-accent)]">
+                      Live · Gemini
                     </span>
                   ) : null}
-                </div>
-
-                {selected && live ? (
-                  <div className="border-t border-[var(--tc-line)] pt-3">
-                    <p className="text-[0.82rem] leading-relaxed text-[var(--tc-ink-muted)]">
-                      {live.marketNote}
-                    </p>
+                  {selected ? (
                     <button
                       type="button"
-                      className="mt-3 text-[0.75rem] font-semibold text-[var(--tc-accent)] disabled:opacity-50"
+                      className="font-semibold text-[var(--tc-accent)] disabled:opacity-50"
                       disabled={loading}
                       onClick={(e) => {
                         e.stopPropagation();
                         onRefresh(preset);
                       }}
                     >
-                      {loading ? "Refreshing live values…" : "Refresh live values"}
+                      {loading ? "Refreshing…" : "Refresh"}
                     </button>
-                  </div>
-                ) : null}
+                  ) : null}
+                </div>
               </div>
             </motion.button>
           );

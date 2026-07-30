@@ -10,7 +10,7 @@ Separate product surface (`tally-ctrl`) beside Human Weather in this repository.
 | --- | --- | --- |
 | `/` | Landing | Category claim + DMS wedge + ladder |
 | `/estimate` | Variance Pool Estimator | How much — used-only, three buckets |
-| `/p/{token}` | VIN Preview | How — sample VINs, their economics |
+| `/p/{token}` | Preview portal | How — sample VINs, deal-console strip |
 
 Portal tabs (Index / Submit / Ledger / Findings / Close) are delivery-product
 scope and are not part of this free-tool surface.
