@@ -6,6 +6,7 @@ import { Extrapolation } from "@/components/Extrapolation";
 import { FindingCards } from "@/components/FindingCards";
 import { PresetCarPicker } from "@/components/PresetCarPicker";
 import { PreviewCta } from "@/components/PreviewCta";
+import { ValueReveal } from "@/components/ValueReveal";
 import { SiteChrome } from "@/components/layout/SiteChrome";
 import {
   curatedEconomicsForPreset,
@@ -52,6 +53,8 @@ export function PreviewPage() {
   const [economics, setEconomics] = useState<ReconEconomics | null>(null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [bootstrapped, setBootstrapped] = useState(false);
+  /** Forces ValueReveal + waterfall to re-autoplay on unit / rate commits. */
+  const [demoNonce, setDemoNonce] = useState(0);
 
   const selectedPreset = getPresetById(selectedId);
   const live = liveById[selectedId];
@@ -111,6 +114,7 @@ export function PreviewPage() {
             : {}),
         };
       });
+      setDemoNonce((n) => n + 1);
     })();
 
     return () => {
@@ -130,6 +134,7 @@ export function PreviewPage() {
           ...record?.defaults,
         });
       }
+      setDemoNonce((n) => n + 1);
     },
     [liveById, record?.defaults],
   );
@@ -141,6 +146,7 @@ export function PreviewPage() {
       setLiveById((prev) => ({ ...prev, [preset.id]: fresh }));
       if (preset.id === selectedId) {
         setEconomics({ ...fresh.economics, ...record?.defaults });
+        setDemoNonce((n) => n + 1);
       }
       setLoadingId(null);
     },
@@ -179,7 +185,7 @@ export function PreviewPage() {
       <SiteChrome active="preview">
         <StatusShell
           title="Preparing your preview…"
-          body="Loading three mid-market sample units."
+          body="Loading three mid-market sample units — the strip starts automatically."
         />
       </SiteChrome>
     );
@@ -189,6 +195,9 @@ export function PreviewPage() {
     result.internalRoMarkupCents,
     record.sampleUnitCount,
   );
+
+  // Replay auto-demo on unit switch / live refresh — not on every rate keystroke.
+  const demoKey = `${selectedId}-${demoNonce}`;
 
   const cards: PreviewFindingCard[] = [
     {
@@ -236,6 +245,8 @@ export function PreviewPage() {
             <span className="font-semibold text-[var(--tc-ink)]">
               {record.prospectName}
             </span>
+            {" — "}
+            the strip runs on load. No DMS upload.
           </p>
         </div>
         <div className="space-y-1.5 text-left text-[0.8125rem] leading-snug text-[var(--tc-ink-muted)] md:max-w-xs md:text-right">
@@ -252,7 +263,7 @@ export function PreviewPage() {
         </div>
       </header>
 
-      <div className="mt-16 space-y-28">
+      <div className="mt-14 space-y-24">
         <PresetCarPicker
           selectedId={selectedId}
           liveById={liveById}
@@ -260,14 +271,31 @@ export function PreviewPage() {
           onSelect={selectPreset}
           onRefresh={refreshPreset}
         />
-        <EconomicsInputs value={economics} onChange={setEconomics} />
-        <CostWaterfall vehicle={vehicle} result={result} />
+
+        <ValueReveal
+          vehicle={vehicle}
+          result={result}
+          sampleUnitCount={record.sampleUnitCount}
+          extrapolatedCents={extrapolated}
+          demoKey={demoKey}
+        />
+
+        <CostWaterfall
+          vehicle={vehicle}
+          result={result}
+          demoKey={demoKey}
+        />
+
         <Extrapolation
           unitMarkupCents={result.internalRoMarkupCents}
           sampleUnitCount={record.sampleUnitCount}
           extrapolatedCents={extrapolated}
         />
+
+        <EconomicsInputs value={economics} onChange={setEconomics} />
+
         <FindingCards cards={cards} />
+
         <PreviewCta
           extrapolatedCents={extrapolated}
           prospectName={record.prospectName}
@@ -276,10 +304,11 @@ export function PreviewPage() {
 
       <footer className="mt-20 border-t border-[var(--tc-line)] pt-6 text-xs text-[var(--tc-ink-muted)]">
         <p>
-          Three illustrative sample units. Live acquisition and recon figures
-          refresh via Gemini when configured; the markup strip always runs
-          client-side. No customer VINs leave your building. Total is identified
-          — only recoverable cash is collectible.
+          Three illustrative sample units. The markup strip auto-plays on load
+          and when you switch cars. Live acquisition and recon figures refresh
+          via Gemini when configured; math stays client-side. No customer VINs
+          leave your building. Total is identified — only recoverable cash is
+          collectible.
         </p>
       </footer>
     </SiteChrome>

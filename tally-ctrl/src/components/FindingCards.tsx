@@ -9,13 +9,13 @@ interface Props {
 export function FindingCards({ cards }: Props) {
   return (
     <section aria-labelledby="findings-tease" className="scroll-mt-24">
-      <p className="tc-eyebrow">What the portal automates</p>
+      <p className="tc-eyebrow">What runs without you</p>
       <h2 id="findings-tease" className="tc-display text-[2rem] md:text-[2.5rem]">
         Markup is the largest line — not the only one.
       </h2>
       <p className="tc-support">
-        The preview shows the mechanism. The portal runs the full finding set
-        across every sold VIN each period.
+        You just watched one finding auto-strip. The portal runs the full set
+        across every sold VIN each period — still without a DMS dump to a stranger.
       </p>
 
       <div className="mt-10 grid gap-x-8 gap-y-10 md:grid-cols-2">

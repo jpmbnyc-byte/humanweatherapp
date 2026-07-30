@@ -7,6 +7,7 @@ interface Props {
   extrapolatedCents: number;
 }
 
+/** Compact restatement after the auto value reveal — reinforces the sample $ */
 export function Extrapolation({
   unitMarkupCents,
   sampleUnitCount,
@@ -14,12 +15,12 @@ export function Extrapolation({
 }: Props) {
   return (
     <section aria-labelledby="beat-extrapolate" className="scroll-mt-24">
-      <p className="tc-eyebrow">Beat 3 — Extrapolation</p>
+      <p className="tc-eyebrow">Why this matters</p>
       <h2
         id="beat-extrapolate"
         className="tc-display text-[2rem] md:text-[2.5rem]"
       >
-        One unit. Then the sample.
+        One unit proves the mechanism. Volume proves the exposure.
       </h2>
 
       <motion.blockquote
@@ -40,7 +41,8 @@ export function Extrapolation({
           <span className="text-[var(--tc-delta)]">
             {formatUsd(extrapolatedCents)}
           </span>{" "}
-          of overstated used inventory cost and understated front gross.
+          of overstated used inventory cost and understated front gross —
+          identified automatically, before anyone uploads a DMS file.
         </p>
       </motion.blockquote>
     </section>

@@ -25,13 +25,14 @@ export function PresetCarPicker({
 }: Props) {
   return (
     <section aria-labelledby="preset-cars" className="scroll-mt-24">
-      <p className="tc-eyebrow">Choose a sample unit</p>
+      <p className="tc-eyebrow">Sample units — tap to re-run</p>
       <h2 id="preset-cars" className="tc-display text-[2rem] md:text-[2.5rem]">
         Three boringly typical cars.
       </h2>
       <p className="tc-support">
-        Pick one. Your rates drive the strip. Acquisition and recon lines refresh
-        from Gemini when a key is configured — still our VINs, never yours.
+        The strip starts on load. Switch cars to watch the same markup mechanism
+        on a trade, an auction buy, and a lease return — still our VINs, never
+        yours.
       </p>
 
       <div className="mt-10 grid gap-5 md:grid-cols-3">
