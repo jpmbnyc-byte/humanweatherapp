@@ -21,6 +21,10 @@ from Human Weather’s Node service. Blueprint entry: `tally-ctrl-preview` in
 
 You should see a new service: **`tally-ctrl-preview`** (runtime: Static).
 
+> Static sites on Render do **not** take `plan: free` in the Blueprint — omit
+> `plan`. Static hosting is still free; `plan` only applies to Node web services
+> (like Human Weather).
+
 Human Weather (`humanweather`) keeps deploying as before; its `buildFilter`
 ignores `tally-ctrl/**` so Estimator edits don’t rebuild HW.
 

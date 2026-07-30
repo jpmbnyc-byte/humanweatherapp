@@ -32,10 +32,10 @@ services:
 
   # Tally CTRL — static free-tool surface (Estimator + VIN Preview)
   # Custom domain: preview.tallyctrl.com (see tally-ctrl/docs/DEPLOY_RENDER.md)
+  # Note: static sites have no instance plan field (omit `plan`; hosting is free/CDN).
   - type: web
     name: tally-ctrl-preview
     runtime: static
-    plan: free
     branch: main
     rootDir: tally-ctrl
     buildCommand: npm install && npm run build
