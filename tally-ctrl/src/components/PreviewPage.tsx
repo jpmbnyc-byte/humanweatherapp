@@ -1,76 +1,151 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { EconomicsInputs } from "@/components/EconomicsInputs";
 import { CostWaterfall } from "@/components/CostWaterfall";
 import { Extrapolation } from "@/components/Extrapolation";
 import { FindingCards } from "@/components/FindingCards";
+import { PresetCarPicker } from "@/components/PresetCarPicker";
 import { PreviewCta } from "@/components/PreviewCta";
 import { SiteChrome } from "@/components/layout/SiteChrome";
 import {
-  getSampleByKey,
-  getSampleForFranchise,
-} from "@/data/sample-vehicles";
+  curatedEconomicsForPreset,
+  curatedVehicleForPreset,
+  getPresetById,
+  PRESET_CARS,
+  type PresetCar,
+} from "@/data/preset-cars";
 import {
   isTokenExpired,
   lookupToken,
   recordTokenOpen,
 } from "@/data/preview-tokens";
 import { computeUnit, extrapolateMarkup } from "@/engine/compute";
-import { resolveFranchiseSeed } from "@/gemini/franchise-seed";
+import {
+  prefetchAllPresets,
+  resolvePresetLive,
+  type LivePresetResult,
+} from "@/gemini/live-preset";
 import type {
   PreviewFindingCard,
   ReconEconomics,
   SampleVehicle,
 } from "@/schema/types";
 
+function initialPresetForToken(franchise: string | null): PresetCar {
+  const match = PRESET_CARS.find((p) => {
+    const v = curatedVehicleForPreset(p);
+    return franchise && v.franchise === franchise.toLowerCase();
+  });
+  return match ?? PRESET_CARS[0];
+}
+
 export function PreviewPage() {
   const { token = "" } = useParams();
   const record = lookupToken(token);
 
-  const [vehicle, setVehicle] = useState<SampleVehicle | null>(null);
+  const [selectedId, setSelectedId] = useState(
+    () => initialPresetForToken(record?.franchise ?? null).id,
+  );
+  const [liveById, setLiveById] = useState<
+    Record<string, LivePresetResult | undefined>
+  >({});
   const [economics, setEconomics] = useState<ReconEconomics | null>(null);
-  const [seedSource, setSeedSource] = useState<string>("curated");
-  const [loading, setLoading] = useState(true);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [bootstrapped, setBootstrapped] = useState(false);
+
+  const selectedPreset = getPresetById(selectedId);
+  const live = liveById[selectedId];
+  const vehicle: SampleVehicle | null =
+    live?.vehicle ?? curatedVehicleForPreset(selectedPreset);
 
   useEffect(() => {
     if (!record || isTokenExpired(record)) {
-      setLoading(false);
+      setBootstrapped(true);
       return;
     }
-
     recordTokenOpen(record.token);
-    let cancelled = false;
 
-    (async () => {
-      const seeded = await resolveFranchiseSeed({
-        franchise: record.franchise,
-        prospectName: record.prospectName,
-      });
-
-      if (cancelled) return;
-
-      const fromKey = record.sampleVehicleKey
-        ? getSampleByKey(record.sampleVehicleKey)
-        : getSampleForFranchise(record.franchise);
-
-      const chosenVehicle =
-        seeded.source === "gemini" ? seeded.vehicle : fromKey;
-      const chosenEconomics: ReconEconomics = {
-        ...chosenVehicle.defaultEconomics,
-        ...seeded.economics,
-        ...record.defaults,
+    // Seed curated immediately so the page is interactive without waiting on Gemini.
+    const curatedMap: Record<string, LivePresetResult> = {};
+    for (const preset of PRESET_CARS) {
+      curatedMap[preset.id] = {
+        vehicle: curatedVehicleForPreset(preset),
+        economics: curatedEconomicsForPreset(preset),
+        source: "curated",
+        marketNote:
+          "Curated mid-market sample. Live Gemini values load when configured.",
+        asOfLabel: "Curated sample",
       };
+    }
+    const starter = initialPresetForToken(record.franchise);
+    setSelectedId(starter.id);
+    setLiveById(curatedMap);
+    setEconomics({
+      ...curatedMap[starter.id].economics,
+      ...record.defaults,
+    });
+    setBootstrapped(true);
 
-      setVehicle(chosenVehicle);
-      setEconomics(chosenEconomics);
-      setSeedSource(seeded.source);
-      setLoading(false);
+    let cancelled = false;
+    (async () => {
+      const liveMap = await prefetchAllPresets();
+      if (cancelled) return;
+      const next: Record<string, LivePresetResult> = {};
+      liveMap.forEach((value, key) => {
+        next[key] = value;
+      });
+      setLiveById(next);
+      setEconomics((prev) => {
+        const selected = next[starter.id] ?? curatedMap[starter.id];
+        return {
+          ...selected.economics,
+          ...record.defaults,
+          // Keep any rates the visitor already typed
+          ...(prev && prev !== curatedMap[starter.id].economics
+            ? {
+                internalLaborRateCents: prev.internalLaborRateCents,
+                laborCostRateCents: prev.laborCostRateCents,
+                partsMarkupPct: prev.partsMarkupPct,
+                packAmountCents: prev.packAmountCents,
+              }
+            : {}),
+        };
+      });
     })();
 
     return () => {
       cancelled = true;
     };
   }, [record]);
+
+  const selectPreset = useCallback(
+    (preset: PresetCar) => {
+      setSelectedId(preset.id);
+      const entry = liveById[preset.id];
+      if (entry) {
+        setEconomics({ ...entry.economics, ...record?.defaults });
+      } else {
+        setEconomics({
+          ...curatedEconomicsForPreset(preset),
+          ...record?.defaults,
+        });
+      }
+    },
+    [liveById, record?.defaults],
+  );
+
+  const refreshPreset = useCallback(
+    async (preset: PresetCar) => {
+      setLoadingId(preset.id);
+      const fresh = await resolvePresetLive(preset, { forceRefresh: true });
+      setLiveById((prev) => ({ ...prev, [preset.id]: fresh }));
+      if (preset.id === selectedId) {
+        setEconomics({ ...fresh.economics, ...record?.defaults });
+      }
+      setLoadingId(null);
+    },
+    [record?.defaults, selectedId],
+  );
 
   const result = useMemo(() => {
     if (!vehicle || !economics) return null;
@@ -99,12 +174,12 @@ export function PreviewPage() {
     );
   }
 
-  if (loading || !vehicle || !economics || !result) {
+  if (!bootstrapped || !vehicle || !economics || !result) {
     return (
       <SiteChrome active="preview">
         <StatusShell
           title="Preparing your preview…"
-          body="Seeding a mid-market sample for your franchise."
+          body="Loading three mid-market sample units."
         />
       </SiteChrome>
     );
@@ -147,6 +222,8 @@ export function PreviewPage() {
     },
   ];
 
+  const liveMeta = liveById[selectedId];
+
   return (
     <SiteChrome active="preview">
       <header className="mt-12 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
@@ -164,14 +241,25 @@ export function PreviewPage() {
         <div className="space-y-1.5 text-left text-[0.8125rem] leading-snug text-[var(--tc-ink-muted)] md:max-w-xs md:text-right">
           <p>Your economics · our sample VINs</p>
           <p>
-            Seed: {vehicle.year} {vehicle.make} {vehicle.model}
-            {seedSource === "curated" ? "" : ` · ${seedSource}`}
+            Active: {vehicle.year} {vehicle.make} {vehicle.model}
+          </p>
+          <p>
+            {liveMeta?.source === "live"
+              ? `Live values · ${liveMeta.asOfLabel}`
+              : (liveMeta?.asOfLabel ?? "Curated sample")}
           </p>
           <p>Expires {new Date(record.expiresAt).toLocaleDateString()}</p>
         </div>
       </header>
 
       <div className="mt-16 space-y-28">
+        <PresetCarPicker
+          selectedId={selectedId}
+          liveById={liveById}
+          loadingId={loadingId}
+          onSelect={selectPreset}
+          onRefresh={refreshPreset}
+        />
         <EconomicsInputs value={economics} onChange={setEconomics} />
         <CostWaterfall vehicle={vehicle} result={result} />
         <Extrapolation
@@ -188,9 +276,10 @@ export function PreviewPage() {
 
       <footer className="mt-20 border-t border-[var(--tc-line)] pt-6 text-xs text-[var(--tc-ink-muted)]">
         <p>
-          Demonstration of the markup-strip mechanism on sample units. Not a
-          demo of the portal. No customer VINs leave your building. Total is
-          identified — only recoverable cash is collectible.
+          Three illustrative sample units. Live acquisition and recon figures
+          refresh via Gemini when configured; the markup strip always runs
+          client-side. No customer VINs leave your building. Total is identified
+          — only recoverable cash is collectible.
         </p>
       </footer>
     </SiteChrome>
