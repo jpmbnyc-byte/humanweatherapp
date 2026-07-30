@@ -24,31 +24,28 @@ function parsePct(raw: string): number {
 export function EconomicsInputs({ value, onChange }: Props) {
   return (
     <section aria-labelledby="beat-inputs" className="scroll-mt-24">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--tc-accent)]">
-        Beat 1 — Your economics
-      </p>
-      <h2
-        id="beat-inputs"
-        className="font-display mt-2 text-3xl leading-tight text-[var(--tc-ink)] md:text-4xl"
-      >
+      <p className="tc-eyebrow">Beat 1 — Your economics</p>
+      <h2 id="beat-inputs" className="tc-display text-[2rem] md:text-[2.5rem]">
         Four numbers. Not your VINs.
       </h2>
-      <p className="mt-3 max-w-2xl text-[var(--tc-ink-muted)]">
+      <p className="tc-support">
         Internal labor rate, what that labor actually costs, parts markup, and
         pack. Controllers type these without a second thought — and they drive
         the largest gross-accuracy finding in the engine.
       </p>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <label>
+      <div className="mt-10 grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
+        <label className="tc-field">
           <span className="tc-label">Internal labor rate</span>
-          <div className="relative">
-            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--tc-ink-muted)]">
+          <div className="tc-input-shell">
+            <span className="tc-input-affix tc-input-affix-left" aria-hidden>
               $
             </span>
             <input
-              className="tc-input pl-7"
+              className="tc-input tc-input-has-prefix"
               inputMode="decimal"
+              autoComplete="off"
+              spellCheck={false}
               aria-label="Internal labor rate dollars per hour"
               value={dollarsFromCents(value.internalLaborRateCents)}
               onChange={(e) =>
@@ -59,20 +56,20 @@ export function EconomicsInputs({ value, onChange }: Props) {
               }
             />
           </div>
-          <span className="mt-1 block text-xs text-[var(--tc-ink-muted)]">
-            $/hr billed on internal ROs
-          </span>
+          <span className="tc-field-hint">$/hr billed on internal ROs</span>
         </label>
 
-        <label>
+        <label className="tc-field">
           <span className="tc-label">Labor cost rate</span>
-          <div className="relative">
-            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--tc-ink-muted)]">
+          <div className="tc-input-shell">
+            <span className="tc-input-affix tc-input-affix-left" aria-hidden>
               $
             </span>
             <input
-              className="tc-input pl-7"
+              className="tc-input tc-input-has-prefix"
               inputMode="decimal"
+              autoComplete="off"
+              spellCheck={false}
               aria-label="Labor cost rate dollars per hour"
               value={dollarsFromCents(value.laborCostRateCents)}
               onChange={(e) =>
@@ -83,17 +80,17 @@ export function EconomicsInputs({ value, onChange }: Props) {
               }
             />
           </div>
-          <span className="mt-1 block text-xs text-[var(--tc-ink-muted)]">
-            $/hr actual technician cost
-          </span>
+          <span className="tc-field-hint">$/hr actual technician cost</span>
         </label>
 
-        <label>
+        <label className="tc-field">
           <span className="tc-label">Parts markup</span>
-          <div className="relative">
+          <div className="tc-input-shell">
             <input
-              className="tc-input pr-8"
+              className="tc-input tc-input-has-suffix"
               inputMode="decimal"
+              autoComplete="off"
+              spellCheck={false}
               aria-label="Parts markup percent"
               value={Math.round(value.partsMarkupPct * 100)}
               onChange={(e) =>
@@ -103,24 +100,24 @@ export function EconomicsInputs({ value, onChange }: Props) {
                 })
               }
             />
-            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--tc-ink-muted)]">
+            <span className="tc-input-affix tc-input-affix-right" aria-hidden>
               %
             </span>
           </div>
-          <span className="mt-1 block text-xs text-[var(--tc-ink-muted)]">
-            Billed at cost × (1 + markup)
-          </span>
+          <span className="tc-field-hint">Billed at cost × (1 + markup)</span>
         </label>
 
-        <label>
+        <label className="tc-field">
           <span className="tc-label">Pack</span>
-          <div className="relative">
-            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--tc-ink-muted)]">
+          <div className="tc-input-shell">
+            <span className="tc-input-affix tc-input-affix-left" aria-hidden>
               $
             </span>
             <input
-              className="tc-input pl-7"
+              className="tc-input tc-input-has-prefix"
               inputMode="decimal"
+              autoComplete="off"
+              spellCheck={false}
               aria-label="Pack amount dollars"
               value={dollarsFromCents(value.packAmountCents)}
               onChange={(e) =>
@@ -131,9 +128,7 @@ export function EconomicsInputs({ value, onChange }: Props) {
               }
             />
           </div>
-          <span className="mt-1 block text-xs text-[var(--tc-ink-muted)]">
-            Flat pack in inventory cost
-          </span>
+          <span className="tc-field-hint">Flat pack in inventory cost</span>
         </label>
       </div>
     </section>

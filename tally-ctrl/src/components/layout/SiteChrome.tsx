@@ -10,20 +10,20 @@ export function SiteChrome({
   active?: "home" | "estimate" | "preview";
 }) {
   return (
-    <div className="mx-auto min-h-screen max-w-5xl px-4 pb-24 pt-8 sm:px-6">
-      <header className="flex flex-col gap-4 border-b border-[var(--tc-line)] pb-6 sm:flex-row sm:items-end sm:justify-between">
-        <div>
+    <div className="mx-auto min-h-screen max-w-5xl px-4 pb-28 pt-10 sm:px-6">
+      <header className="flex flex-col gap-5 border-b border-[var(--tc-line)] pb-8 sm:flex-row sm:items-end sm:justify-between">
+        <div className="max-w-xl">
           <Link
             to="/"
-            className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--tc-ink-muted)]"
+            className="text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-[var(--tc-ink-muted)]"
           >
             Tally CTRL
           </Link>
-          <p className="mt-2 max-w-xl text-sm text-[var(--tc-ink-muted)]">
+          <p className="mt-3 text-[0.95rem] leading-relaxed text-[var(--tc-ink-muted)]">
             {CATEGORY_CLAIM}
           </p>
         </div>
-        <nav className="flex gap-4 text-sm font-medium">
+        <nav className="flex gap-6 text-[0.95rem] font-medium tracking-tight">
           <Link
             to="/estimate"
             className={

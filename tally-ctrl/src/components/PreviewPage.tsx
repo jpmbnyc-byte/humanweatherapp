@@ -149,31 +149,29 @@ export function PreviewPage() {
 
   return (
     <SiteChrome active="preview">
-      <header className="mt-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="font-display text-4xl leading-none md:text-5xl">
+      <header className="mt-12 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+        <div className="max-w-xl">
+          <h1 className="font-display text-[2.75rem] leading-[1.05] md:text-5xl">
             VIN Preview
           </h1>
-          <p className="mt-3 text-sm text-[var(--tc-ink-muted)]">
+          <p className="mt-4 text-[1.05rem] leading-relaxed text-[var(--tc-ink-muted)]">
             Prepared for{" "}
             <span className="font-semibold text-[var(--tc-ink)]">
               {record.prospectName}
             </span>
           </p>
         </div>
-        <div className="text-left text-xs text-[var(--tc-ink-muted)] md:text-right">
+        <div className="space-y-1.5 text-left text-[0.8125rem] leading-snug text-[var(--tc-ink-muted)] md:max-w-xs md:text-right">
           <p>Your economics · our sample VINs</p>
-          <p className="mt-1">
+          <p>
             Seed: {vehicle.year} {vehicle.make} {vehicle.model}
             {seedSource === "curated" ? "" : ` · ${seedSource}`}
           </p>
-          <p className="mt-1">
-            Expires {new Date(record.expiresAt).toLocaleDateString()}
-          </p>
+          <p>Expires {new Date(record.expiresAt).toLocaleDateString()}</p>
         </div>
       </header>
 
-      <div className="mt-14 space-y-24">
+      <div className="mt-16 space-y-28">
         <EconomicsInputs value={economics} onChange={setEconomics} />
         <CostWaterfall vehicle={vehicle} result={result} />
         <Extrapolation

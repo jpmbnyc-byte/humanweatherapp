@@ -43,47 +43,47 @@ export function EstimatorPage() {
 
   return (
     <SiteChrome active="estimate">
-      <section className="mt-12 max-w-3xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--tc-accent)]">
-          {TIER.estimator.name}
-        </p>
-        <h1 className="font-display mt-2 text-4xl md:text-5xl">
+      <section className="mt-14 max-w-3xl">
+        <p className="tc-eyebrow">{TIER.estimator.name}</p>
+        <h1 className="tc-display text-[2.5rem] md:text-5xl">
           Estimate your used-vehicle variance pool.
         </h1>
-        <p className="mt-4 text-[var(--tc-ink-muted)]">
+        <p className="tc-support">
           Four inputs. Under 90 seconds. Three buckets — never one blended
           number. Modelled estimate, not a finding.
         </p>
       </section>
 
-      <section className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <label>
+      <section className="mt-12 grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
+        <label className="tc-field">
           <span className="tc-label">Rooftops</span>
           <input
             className="tc-input"
             type="number"
             min={1}
             max={100}
+            autoComplete="off"
             value={inputs.rooftops}
             onChange={(e) =>
               patch({ rooftops: clampInt(e.target.value, 1, 100) })
             }
           />
         </label>
-        <label>
+        <label className="tc-field">
           <span className="tc-label">Used units / month</span>
           <input
             className="tc-input"
             type="number"
             min={0}
             max={5000}
+            autoComplete="off"
             value={inputs.usedUnitsMonth}
             onChange={(e) =>
               patch({ usedUnitsMonth: clampInt(e.target.value, 0, 5000) })
             }
           />
         </label>
-        <label className="sm:col-span-2">
+        <label className="tc-field sm:col-span-2">
           <span className="tc-label">Primary franchise group</span>
           <select
             className="tc-input"
@@ -113,24 +113,26 @@ export function EstimatorPage() {
           {advancedOpen ? "Hide" : "Show"} advanced inputs
         </button>
         {advancedOpen ? (
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <label>
+          <div className="mt-5 grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
+            <label className="tc-field">
               <span className="tc-label">Avg used unit cost</span>
               <input
                 className="tc-input"
                 type="number"
+                autoComplete="off"
                 value={inputs.avgUnitCost}
                 onChange={(e) =>
                   patch({ avgUnitCost: clampInt(e.target.value, 10000, 150000) })
                 }
               />
             </label>
-            <label>
+            <label className="tc-field">
               <span className="tc-label">Floorplan rate (%)</span>
               <input
                 className="tc-input"
                 type="number"
                 step="0.1"
+                autoComplete="off"
                 value={+(inputs.floorplanRate * 100).toFixed(2)}
                 onChange={(e) =>
                   patch({
@@ -139,11 +141,12 @@ export function EstimatorPage() {
                 }
               />
             </label>
-            <label>
+            <label className="tc-field">
               <span className="tc-label">Days in inventory</span>
               <input
                 className="tc-input"
                 type="number"
+                autoComplete="off"
                 value={inputs.daysInInventory}
                 onChange={(e) =>
                   patch({
@@ -152,11 +155,12 @@ export function EstimatorPage() {
                 }
               />
             </label>
-            <label>
+            <label className="tc-field">
               <span className="tc-label">Recon per used unit</span>
               <input
                 className="tc-input"
                 type="number"
+                autoComplete="off"
                 value={inputs.reconPerUsedUnit}
                 onChange={(e) =>
                   patch({
