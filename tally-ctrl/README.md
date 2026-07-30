@@ -42,6 +42,13 @@ Publishable copy: `src/config/positioning.ts`.
 paraphrase unresolved risks, unpriced Governance anchors, or n=0 claims onto
 public routes.
 
+## VIN Preview presets
+
+Three illustrative sample units (trade sedan, auction sedan, lease-return CUV).
+Curated figures load instantly; with `VITE_GEMINI_API_KEY` set on Render, Gemini
+refreshes acquisition / recon / store rates to current mid-market levels.
+The strip math always runs client-side.
+
 ## Deploy (Render)
 
 Static site service **`tally-ctrl-preview`** in root [`render.yaml`](../render.yaml).
