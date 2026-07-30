@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+:root {
+  --tc-ink: #1a221c;
+  --tc-ink-muted: #5c6b61;
+  --tc-paper: #f3f0e8;
+  --tc-paper-deep: #e6e1d4;
+  --tc-line: #c9c2b2;
+  --tc-accent: #1f6b4a;
+  --tc-accent-deep: #0f3d2c;
+  --tc-warn: #9a3412;
+  --tc-posted: #6b7280;
+  --tc-true: #1f6b4a;
+  --tc-delta: #9a3412;
+  --font-display: "Instrument Serif", Georgia, serif;
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  color: var(--tc-ink);
+  background:
+    radial-gradient(1200px 600px at 10% -10%, #dfece4 0%, transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, #ebe4d4 0%, transparent 50%),
+    linear-gradient(180deg, var(--tc-paper) 0%, #ebe7dc 100%);
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.tc-input {
+  width: 100%;
+  border: 1px solid var(--tc-line);
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 0.5rem;
+  padding: 0.7rem 0.85rem;
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--tc-ink);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.tc-input:focus {
+  border-color: var(--tc-accent);
+  box-shadow: 0 0 0 3px rgba(31, 107, 74, 0.15);
+}
+
+.tc-label {
+  display: block;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--tc-ink-muted);
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+}

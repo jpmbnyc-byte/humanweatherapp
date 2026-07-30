@@ -10,7 +10,10 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "tally:dev": "npm --prefix tally-ctrl run dev",
+    "tally:build": "npm --prefix tally-ctrl run build",
+    "tally:test": "npm --prefix tally-ctrl run test"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
