@@ -345,3 +345,43 @@ CREATE TABLE preview_token (
   active                   INTEGER NOT NULL DEFAULT 1
 );
 CREATE INDEX idx_preview_expires ON preview_token(expires_at);
+
+-- ═══════════════════════════════════════════════════════════
+-- Estimator calibration loop (sales tool ← delivery actuals)
+-- ═══════════════════════════════════════════════════════════
+
+CREATE TABLE estimator_run (
+  id                    INTEGER PRIMARY KEY,
+  ran_at                TEXT NOT NULL DEFAULT (datetime('now')),
+  coefficient_version   TEXT NOT NULL,
+  rooftops              INTEGER NOT NULL,
+  used_units_month      INTEGER NOT NULL,
+  brand_tier            TEXT NOT NULL,
+  avg_unit_cost_cents   INTEGER,
+  floorplan_rate_bps    INTEGER,
+  days_in_inventory     INTEGER,
+  recon_per_used_cents  INTEGER,
+  bucket_a_cents        INTEGER NOT NULL,
+  bucket_b_cents        INTEGER NOT NULL,
+  bucket_c_cents        INTEGER NOT NULL,
+  total_identified_cents INTEGER NOT NULL,
+  email_captured        TEXT,
+  converted_tier        TEXT  -- null | snapshot | diagnostic | governance
+);
+
+CREATE TABLE estimator_calibration (
+  id                    INTEGER PRIMARY KEY,
+  engagement_id         TEXT NOT NULL,
+  completed_at          TEXT NOT NULL,
+  rooftops              INTEGER NOT NULL,
+  used_units_year       INTEGER NOT NULL,
+  brand_tier            TEXT,
+  -- used-only actuals (new-car A1/A2/C1 retired)
+  actual_a3_cents       INTEGER,  -- floorplan curtailment (used)
+  actual_b1_cents       INTEGER,  -- recon misallocation
+  actual_b2_cents       INTEGER,  -- ACV variance
+  actual_warranty_cents INTEGER,  -- n grows from first Diagnostic
+  actual_cpo_cents      INTEGER,
+  actual_arbitration_cents INTEGER,
+  notes                 TEXT
+);

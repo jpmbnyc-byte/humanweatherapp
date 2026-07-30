@@ -1,38 +1,46 @@
 # Tally CTRL
 
-Used vehicle cost assurance — production VIN engine schema and Stage-6 **VIN Preview**.
+Acquisition cost assurance for multi-rooftop dealer groups.
 
-This app lives beside Human Weather in the same repository but is a separate product surface (`tally-ctrl`).
+Separate product surface (`tally-ctrl`) beside Human Weather in this repository.
 
-## What ships here
+## Public surfaces
 
-| Layer | Status |
+| Route | Product | Function |
+| --- | --- | --- |
+| `/` | Landing | Category claim + DMS wedge + ladder |
+| `/estimate` | Variance Pool Estimator | How much — used-only, three buckets |
+| `/p/{token}` | VIN Preview | How — sample VINs, their economics |
+
+Portal tabs (Index / Submit / Ledger / Findings / Close) are delivery-product
+scope and are not part of this free-tool surface.
+
+## Product ladder (publishable)
+
+| Tier | Price |
 | --- | --- |
-| Production SQLite schema (`src/schema/vin-engine.sql`) | Full §1–§9 from the VIN Engine Schema |
-| TypeScript types + §7 strip/compute | Client-safe, unit-tested |
-| Stage-6 VIN Preview (`/p/{token}`) | Four inputs → waterfall → extrapolation → CTA |
-| Franchise seeding | Curated library + optional Gemini structured protocol |
-| Portal tabs (Index / Submit / Ledger / Findings / Close) | Out of scope for this preview |
+| Variance Pool Estimator | Free |
+| VIN Preview | Free (tokenized) |
+| CTRL Snapshot | $1,500 fixed |
+| CTRL Diagnostic | $30,390 fixed |
+| Governance Program | Quoted — not published here |
 
-## Preview contract
+## Used-only Estimator
 
-**Your sample VINs, their economics.** Controllers never upload a DMS export. They type labor rate, cost rate, parts markup, and pack — then watch `INTERNAL_RO_MARKUP` resolve on a boringly typical used unit.
+Implements bible §2.2 scope: used volume only. New-car lines (OEM incentives,
+FPA, ASC 606 incentive timing) are retired. Period exposure is disclosed as
+requiring actual close calendars (Snapshot/Diagnostic), not invented from
+volume coefficients. Warranty/CPO/arbitration stay out of the model until
+calibration rows exist.
 
-Tokenized links:
+Coefficients: `src/config/estimator-coefficients.ts` (version-stamped).
+Publishable copy: `src/config/positioning.ts`.
 
-```
-/p/{token}
-```
+## Internal docs
 
-Tokens buy personalization, open attribution, 21-day expiry, and franchise-aware sample seeding.
-
-## Franchise seeding (Gemini protocol)
-
-1. Resolve franchise from the preview token (gate-3 data).
-2. Match a curated mid-market sample (Honda → Accord, Toyota → Camry, …).
-3. If `VITE_GEMINI_API_KEY` is set and the franchise is unknown or needs rate calibration, call Gemini with a strict JSON schema (`responseMimeType: application/json`) to propose year/make/model + plausible default economics. Results are validated with Zod and never invent dramatic outliers.
-
-Offline / no key → curated library only. The engine never depends on the model at runtime for math.
+`docs/internal/` is **not client-facing**. Do not import into UI bundles or
+paraphrase unresolved risks, unpriced Governance anchors, or n=0 claims onto
+public routes.
 
 ## Develop
 
@@ -44,13 +52,4 @@ npm test
 npm run build
 ```
 
-Demo token: open `/p/demo-faulkner` (or `/` redirects there).
-
-## Estimator vs Preview
-
-| | Estimator | VIN Preview |
-| --- | --- | --- |
-| Answers | How much? | How? |
-| Level | Group, annual | One unit |
-| Mode | Asserts a modeled number | Demonstrates the mechanism |
-| Stage | 1 (entry) | 6 (proof) |
+Demo preview token: `/p/demo-faulkner`

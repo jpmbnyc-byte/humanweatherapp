@@ -5,6 +5,7 @@ import { CostWaterfall } from "@/components/CostWaterfall";
 import { Extrapolation } from "@/components/Extrapolation";
 import { FindingCards } from "@/components/FindingCards";
 import { PreviewCta } from "@/components/PreviewCta";
+import { SiteChrome } from "@/components/layout/SiteChrome";
 import {
   getSampleByKey,
   getSampleForFranchise,
@@ -14,10 +15,7 @@ import {
   lookupToken,
   recordTokenOpen,
 } from "@/data/preview-tokens";
-import {
-  computeUnit,
-  extrapolateMarkup,
-} from "@/engine/compute";
+import { computeUnit, extrapolateMarkup } from "@/engine/compute";
 import { resolveFranchiseSeed } from "@/gemini/franchise-seed";
 import type {
   PreviewFindingCard,
@@ -55,7 +53,6 @@ export function PreviewPage() {
         ? getSampleByKey(record.sampleVehicleKey)
         : getSampleForFranchise(record.franchise);
 
-      // Prefer explicit token vehicle key; Gemini rates/vehicle when source says so
       const chosenVehicle =
         seeded.source === "gemini" ? seeded.vehicle : fromKey;
       const chosenEconomics: ReconEconomics = {
@@ -81,24 +78,35 @@ export function PreviewPage() {
   }, [vehicle, economics]);
 
   if (!record) {
-    return <StatusShell title="Preview not found" body="This link is invalid or was mistyped." />;
+    return (
+      <SiteChrome active="preview">
+        <StatusShell
+          title="Preview not found"
+          body="This link is invalid or was mistyped."
+        />
+      </SiteChrome>
+    );
   }
 
   if (isTokenExpired(record)) {
     return (
-      <StatusShell
-        title="This preview has expired"
-        body="Private previews close after 21 days. Happy to mint a fresh link and run the same strip against a real 90 days."
-      />
+      <SiteChrome active="preview">
+        <StatusShell
+          title="This preview has expired"
+          body="Private previews close after 21 days. Request a CTRL Snapshot to run the same strip against a real 90 days."
+        />
+      </SiteChrome>
     );
   }
 
   if (loading || !vehicle || !economics || !result) {
     return (
-      <StatusShell
-        title="Preparing your preview…"
-        body="Seeding a mid-market sample for your franchise."
-      />
+      <SiteChrome active="preview">
+        <StatusShell
+          title="Preparing your preview…"
+          body="Seeding a mid-market sample for your franchise."
+        />
+      </SiteChrome>
     );
   }
 
@@ -121,14 +129,14 @@ export function PreviewPage() {
       label: "Unclaimed warranty",
       bucket: "recoverable_cash",
       blurb:
-        "Recon on in-warranty units billed to used inventory instead of submitted as a claim. Real cash, common, and it expires.",
+        "Recon on in-warranty units billed to used inventory instead of submitted as a claim. Recoverable cash, subject to OEM lookback windows.",
     },
     {
       code: "RECON_POST_SALE",
       label: "Recon posted after sale",
       bucket: "gross_accuracy",
       blurb:
-        "Cost lines arriving after GL sale close understate period gross and create the GAAP classification question.",
+        "Cost lines arriving after GL sale close understate period gross and surface the GAAP classification question.",
     },
     {
       code: "PACK_DOUBLE",
@@ -140,13 +148,10 @@ export function PreviewPage() {
   ];
 
   return (
-    <div className="mx-auto min-h-screen max-w-5xl px-4 pb-24 pt-8 sm:px-6">
-      <header className="flex flex-col gap-6 border-b border-[var(--tc-line)] pb-8 md:flex-row md:items-end md:justify-between">
+    <SiteChrome active="preview">
+      <header className="mt-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--tc-ink-muted)]">
-            Tally CTRL
-          </p>
-          <h1 className="font-display mt-2 text-4xl leading-none md:text-5xl">
+          <h1 className="font-display text-4xl leading-none md:text-5xl">
             VIN Preview
           </h1>
           <p className="mt-3 text-sm text-[var(--tc-ink-muted)]">
@@ -159,9 +164,12 @@ export function PreviewPage() {
         <div className="text-left text-xs text-[var(--tc-ink-muted)] md:text-right">
           <p>Your economics · our sample VINs</p>
           <p className="mt-1">
-            Seed: {vehicle.year} {vehicle.make} {vehicle.model} · {seedSource}
+            Seed: {vehicle.year} {vehicle.make} {vehicle.model}
+            {seedSource === "curated" ? "" : ` · ${seedSource}`}
           </p>
-          <p className="mt-1">Expires {new Date(record.expiresAt).toLocaleDateString()}</p>
+          <p className="mt-1">
+            Expires {new Date(record.expiresAt).toLocaleDateString()}
+          </p>
         </div>
       </header>
 
@@ -182,21 +190,19 @@ export function PreviewPage() {
 
       <footer className="mt-20 border-t border-[var(--tc-line)] pt-6 text-xs text-[var(--tc-ink-muted)]">
         <p>
-          Demonstration of the markup-strip mechanism (§7 steps 2–3). Not a demo
-          of the portal tabs. No customer VINs leave your building.
+          Demonstration of the markup-strip mechanism on sample units. Not a
+          demo of the portal. No customer VINs leave your building. Total is
+          identified — only recoverable cash is collectible.
         </p>
       </footer>
-    </div>
+    </SiteChrome>
   );
 }
 
 function StatusShell({ title, body }: { title: string; body: string }) {
   return (
-    <div className="mx-auto flex min-h-screen max-w-lg flex-col justify-center px-6">
-      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--tc-ink-muted)]">
-        Tally CTRL
-      </p>
-      <h1 className="font-display mt-3 text-4xl">{title}</h1>
+    <div className="mt-16 max-w-lg">
+      <h1 className="font-display text-4xl">{title}</h1>
       <p className="mt-4 text-[var(--tc-ink-muted)]">{body}</p>
     </div>
   );
