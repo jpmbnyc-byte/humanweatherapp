@@ -12,8 +12,10 @@
   --tc-posted: #6b7280;
   --tc-true: #1f6b4a;
   --tc-delta: #9a3412;
-  --font-display: "Instrument Serif", Georgia, serif;
+  --font-display: "Instrument Serif", Georgia, "Times New Roman", serif;
   --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --tc-leading-body: 1.65;
+  --tc-leading-display: 1.12;
 }
 
 * {
@@ -22,18 +24,23 @@
 
 html {
   scroll-behavior: smooth;
+  text-size-adjust: 100%;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
   font-family: var(--font-sans);
+  font-optical-sizing: auto;
+  font-size: 1.0625rem;
+  line-height: var(--tc-leading-body);
   color: var(--tc-ink);
   background:
     radial-gradient(1200px 600px at 10% -10%, #dfece4 0%, transparent 55%),
     radial-gradient(900px 500px at 100% 0%, #ebe4d4 0%, transparent 50%),
     linear-gradient(180deg, var(--tc-paper) 0%, #ebe7dc 100%);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #root {
@@ -42,32 +49,139 @@ body {
 
 .font-display {
   font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: var(--tc-leading-display);
+  text-wrap: balance;
+}
+
+/* Section rhythm: eyebrow → display → support */
+.tc-eyebrow {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tc-accent);
+  line-height: 1.4;
+}
+
+.tc-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  line-height: var(--tc-leading-display);
+  color: var(--tc-ink);
+  text-wrap: balance;
+  margin: 0.85rem 0 0;
+}
+
+.tc-support {
+  margin: 1rem 0 0;
+  max-width: 40rem;
+  font-size: 1.0625rem;
+  line-height: var(--tc-leading-body);
+  color: var(--tc-ink-muted);
+}
+
+.tc-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.tc-field-hint {
+  display: block;
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--tc-ink-muted);
+}
+
+.tc-input-shell {
+  position: relative;
+  display: block;
+}
+
+.tc-input-affix {
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--tc-ink-muted);
+  font-size: 0.95rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.tc-input-affix-left {
+  left: 0.9rem;
+}
+
+.tc-input-affix-right {
+  right: 0.9rem;
 }
 
 .tc-input {
   width: 100%;
+  min-height: 3rem;
   border: 1px solid var(--tc-line);
-  background: rgba(255, 255, 255, 0.72);
-  border-radius: 0.5rem;
-  padding: 0.7rem 0.85rem;
-  font-size: 1rem;
+  background: rgba(255, 255, 255, 0.82);
+  border-radius: 0.55rem;
+  padding: 0.8rem 0.95rem;
+  font-family: var(--font-sans);
+  font-size: 1.0625rem;
+  font-weight: 500;
+  line-height: 1.35;
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
   color: var(--tc-ink);
+  text-decoration: none;
+  text-decoration-line: none;
   outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.tc-input-has-prefix {
+  padding-left: 1.65rem;
+}
+
+.tc-input-has-suffix {
+  padding-right: 1.85rem;
 }
 
 .tc-input:focus {
   border-color: var(--tc-accent);
   box-shadow: 0 0 0 3px rgba(31, 107, 74, 0.15);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+/* Kill autofill strikethrough / yellow wash artifacts */
+.tc-input:-webkit-autofill,
+.tc-input:-webkit-autofill:hover,
+.tc-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--tc-ink);
+  caret-color: var(--tc-ink);
+  box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0.95) inset;
+  transition: background-color 99999s ease-out;
+  text-decoration: none;
 }
 
 .tc-label {
   display: block;
-  font-size: 0.75rem;
-  letter-spacing: 0.04em;
+  margin: 0;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--tc-ink-muted);
-  margin-bottom: 0.4rem;
-  font-weight: 600;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+select.tc-input {
+  padding-right: 2rem;
+  cursor: pointer;
 }

@@ -42,23 +42,18 @@ export function CostWaterfall({ vehicle, result }: Props) {
 
   return (
     <section aria-labelledby="beat-waterfall" className="scroll-mt-24">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--tc-accent)]">
-        Beat 2 — One unit waterfall
-      </p>
-      <h2
-        id="beat-waterfall"
-        className="font-display mt-2 text-3xl leading-tight md:text-4xl"
-      >
+      <p className="tc-eyebrow">Beat 2 — One unit waterfall</p>
+      <h2 id="beat-waterfall" className="tc-display text-[2rem] md:text-[2.5rem]">
         Posted cost collapses to true cost.
       </h2>
-      <p className="mt-3 max-w-2xl text-[var(--tc-ink-muted)]">
+      <p className="tc-support">
         {vehicle.year} {vehicle.make} {vehicle.model} {vehicle.trim} · stock{" "}
         {vehicle.stockNumber} · sample VIN {vehicle.sampleVin.slice(0, 8)}…
         — a boringly typical three-year-old unit. Watch parts divide by markup
         and labor scale to cost rate.
       </p>
 
-      <div className="mt-8 overflow-hidden rounded-2xl border border-[var(--tc-line)] bg-white/55 backdrop-blur-sm">
+      <div className="mt-10 overflow-hidden rounded-2xl border border-[var(--tc-line)] bg-white/55 backdrop-blur-sm">
         <div className="grid grid-cols-[1fr_auto_auto] gap-x-4 border-b border-[var(--tc-line)] px-4 py-3 text-xs font-semibold uppercase tracking-wider text-[var(--tc-ink-muted)] sm:px-6">
           <span>As posted to the GL</span>
           <span className="text-right">Posted</span>

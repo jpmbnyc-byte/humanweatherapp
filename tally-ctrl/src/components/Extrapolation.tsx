@@ -14,12 +14,10 @@ export function Extrapolation({
 }: Props) {
   return (
     <section aria-labelledby="beat-extrapolate" className="scroll-mt-24">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--tc-accent)]">
-        Beat 3 — Extrapolation
-      </p>
+      <p className="tc-eyebrow">Beat 3 — Extrapolation</p>
       <h2
         id="beat-extrapolate"
-        className="font-display mt-2 text-3xl leading-tight md:text-4xl"
+        className="tc-display text-[2rem] md:text-[2.5rem]"
       >
         One unit. Then the sample.
       </h2>
@@ -29,9 +27,9 @@ export function Extrapolation({
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.5 }}
-        className="mt-8 max-w-3xl border-l-2 border-[var(--tc-accent)] pl-5"
+        className="mt-10 max-w-3xl border-l-2 border-[var(--tc-accent)] pl-6"
       >
-        <p className="font-display text-2xl leading-snug text-[var(--tc-ink)] md:text-3xl">
+        <p className="font-display text-[1.65rem] leading-[1.25] text-[var(--tc-ink)] md:text-[2rem]">
           This unit carries{" "}
           <span className="text-[var(--tc-delta)]">
             {formatUsd(unitMarkupCents)}
