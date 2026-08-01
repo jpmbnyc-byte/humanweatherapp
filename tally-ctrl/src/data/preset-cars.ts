@@ -40,8 +40,8 @@ export const PRESET_CARS: PresetCar[] = [
       "Northeast retail trade-in, clean title, mid-mileage Honda Accord Sport. Typical store recon, not auction damage.",
     imagePrompt:
       "Photorealistic 3/4 front view of a clean silver 2022 Honda Accord Sport sedan on a quiet dealership lot, overcast Northeast daylight, no people, no logos, no text, natural colors, ordinary used-car inventory look",
-    fallbackImageUrl:
-      "https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?auto=format&fit=crop&w=900&q=80",
+    /** Same-origin asset — always available (no hotlink / CDN flake). */
+    fallbackImageUrl: "/cars/accord-trade.jpg",
   },
   {
     id: "camry-auction",
@@ -56,8 +56,7 @@ export const PRESET_CARS: PresetCar[] = [
       "Manheim open-sale Toyota Camry LE, retail-ready after light recon and transport from a regional auction. Pack schedule errors are common on auction buys.",
     imagePrompt:
       "Photorealistic 3/4 front view of a white 2021 Toyota Camry LE sedan, ordinary used-car lot, soft daylight, no people, no logos, no text, realistic paint and wheels, mid-market inventory",
-    fallbackImageUrl:
-      "https://images.unsplash.com/photo-1623869675781-80aa31012a5a?auto=format&fit=crop&w=900&q=80",
+    fallbackImageUrl: "/cars/camry-auction.jpg",
   },
   {
     id: "escape-lease",
@@ -72,8 +71,7 @@ export const PRESET_CARS: PresetCar[] = [
       "Off-lease Ford Escape SE CUV returning to a dualed Ford store; certification-path recon with warranty-eligible body/sensor work wrongly coded to used inventory.",
     imagePrompt:
       "Photorealistic 3/4 front view of a blue-gray 2022 Ford Escape SE compact SUV on a dealership apron, overcast daylight, no people, no logos, no text, ordinary off-lease inventory look",
-    fallbackImageUrl:
-      "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=900&q=80",
+    fallbackImageUrl: "/cars/escape-lease.jpg",
   },
 ];
 

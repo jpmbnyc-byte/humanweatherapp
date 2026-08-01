@@ -78,6 +78,7 @@ describe("preview tokens", () => {
     const t = lookupToken("demo-faulkner");
     expect(t?.prospectName).toBe("Faulkner Automotive Group");
     expect(t?.franchise).toBe("honda");
+    expect(t?.slug).toBe("faulkner");
     expect(isTokenExpired(t!)).toBe(false);
   });
 

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { EconomicsInputs } from "@/components/EconomicsInputs";
 import { CostWaterfall } from "@/components/CostWaterfall";
 import { Extrapolation } from "@/components/Extrapolation";
@@ -15,12 +15,9 @@ import {
   PRESET_CARS,
   type PresetCar,
 } from "@/data/preset-cars";
+import { resolvePreviewAccess } from "@/data/preview-access";
 import { resolveScenarioDiagnostic } from "@/data/scenarios";
-import {
-  isTokenExpired,
-  lookupToken,
-  recordTokenOpen,
-} from "@/data/preview-tokens";
+import { isTokenExpired, recordTokenOpen } from "@/data/preview-tokens";
 import { computeUnit, extrapolateMarkup } from "@/engine/compute";
 import {
   prefetchAllPresets,
@@ -49,7 +46,16 @@ function initialPresetForToken(franchise: string | null): PresetCar {
 
 export function PreviewPage() {
   const { token = "" } = useParams();
-  const record = lookupToken(token);
+  const location = useLocation();
+  const record = useMemo(
+    () =>
+      resolvePreviewAccess({
+        token,
+        hostname: typeof window !== "undefined" ? window.location.hostname : "",
+        search: location.search,
+      }),
+    [token, location.search],
+  );
 
   const [selectedId, setSelectedId] = useState(
     () => initialPresetForToken(record?.franchise ?? null).id,
@@ -198,7 +204,7 @@ export function PreviewPage() {
       <SiteChrome active="preview">
         <StatusShell
           title="Preview not found"
-          body="This link is invalid or was mistyped."
+          body="This link is invalid or was mistyped. Mint a client link at /mint, or use /p/c?name=Group+Name&franchise=honda&units=200."
         />
       </SiteChrome>
     );
@@ -294,7 +300,13 @@ export function PreviewPage() {
           </p>
         </div>
         <div className="space-y-1.5 text-left text-[0.8125rem] leading-snug text-[var(--tc-ink-muted)] md:max-w-xs md:text-right">
-          <p>Token {record.token}</p>
+          <p>
+            {record.slug ? `Slug ${record.slug}` : null}
+            {record.slug && record.token.startsWith("t1.") ? " · " : null}
+            {record.token.startsWith("t1.")
+              ? "Minted link"
+              : `Token ${record.token.length > 24 ? `${record.token.slice(0, 18)}…` : record.token}`}
+          </p>
           <p>
             Active: {vehicle.year} {vehicle.make} {vehicle.model}
           </p>

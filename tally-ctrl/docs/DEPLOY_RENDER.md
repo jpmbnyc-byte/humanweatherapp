@@ -76,12 +76,18 @@ Keep apex / `www` for the marketing site; this subdomain is the free-tool app.
 
 ---
 
-## 4. Cadence links
+## 4. Cadence links & client templates
 
-Stage-6 tokens:
+See **[CLIENT_SENDS.md](./CLIENT_SENDS.md)** for minting personalized URLs,
+mail-merge templates, and per-client vanity subdomains.
+
+Stage-6 patterns:
 
 ```text
-https://preview.tallyctrl.com/p/{token}
+https://preview.tallyctrl.com/p/{token}          ← registry or t1.* payload
+https://preview.tallyctrl.com/p/c?name=…         ← mail-merge template
+https://{slug}.preview.tallyctrl.com             ← vanity (wildcard DNS)
+https://preview.tallyctrl.com/mint               ← compose tool
 ```
 
 Estimator entry CTA:
@@ -89,6 +95,14 @@ Estimator entry CTA:
 ```text
 https://preview.tallyctrl.com/estimate
 ```
+
+### Wildcard DNS (optional vanity hosts)
+
+| Type | Host | Value |
+| --- | --- | --- |
+| CNAME | `*.preview` | Same Render target as `preview` |
+
+Attach `*.preview.tallyctrl.com` on the Render static service when available.
 
 ---
 

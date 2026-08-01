@@ -94,13 +94,13 @@ export function PresetCarPicker({
                 overflow: "hidden",
               }}
             >
-              <div className="relative h-28 overflow-hidden">
+              <div className="relative h-28 overflow-hidden bg-[var(--tc-paper-deep)]">
                 <PresetThumb
                   src={image.src}
                   alt={`${preset.label} sample`}
                   wash={accent.wash}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
                 <div className="absolute inset-x-0 bottom-0 px-3 pb-2.5">
                   <p className="text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-white/85">
                     {preset.channelLabel}
@@ -176,30 +176,29 @@ function PresetThumb({
     setLoaded(false);
   }, [src]);
 
-  if (failed) {
-    return (
-      <div className="absolute inset-0" style={{ background: wash }} aria-hidden />
-    );
-  }
-
   return (
     <>
       <div
-        className="absolute inset-0 transition-opacity duration-300"
-        style={{ background: wash, opacity: loaded ? 0 : 1 }}
+        className="absolute inset-0"
+        style={{ background: wash }}
         aria-hidden
       />
-      <img
-        src={src}
-        alt={alt}
-        loading="lazy"
-        decoding="async"
-        onLoad={() => setLoaded(true)}
-        onError={() => setFailed(true)}
-        className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${
-          loaded ? "opacity-100" : "opacity-0"
-        }`}
-      />
+      {!failed ? (
+        <img
+          src={src}
+          alt={alt}
+          width={900}
+          height={600}
+          loading="eager"
+          decoding="async"
+          fetchPriority="high"
+          onLoad={() => setLoaded(true)}
+          onError={() => setFailed(true)}
+          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${
+            loaded ? "opacity-100" : "opacity-0"
+          }`}
+        />
+      ) : null}
     </>
   );
 }

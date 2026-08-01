@@ -11,6 +11,8 @@ Separate product surface (`tally-ctrl`) beside Human Weather in this repository.
 | `/` | Landing | Category claim + DMS wedge + ladder |
 | `/estimate` | Variance Pool Estimator | How much — used-only, three buckets |
 | `/p/{token}` | Preview portal | How — sample VINs, deal-console strip |
+| `/p/c?name=` | Template send | Mail-merge personalized portal |
+| `/mint` | Mint links | Compose payload / subdomain URLs |
 
 Portal tabs (Index / Submit / Ledger / Findings / Close) are delivery-product
 scope and are not part of this free-tool surface.
@@ -67,4 +69,5 @@ npm test
 npm run build
 ```
 
-Demo preview token: `/p/demo-faulkner`
+Demo preview token: `/p/demo-faulkner`  
+Client sends: see [`docs/CLIENT_SENDS.md`](docs/CLIENT_SENDS.md)

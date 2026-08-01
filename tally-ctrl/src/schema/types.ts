@@ -92,6 +92,8 @@ export interface SampleVehicle {
 
 export interface PreviewToken {
   token: string;
+  /** Vanity slug for /p/{slug} and {slug}.preview.tallyctrl.com */
+  slug?: string;
   prospectName: string;
   franchise: string | null;
   sampleVehicleKey: string | null;

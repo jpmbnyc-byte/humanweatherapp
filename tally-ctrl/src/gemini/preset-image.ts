@@ -1,13 +1,13 @@
 /**
- * Gemini-curated thumbnails for VIN deal profiles.
+ * Deal-profile thumbnails.
  *
- * When VITE_GEMINI_API_KEY is set, ask an image-capable Gemini model for a
- * photorealistic mid-market unit matching year/make/model. Falls back to the
- * curated Unsplash URL on the preset when the key is missing or the call fails.
+ * Primary: same-origin `/cars/*.jpg` (bundled in public/) — always consistent.
+ * Optional: Gemini image upgrade only when explicitly requested (Refresh),
+ * so async generation never blanks or flickers the picker on load.
  */
 import { PRESET_CARS, type PresetCar } from "@/data/preset-cars";
 
-export type ImageSource = "gemini" | "curated";
+export type ImageSource = "local" | "gemini";
 
 export interface PresetImageResult {
   src: string;
@@ -23,8 +23,24 @@ function imageModel(): string {
   );
 }
 
-function curated(preset: PresetCar): PresetImageResult {
-  return { src: preset.fallbackImageUrl, source: "curated" };
+function local(preset: PresetCar): PresetImageResult {
+  return { src: preset.fallbackImageUrl, source: "local" };
+}
+
+/** Warm the browser cache for local thumbnails so cards paint together. */
+export function preloadLocalPresetImages(): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve();
+  return Promise.all(
+    PRESET_CARS.map(
+      (preset) =>
+        new Promise<void>((resolve) => {
+          const img = new Image();
+          img.onload = () => resolve();
+          img.onerror = () => resolve();
+          img.src = preset.fallbackImageUrl;
+        }),
+    ),
+  ).then(() => undefined);
 }
 
 async function callGeminiImage(preset: PresetCar): Promise<string | null> {
@@ -87,23 +103,27 @@ async function callGeminiImage(preset: PresetCar): Promise<string | null> {
   }
 }
 
-/** Resolve a thumbnail — curated immediately; Gemini upgrades when keyed. */
+/**
+ * Resolve thumbnail. Default = local asset (instant, consistent).
+ * Pass forceRefresh to attempt a Gemini upgrade when keyed.
+ */
 export async function resolvePresetImage(
   preset: PresetCar,
   opts?: { forceRefresh?: boolean },
 ): Promise<PresetImageResult> {
-  if (!opts?.forceRefresh && memoryCache.has(preset.id)) {
-    return memoryCache.get(preset.id)!;
+  if (!opts?.forceRefresh) {
+    const localResult = local(preset);
+    memoryCache.set(preset.id, localResult);
+    return localResult;
   }
 
-  // Prefer session cache so refresh within the visit stays free.
   const sessionKey = `tc-preset-img:${preset.id}`;
-  if (!opts?.forceRefresh && typeof sessionStorage !== "undefined") {
+  if (typeof sessionStorage !== "undefined") {
     try {
       const raw = sessionStorage.getItem(sessionKey);
       if (raw) {
         const parsed = JSON.parse(raw) as PresetImageResult;
-        if (parsed?.src) {
+        if (parsed?.src?.startsWith("data:image/")) {
           memoryCache.set(preset.id, parsed);
           return parsed;
         }
@@ -116,36 +136,32 @@ export async function resolvePresetImage(
   const generated = await callGeminiImage(preset);
   const result: PresetImageResult = generated
     ? { src: generated, source: "gemini" }
-    : curated(preset);
+    : local(preset);
 
   memoryCache.set(preset.id, result);
   if (typeof sessionStorage !== "undefined" && result.source === "gemini") {
     try {
-      // Cap session storage — data URLs are large; skip if quota fails.
       sessionStorage.setItem(sessionKey, JSON.stringify(result));
     } catch {
-      /* quota — memory cache still holds it for this session */
+      /* quota */
     }
   }
   return result;
 }
 
+/** Seed local images for all presets (no network to Unsplash / Gemini). */
 export async function prefetchAllPresetImages(): Promise<
   Map<string, PresetImageResult>
 > {
-  const entries = await Promise.all(
-    PRESET_CARS.map(async (preset) => {
-      // Seed curated first so UI can paint, then upgrade.
-      if (!memoryCache.has(preset.id)) {
-        memoryCache.set(preset.id, curated(preset));
-      }
-      const result = await resolvePresetImage(preset);
-      return [preset.id, result] as const;
-    }),
-  );
+  await preloadLocalPresetImages();
+  const entries = PRESET_CARS.map((preset) => {
+    const result = local(preset);
+    memoryCache.set(preset.id, result);
+    return [preset.id, result] as const;
+  });
   return new Map(entries);
 }
 
 export function curatedImageForPreset(preset: PresetCar): PresetImageResult {
-  return curated(preset);
+  return local(preset);
 }

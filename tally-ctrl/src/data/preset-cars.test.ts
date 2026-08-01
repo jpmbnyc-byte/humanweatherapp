@@ -26,11 +26,11 @@ describe("preset cars", () => {
     }
   });
 
-  it("ships a curated fallback image URL for each preset", () => {
+  it("ships a same-origin local image for each preset", () => {
     for (const preset of PRESET_CARS) {
       const img = curatedImageForPreset(preset);
-      expect(img.source).toBe("curated");
-      expect(img.src).toMatch(/^https:\/\//);
+      expect(img.source).toBe("local");
+      expect(img.src).toMatch(/^\/cars\/.+\.jpg$/);
       expect(preset.imagePrompt.length).toBeGreaterThan(40);
     }
   });

@@ -45,7 +45,7 @@ services:
         - tally-ctrl/**
         - render.yaml
     routes:
-      # SPA client routes: /estimate, /p/:token
+      # SPA client routes: /estimate, /mint, /p/:token
       - type: rewrite
         source: /*
         destination: /index.html
