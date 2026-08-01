@@ -56,6 +56,8 @@ export interface CostLineInput {
   description: string;
   postedAmountCents: number;
   isInternal?: boolean;
+  /** Preview-scenario overlay — tags a line to a finding without changing strip math. */
+  findingHint?: FindingTypeCode;
 }
 
 export interface StrippedCostLine extends CostLineInput {

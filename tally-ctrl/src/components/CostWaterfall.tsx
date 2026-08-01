@@ -42,14 +42,15 @@ const WATERFALL_ORDER = [
   "recon_parts",
   "recon_labor",
   "recon_sublet",
+  "other",
   "detail",
   "pack",
 ] as const;
 
 export function CostWaterfall({ vehicle, result, demoKey }: Props) {
-  const ordered = WATERFALL_ORDER.map((cat) =>
-    result.lines.find((l) => l.category === cat),
-  ).filter(Boolean);
+  const ordered = WATERFALL_ORDER.flatMap((cat) =>
+    result.lines.filter((l) => l.category === cat),
+  );
 
   /** How many markup lines have finished stripping (null = show posted on both). */
   const [strippedCount, setStrippedCount] = useState(0);
@@ -102,12 +103,13 @@ export function CostWaterfall({ vehicle, result, demoKey }: Props) {
     <section aria-labelledby="beat-waterfall" className="scroll-mt-24">
       <p className="tc-eyebrow">Line-by-line</p>
       <h2 id="beat-waterfall" className="tc-display text-[2rem] md:text-[2.5rem]">
-        Parts divide. Labor scales. Pack stays.
+        Posted lines. True cost. Finding tags.
       </h2>
       <p className="tc-support">
         {vehicle.year} {vehicle.make} {vehicle.model} {vehicle.trim} · stock{" "}
         {vehicle.stockNumber} · sample VIN {vehicle.sampleVin.slice(0, 8)}…
-        — the strip runs automatically when you pick a unit.
+        — markup strips where it applies; pack duplicates and warranty-billed
+        lines stay visible for the scenario.
       </p>
 
       <div
@@ -148,6 +150,9 @@ export function CostWaterfall({ vehicle, result, demoKey }: Props) {
                     {line.category.replaceAll("_", " ")}
                     {isMarkup ? " · markup strip" : null}
                     {isMarkup && stripped ? " · applied" : null}
+                    {line.findingHint
+                      ? ` · ${line.findingHint}`
+                      : null}
                   </p>
                 </div>
                 <AnimatedDollars

@@ -15,6 +15,7 @@ import {
   PRESET_CARS,
   type PresetCar,
 } from "@/data/preset-cars";
+import { resolveScenarioDiagnostic } from "@/data/scenarios";
 import {
   isTokenExpired,
   lookupToken,
@@ -26,6 +27,12 @@ import {
   resolvePresetLive,
   type LivePresetResult,
 } from "@/gemini/live-preset";
+import {
+  curatedImageForPreset,
+  prefetchAllPresetImages,
+  resolvePresetImage,
+  type PresetImageResult,
+} from "@/gemini/preset-image";
 import type {
   PreviewFindingCard,
   ReconEconomics,
@@ -50,10 +57,12 @@ export function PreviewPage() {
   const [liveById, setLiveById] = useState<
     Record<string, LivePresetResult | undefined>
   >({});
+  const [imageById, setImageById] = useState<
+    Record<string, PresetImageResult | undefined>
+  >({});
   const [economics, setEconomics] = useState<ReconEconomics | null>(null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [bootstrapped, setBootstrapped] = useState(false);
-  /** Forces portal output + waterfall to re-autoplay on unit / live refresh. */
   const [demoNonce, setDemoNonce] = useState(0);
 
   const selectedPreset = getPresetById(selectedId);
@@ -69,6 +78,7 @@ export function PreviewPage() {
     recordTokenOpen(record.token);
 
     const curatedMap: Record<string, LivePresetResult> = {};
+    const imageSeed: Record<string, PresetImageResult> = {};
     for (const preset of PRESET_CARS) {
       curatedMap[preset.id] = {
         vehicle: curatedVehicleForPreset(preset),
@@ -78,10 +88,12 @@ export function PreviewPage() {
           "Curated mid-market sample. Live Gemini values load when configured.",
         asOfLabel: "Curated sample",
       };
+      imageSeed[preset.id] = curatedImageForPreset(preset);
     }
     const starter = initialPresetForToken(record.franchise);
     setSelectedId(starter.id);
     setLiveById(curatedMap);
+    setImageById(imageSeed);
     setEconomics({
       ...curatedMap[starter.id].economics,
       ...record.defaults,
@@ -90,15 +102,26 @@ export function PreviewPage() {
 
     let cancelled = false;
     (async () => {
-      const liveMap = await prefetchAllPresets();
+      const [liveMap, imageMap] = await Promise.all([
+        prefetchAllPresets(),
+        prefetchAllPresetImages(),
+      ]);
       if (cancelled) return;
-      const next: Record<string, LivePresetResult> = {};
+
+      const nextLive: Record<string, LivePresetResult> = {};
       liveMap.forEach((value, key) => {
-        next[key] = value;
+        nextLive[key] = value;
       });
-      setLiveById(next);
+      setLiveById(nextLive);
+
+      const nextImages: Record<string, PresetImageResult> = {};
+      imageMap.forEach((value, key) => {
+        nextImages[key] = value;
+      });
+      setImageById(nextImages);
+
       setEconomics((prev) => {
-        const selected = next[starter.id] ?? curatedMap[starter.id];
+        const selected = nextLive[starter.id] ?? curatedMap[starter.id];
         return {
           ...selected.economics,
           ...record.defaults,
@@ -140,8 +163,12 @@ export function PreviewPage() {
   const refreshPreset = useCallback(
     async (preset: PresetCar) => {
       setLoadingId(preset.id);
-      const fresh = await resolvePresetLive(preset, { forceRefresh: true });
+      const [fresh, image] = await Promise.all([
+        resolvePresetLive(preset, { forceRefresh: true }),
+        resolvePresetImage(preset, { forceRefresh: true }),
+      ]);
       setLiveById((prev) => ({ ...prev, [preset.id]: fresh }));
+      setImageById((prev) => ({ ...prev, [preset.id]: image }));
       if (preset.id === selectedId) {
         setEconomics({ ...fresh.economics, ...record?.defaults });
         setDemoNonce((n) => n + 1);
@@ -155,6 +182,16 @@ export function PreviewPage() {
     if (!vehicle || !economics) return null;
     return computeUnit(vehicle.lines, economics);
   }, [vehicle, economics]);
+
+  const diagnostic = useMemo(() => {
+    if (!vehicle || !economics || !result) return null;
+    return resolveScenarioDiagnostic(
+      selectedPreset,
+      vehicle,
+      economics,
+      result,
+    );
+  }, [selectedPreset, vehicle, economics, result]);
 
   if (!record) {
     return (
@@ -178,7 +215,7 @@ export function PreviewPage() {
     );
   }
 
-  if (!bootstrapped || !vehicle || !economics || !result) {
+  if (!bootstrapped || !vehicle || !economics || !result || !diagnostic) {
     return (
       <SiteChrome active="preview">
         <StatusShell
@@ -190,7 +227,7 @@ export function PreviewPage() {
   }
 
   const extrapolated = extrapolateMarkup(
-    result.internalRoMarkupCents,
+    diagnostic.primaryCents,
     record.sampleUnitCount,
   );
 
@@ -202,29 +239,42 @@ export function PreviewPage() {
       label: "Internal RO markup",
       bucket: "gross_accuracy",
       blurb:
-        "Posted recon parts and labor carry store markup into inventory cost. Strip reveals the true cost basis — the number your front gross should have used.",
-      amountCents: result.internalRoMarkupCents,
+        "Posted recon parts and labor carry store markup into inventory cost. Strip reveals the true cost basis — demonstrated on the trade sedan profile.",
+      amountCents:
+        selectedPreset.scenarioId === "ro_markup"
+          ? diagnostic.primaryCents
+          : result.internalRoMarkupCents,
+    },
+    {
+      code: "PACK_DOUBLE",
+      label: "Double pack",
+      bucket: "gross_accuracy",
+      blurb:
+        "Pack posted twice against the store schedule. Demonstrated on the auction sedan profile.",
+      amountCents:
+        selectedPreset.scenarioId === "pack_double"
+          ? diagnostic.primaryCents
+          : undefined,
     },
     {
       code: "WARRANTY_UNCLAIMED",
       label: "Unclaimed warranty",
       bucket: "recoverable_cash",
       blurb:
-        "Recon on in-warranty units billed to used inventory instead of submitted as a claim. Recoverable cash, subject to OEM lookback windows.",
+        "Warranty-eligible recon billed to used inventory instead of submitted as a claim. Demonstrated on the lease-return profile.",
+      amountCents:
+        selectedPreset.scenarioId === "warranty_unclaimed"
+          ? diagnostic.primaryCents
+          : undefined,
     },
     {
       code: "RECON_POST_SALE",
       label: "Recon posted after sale",
       bucket: "gross_accuracy",
       blurb:
-        "Cost lines arriving after GL sale close understate period gross and surface the GAAP classification question.",
-    },
-    {
-      code: "PACK_DOUBLE",
-      label: "Pack errors",
-      bucket: "gross_accuracy",
-      blurb:
-        "Missing pack, double pack, or pack that doesn't match the store schedule — small lines that compound across volume.",
+        "Cost lines arriving after GL sale close understate period gross. Surfaces as a secondary finding on the lease-return sample.",
+      amountCents: diagnostic.layers.find((l) => l.code === "RECON_POST_SALE")
+        ?.amountCents,
     },
   ];
 
@@ -239,14 +289,17 @@ export function PreviewPage() {
             {record.prospectName}
           </h1>
           <p className="mt-4 text-[1.05rem] leading-relaxed text-[var(--tc-ink-muted)]">
-            Deal-console strip on sample VINs — your economics, our units. Output
-            engine runs on load. No DMS upload.
+            Three sample VINs, three different findings — markup, pack, warranty.
+            Output engine runs on load. No DMS upload.
           </p>
         </div>
         <div className="space-y-1.5 text-left text-[0.8125rem] leading-snug text-[var(--tc-ink-muted)] md:max-w-xs md:text-right">
           <p>Token {record.token}</p>
           <p>
             Active: {vehicle.year} {vehicle.make} {vehicle.model}
+          </p>
+          <p>
+            Finding: {diagnostic.primaryCode}
           </p>
           <p>
             {liveMeta?.source === "live"
@@ -261,6 +314,7 @@ export function PreviewPage() {
         <PresetCarPicker
           selectedId={selectedId}
           liveById={liveById}
+          imageById={imageById}
           loadingId={loadingId}
           onSelect={selectPreset}
           onRefresh={refreshPreset}
@@ -269,6 +323,7 @@ export function PreviewPage() {
         <PortalOutput
           vehicle={vehicle}
           result={result}
+          diagnostic={diagnostic}
           sampleUnitCount={record.sampleUnitCount}
           extrapolatedCents={extrapolated}
           prospectName={record.prospectName}
@@ -284,7 +339,9 @@ export function PreviewPage() {
         <EconomicsInputs value={economics} onChange={setEconomics} />
 
         <Extrapolation
-          unitMarkupCents={result.internalRoMarkupCents}
+          unitAmountCents={diagnostic.primaryCents}
+          primaryLabel={diagnostic.primaryLabel}
+          primaryCode={diagnostic.primaryCode}
           sampleUnitCount={record.sampleUnitCount}
           extrapolatedCents={extrapolated}
         />
@@ -300,10 +357,10 @@ export function PreviewPage() {
       <footer className="mt-20 border-t border-[var(--tc-line)] pt-6 text-xs text-[var(--tc-ink-muted)]">
         <p>
           Preview portal — Stage-6 mechanism proof. Three illustrative sample
-          units; diagnostic output auto-plays on load and when you switch deal
-          profiles. Live acquisition and recon figures refresh via Gemini when
-          configured; math stays client-side. No customer VINs leave your
-          building. Total is identified — only recoverable cash is collectible.
+          units, each a different finding. Thumbnails use curated lot photos and
+          upgrade via Gemini image generation when configured. Math stays
+          client-side. No customer VINs leave your building. Total is identified
+          — only recoverable cash is collectible.
         </p>
       </footer>
     </SiteChrome>

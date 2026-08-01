@@ -14,6 +14,7 @@ import {
   PRESET_CARS,
   type PresetCar,
 } from "@/data/preset-cars";
+import { applyScenarioLines } from "@/data/scenarios";
 import type {
   CostLineInput,
   ReconEconomics,
@@ -51,10 +52,10 @@ const sessionCache = new Map<string, LivePresetResult>();
 const SYSTEM_PROMPT = `You refresh mid-market used-vehicle cost figures for a dealer-controller preview.
 Return JSON only. Rules:
 - Keep the unit boringly typical — no salvage, no luxury outliers, no $2k+ recon dramas.
-- Posted recon parts+labor markup vs true cost should land roughly $500–$950 after strip at the rates you supply.
+- Posted recon parts+labor markup vs true cost should land roughly $350–$950 after strip at the rates you supply (secondary on pack/warranty scenarios).
 - Acquisition should reflect current US wholesale/trade levels for that year/make/model (ballpark, not a formal appraisal).
 - Labor rates should reflect current US dealer recon shop economics (billed internal RO rate vs true tech cost).
-- marketNote: one calm sentence a controller would trust — institutional register, no hype.
+- marketNote: one calm sentence a controller would trust — institutional register, no hype. Mention the scenario finding type briefly.
 - asOfLabel: short date stamp like "Jul 2026 market" or today's month/year.`;
 
 function buildPrompt(preset: PresetCar, base: SampleVehicle): string {
@@ -62,9 +63,10 @@ function buildPrompt(preset: PresetCar, base: SampleVehicle): string {
     `Preset: ${preset.label} (${preset.channelLabel})`,
     `Unit lock: ${base.year} ${base.make} ${base.model} ${base.trim}`,
     `Acquisition channel: ${base.acquisitionChannel}`,
+    `Primary finding scenario: ${preset.scenarioId}`,
     `Market posture: ${preset.marketHint}`,
     "Refresh mileage, posted GL cost lines, and store economics to current mid-market levels.",
-    "Do not change year/make/model/trim.",
+    "Do not change year/make/model/trim. Scenario-specific overlay lines are applied client-side after your seed.",
   ].join("\n");
 }
 
@@ -129,13 +131,14 @@ function applyLiveSeed(
     packAmountCents: seed.packCents,
   };
 
-  const vehicle: SampleVehicle = {
+  const seeded: SampleVehicle = {
     ...base,
     key: preset.id,
     mileage: seed.mileage,
     defaultEconomics: economics,
     lines,
   };
+  const vehicle = applyScenarioLines(preset, seeded);
 
   return {
     vehicle,

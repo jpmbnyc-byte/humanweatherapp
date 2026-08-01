@@ -7,11 +7,13 @@ import {
   PREVIEW_PRIMARY_CTA,
   TIER,
 } from "@/config/positioning";
+import type { ScenarioDiagnostic } from "@/data/scenarios";
 import type { SampleVehicle, UnitComputeResult } from "@/schema/types";
 
 interface Props {
   vehicle: SampleVehicle;
   result: UnitComputeResult;
+  diagnostic: ScenarioDiagnostic;
   sampleUnitCount: number;
   extrapolatedCents: number;
   prospectName: string;
@@ -49,12 +51,12 @@ function AnimatedDollars({
 type Phase = "reading" | "computing" | "ready";
 
 /**
- * Deal-console style live output — mirrors the ai.studio preview portal punch:
- * pick a unit → net identified dollars + layer stack + action plan fill automatically.
+ * Deal-console style live output — scenario-aware finding stack.
  */
 export function PortalOutput({
   vehicle,
   result,
+  diagnostic,
   sampleUnitCount,
   extrapolatedCents,
   prospectName,
@@ -74,43 +76,27 @@ export function PortalOutput({
 
   const ready = phase === "ready";
   const showUnit = phase !== "reading";
-  const unitCents = showUnit ? result.internalRoMarkupCents : 0;
+  const unitCents = showUnit ? diagnostic.primaryCents : 0;
   const sampleCents = ready ? extrapolatedCents : 0;
 
-  const layers = [
-    {
-      code: "INTERNAL_RO_MARKUP",
-      label: "Internal RO markup",
-      detail: "Parts ÷ markup · labor × cost rate",
-      amountCents: result.internalRoMarkupCents,
-      tone: "delta" as const,
-    },
-    {
-      code: "PACK_INTEGRITY",
-      label: "Pack integrity",
-      detail: `Schedule pack ${formatUsd(result.lines.find((l) => l.category === "pack")?.postedAmountCents ?? 0)} posted`,
-      amountLabel: "Checked",
-      tone: "muted" as const,
-    },
-    {
-      code: "WARRANTY_UNCLAIMED",
-      label: "Unclaimed warranty",
-      detail: "Surfaced when VIN is in-warranty — portal finding",
-      amountLabel: "Portal",
-      tone: "muted" as const,
-    },
-    {
-      code: "RECON_POST_SALE",
-      label: "Recon after sale close",
-      detail: "Period / GAAP classification — portal finding",
-      amountLabel: "Portal",
-      tone: "muted" as const,
-    },
-  ];
+  const statusLabel =
+    phase === "reading"
+      ? diagnostic.readingLabel
+      : phase === "computing"
+        ? diagnostic.computingLabel
+        : diagnostic.readyLabel;
 
   const actionPlan = ready
-    ? `Strip ${formatUsd(result.internalRoMarkupCents)} of INTERNAL_RO_MARKUP out of this unit's cost basis before pricing or trade decisions. Across the ${sampleUnitCount}-unit sample at these rates that is ${formatUsd(extrapolatedCents)} of overstated used inventory cost — identified, not recovered. Run a ${TIER.snapshot.name} on ${prospectName}'s next 90 days to quantify the same strip on live cost data.`
+    ? diagnostic.actionPlan({
+        primaryCents: diagnostic.primaryCents,
+        sampleUnitCount,
+        extrapolatedCents,
+        prospectName,
+        snapshotName: TIER.snapshot.name,
+      })
     : "Reading DMS cost lines…";
+
+  const bucketLabel = diagnostic.bucket.replaceAll("_", " ");
 
   return (
     <section aria-labelledby="portal-output" className="scroll-mt-24">
@@ -119,15 +105,15 @@ export function PortalOutput({
         id="portal-output"
         className="tc-display text-[2rem] md:text-[2.6rem]"
       >
-        Variance diagnostic — automatic.
+        {diagnostic.primaryLabel} — automatic.
       </h2>
       <p className="tc-support">
-        Same punch as the deal console: select a sample VIN and the output engine
-        fills. No DMS upload. Math runs on this device.
+        Each deal profile runs a different real finding. Switch cars to see RO
+        markup, double pack, and unclaimed warranty — still sample VINs, no DMS
+        upload.
       </p>
 
       <div className="mt-10 grid gap-5 lg:grid-cols-[1fr_1.05fr]">
-        {/* Status / unit strip */}
         <motion.div
           key={`status-${demoKey}`}
           initial={{ opacity: 0, y: 8 }}
@@ -135,9 +121,7 @@ export function PortalOutput({
           className="rounded-2xl border border-[var(--tc-line)] bg-white/55 px-6 py-6 backdrop-blur-sm sm:px-7"
         >
           <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-[var(--tc-ink-muted)]">
-            {phase === "reading" && "Reading DMS cost basis…"}
-            {phase === "computing" && "Stripping internal RO markup…"}
-            {phase === "ready" && "Strip complete · finding ready"}
+            {statusLabel}
           </p>
           <p className="mt-4 font-display text-[1.65rem] leading-tight">
             {vehicle.year} {vehicle.make} {vehicle.model} {vehicle.trim}
@@ -146,6 +130,9 @@ export function PortalOutput({
             Stock {vehicle.stockNumber} · sample VIN{" "}
             {vehicle.sampleVin.slice(0, 11)}… · {vehicle.mileage.toLocaleString()}{" "}
             mi
+          </p>
+          <p className="mt-3 text-[0.75rem] font-semibold uppercase tracking-[0.12em] text-[var(--tc-accent)]">
+            {bucketLabel} · {diagnostic.primaryCode}
           </p>
 
           <div className="mt-8 grid grid-cols-2 gap-6">
@@ -185,7 +172,6 @@ export function PortalOutput({
           </div>
         </motion.div>
 
-        {/* Output engine — dark punch panel like ai.studio console */}
         <motion.aside
           key={`engine-${demoKey}`}
           initial={{ opacity: 0, y: 10 }}
@@ -200,8 +186,7 @@ export function PortalOutput({
             <AnimatedDollars cents={unitCents} duration={0.95} />
           </p>
           <p className="mt-3 text-[0.9rem] leading-relaxed text-[var(--tc-paper)]/70">
-            INTERNAL_RO_MARKUP sitting in inventory cost basis. Front gross on
-            this unit was understated by the delta until the strip ran.
+            {diagnostic.heroBlurb}
           </p>
 
           <div className="mt-7 border-t border-white/15 pt-6">
@@ -218,38 +203,39 @@ export function PortalOutput({
               Finding stack
             </p>
             <ul className="mt-4 space-y-3">
-              {layers.map((layer, i) => (
-                <motion.li
-                  key={layer.code}
-                  initial={{ opacity: 0, x: 8 }}
-                  animate={{
-                    opacity: ready || (showUnit && i === 0) ? 1 : 0.35,
-                    x: 0,
-                  }}
-                  transition={{ delay: 0.15 + i * 0.08 }}
-                  className="flex items-baseline justify-between gap-4 text-sm"
-                >
-                  <div className="min-w-0">
-                    <p className="font-medium">{layer.label}</p>
-                    <p className="text-[0.75rem] text-[var(--tc-paper)]/50">
-                      {layer.code} · {layer.detail}
-                    </p>
-                  </div>
-                  <p
-                    className={`shrink-0 tabular-nums ${
-                      layer.tone === "delta"
-                        ? "font-semibold text-[#f0c9a8]"
-                        : "text-[var(--tc-paper)]/55"
-                    }`}
+              {diagnostic.layers.map((layer, i) => {
+                const show =
+                  ready || (showUnit && (layer.primary || i === 0));
+                return (
+                  <motion.li
+                    key={layer.code + layer.label}
+                    initial={{ opacity: 0, x: 8 }}
+                    animate={{ opacity: show ? 1 : 0.35, x: 0 }}
+                    transition={{ delay: 0.15 + i * 0.08 }}
+                    className="flex items-baseline justify-between gap-4 text-sm"
                   >
-                    {"amountCents" in layer && typeof layer.amountCents === "number"
-                      ? showUnit
-                        ? formatUsd(layer.amountCents)
-                        : "—"
-                      : layer.amountLabel}
-                  </p>
-                </motion.li>
-              ))}
+                    <div className="min-w-0">
+                      <p className="font-medium">{layer.label}</p>
+                      <p className="text-[0.75rem] text-[var(--tc-paper)]/50">
+                        {layer.code} · {layer.detail}
+                      </p>
+                    </div>
+                    <p
+                      className={`shrink-0 tabular-nums ${
+                        layer.tone === "delta"
+                          ? "font-semibold text-[#f0c9a8]"
+                          : "text-[var(--tc-paper)]/55"
+                      }`}
+                    >
+                      {typeof layer.amountCents === "number"
+                        ? showUnit
+                          ? formatUsd(layer.amountCents)
+                          : "—"
+                        : (layer.amountLabel ?? "—")}
+                    </p>
+                  </motion.li>
+                );
+              })}
             </ul>
           </div>
 

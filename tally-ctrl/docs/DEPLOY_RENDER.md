@@ -44,10 +44,12 @@ Optional env (Dashboard → Environment), then **Manual Deploy**:
 
 | Key | Notes |
 | --- | --- |
-| `VITE_GEMINI_API_KEY` | Enables live refresh of the three VIN Preview preset cars |
-| `VITE_GEMINI_MODEL` | Default `gemini-2.0-flash` |
+| `VITE_GEMINI_API_KEY` | Enables live refresh of preset economics + Gemini thumbnails |
+| `VITE_GEMINI_MODEL` | Default `gemini-2.0-flash` (structured cost seeds) |
+| `VITE_GEMINI_IMAGE_MODEL` | Default `gemini-2.5-flash-image` (deal-profile photos) |
 
-Without the key, presets still work from the curated mid-market library.
+Without the key, presets still work from the curated mid-market library and
+stock lot photos.
 
 Vite bakes env at **build** time — change → redeploy.
 

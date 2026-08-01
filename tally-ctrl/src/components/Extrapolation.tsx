@@ -1,15 +1,20 @@
 import { motion } from "motion/react";
 import { formatUsd } from "@/engine/compute";
+import type { FindingTypeCode } from "@/schema/types";
 
 interface Props {
-  unitMarkupCents: number;
+  unitAmountCents: number;
+  primaryLabel: string;
+  primaryCode: FindingTypeCode;
   sampleUnitCount: number;
   extrapolatedCents: number;
 }
 
-/** Compact restatement after the auto value reveal — reinforces the sample $ */
+/** Compact restatement — scenario-aware primary finding × sample volume */
 export function Extrapolation({
-  unitMarkupCents,
+  unitAmountCents,
+  primaryLabel,
+  primaryCode,
   sampleUnitCount,
   extrapolatedCents,
 }: Props) {
@@ -20,7 +25,7 @@ export function Extrapolation({
         id="beat-extrapolate"
         className="tc-display text-[2rem] md:text-[2.5rem]"
       >
-        One unit proves the mechanism. Volume proves the exposure.
+        One finding on one unit. Then the sample.
       </h2>
 
       <motion.blockquote
@@ -33,16 +38,18 @@ export function Extrapolation({
         <p className="font-display text-[1.65rem] leading-[1.25] text-[var(--tc-ink)] md:text-[2rem]">
           This unit carries{" "}
           <span className="text-[var(--tc-delta)]">
-            {formatUsd(unitMarkupCents)}
+            {formatUsd(unitAmountCents)}
           </span>{" "}
-          of markup in its cost basis. Across the{" "}
-          <span className="tabular-nums">{sampleUnitCount}</span>-unit sample
-          at your rates, that&apos;s{" "}
+          of {primaryLabel.toLowerCase()}{" "}
+          <span className="text-[0.85em] text-[var(--tc-ink-muted)]">
+            ({primaryCode})
+          </span>
+          . Across the <span className="tabular-nums">{sampleUnitCount}</span>
+          -unit sample at the same pattern, that&apos;s{" "}
           <span className="text-[var(--tc-delta)]">
             {formatUsd(extrapolatedCents)}
           </span>{" "}
-          of overstated used inventory cost and understated front gross —
-          identified automatically, before anyone uploads a DMS file.
+          identified — before anyone uploads a DMS file.
         </p>
       </motion.blockquote>
     </section>

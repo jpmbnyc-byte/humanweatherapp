@@ -1,16 +1,25 @@
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import {
   ACCENT_STYLES,
   PRESET_CARS,
   type PresetCar,
 } from "@/data/preset-cars";
+import {
+  resolveScenarioDiagnostic,
+  scenarioCardLabel,
+} from "@/data/scenarios";
 import type { LivePresetResult } from "@/gemini/live-preset";
-import { formatUsd } from "@/engine/compute";
-import { computeUnit } from "@/engine/compute";
+import {
+  curatedImageForPreset,
+  type PresetImageResult,
+} from "@/gemini/preset-image";
+import { computeUnit, formatUsd } from "@/engine/compute";
 
 interface Props {
   selectedId: string;
   liveById: Record<string, LivePresetResult | undefined>;
+  imageById: Record<string, PresetImageResult | undefined>;
   loadingId: string | null;
   onSelect: (preset: PresetCar) => void;
   onRefresh: (preset: PresetCar) => void;
@@ -19,6 +28,7 @@ interface Props {
 export function PresetCarPicker({
   selectedId,
   liveById,
+  imageById,
   loadingId,
   onSelect,
   onRefresh,
@@ -32,11 +42,12 @@ export function PresetCarPicker({
             id="preset-cars"
             className="tc-display text-[1.65rem] md:text-[1.9rem]"
           >
-            Three boringly typical cars.
+            Three cars. Three different findings.
           </h2>
         </div>
         <p className="max-w-sm text-[0.875rem] leading-snug text-[var(--tc-ink-muted)] sm:text-right">
-          Tap a profile — live portal output fills below. Our VINs, never yours.
+          RO markup, double pack, warranty miss — tap a profile and the portal
+          output fills. Our VINs, never yours.
         </p>
       </div>
 
@@ -47,10 +58,21 @@ export function PresetCarPicker({
           const selected = selectedId === preset.id;
           const accent = ACCENT_STYLES[preset.accent];
           const loading = loadingId === preset.id;
-          const markup =
-            live && vehicle
-              ? computeUnit(vehicle.lines, live.economics).internalRoMarkupCents
-              : null;
+          const image = imageById[preset.id] ?? curatedImageForPreset(preset);
+
+          let primaryLabel = scenarioCardLabel(preset);
+          let primaryAmount: number | null = null;
+          if (live && vehicle) {
+            const result = computeUnit(vehicle.lines, live.economics);
+            const diag = resolveScenarioDiagnostic(
+              preset,
+              vehicle,
+              live.economics,
+              result,
+            );
+            primaryLabel = diag.primaryLabel;
+            primaryAmount = diag.primaryCents;
+          }
 
           return (
             <motion.button
@@ -72,23 +94,26 @@ export function PresetCarPicker({
                 overflow: "hidden",
               }}
             >
-              <div
-                className="relative h-16 overflow-hidden px-4 pt-3"
-                style={{ background: accent.wash }}
-              >
-                <CarSilhouette accent={preset.accent} />
-                <p
-                  className="relative z-[1] text-[0.625rem] font-semibold uppercase tracking-[0.12em]"
-                  style={{ color: accent.ink }}
-                >
-                  {preset.channelLabel}
-                </p>
-                <p
-                  className="relative z-[1] font-display text-xl leading-tight"
-                  style={{ color: accent.ink }}
-                >
-                  {preset.label}
-                </p>
+              <div className="relative h-28 overflow-hidden">
+                <PresetThumb
+                  src={image.src}
+                  alt={`${preset.label} sample`}
+                  wash={accent.wash}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 px-3 pb-2.5">
+                  <p className="text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-white/85">
+                    {preset.channelLabel}
+                  </p>
+                  <p className="font-display text-xl leading-tight text-white">
+                    {preset.label}
+                  </p>
+                </div>
+                {image.source === "gemini" ? (
+                  <span className="absolute right-2 top-2 rounded bg-black/45 px-1.5 py-0.5 text-[0.6rem] font-semibold uppercase tracking-wide text-white/90">
+                    Gemini
+                  </span>
+                ) : null}
               </div>
 
               <div className="space-y-2 px-4 py-3">
@@ -98,14 +123,17 @@ export function PresetCarPicker({
                     : "Loading…"}
                 </p>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.72rem] text-[var(--tc-ink-muted)]">
-                  {markup != null ? (
+                  <span className="font-semibold text-[var(--tc-ink)]">
+                    {primaryLabel}
+                  </span>
+                  {primaryAmount != null ? (
                     <span className="font-semibold tabular-nums text-[var(--tc-delta)]">
-                      ~{formatUsd(markup)} markup
+                      {formatUsd(primaryAmount)}
                     </span>
                   ) : null}
                   {live?.source === "live" ? (
                     <span className="font-semibold text-[var(--tc-accent)]">
-                      Live · Gemini
+                      Live
                     </span>
                   ) : null}
                   {selected ? (
@@ -131,28 +159,47 @@ export function PresetCarPicker({
   );
 }
 
-function CarSilhouette({ accent }: { accent: PresetCar["accent"] }) {
-  const ink =
-    accent === "sage" ? "#0f3d2c" : accent === "slate" ? "#243041" : "#5c3a22";
+function PresetThumb({
+  src,
+  alt,
+  wash,
+}: {
+  src: string;
+  alt: string;
+  wash: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+    setLoaded(false);
+  }, [src]);
+
+  if (failed) {
+    return (
+      <div className="absolute inset-0" style={{ background: wash }} aria-hidden />
+    );
+  }
+
   return (
-    <svg
-      aria-hidden
-      viewBox="0 0 240 90"
-      className="pointer-events-none absolute -right-2 bottom-0 h-[5.5rem] w-auto opacity-35"
-    >
-      <path
-        fill={ink}
-        d="M28 62c4-18 18-28 38-32 22-4 48-6 72-4 18 2 34 8 46 18l18 4c8 2 14 8 14 14v8H28v-8z"
+    <>
+      <div
+        className="absolute inset-0 transition-opacity duration-300"
+        style={{ background: wash, opacity: loaded ? 0 : 1 }}
+        aria-hidden
       />
-      <circle cx="68" cy="70" r="12" fill={ink} opacity="0.85" />
-      <circle cx="178" cy="70" r="12" fill={ink} opacity="0.85" />
-      <circle cx="68" cy="70" r="5" fill="#f3f0e8" opacity="0.5" />
-      <circle cx="178" cy="70" r="5" fill="#f3f0e8" opacity="0.5" />
-      <path
-        fill="#f3f0e8"
-        opacity="0.35"
-        d="M70 36c16-3 40-4 62-2 12 1 24 5 34 12H78c-4-4-6-8-8-10z"
+      <img
+        src={src}
+        alt={alt}
+        loading="lazy"
+        decoding="async"
+        onLoad={() => setLoaded(true)}
+        onError={() => setFailed(true)}
+        className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${
+          loaded ? "opacity-100" : "opacity-0"
+        }`}
       />
-    </svg>
+    </>
   );
 }
