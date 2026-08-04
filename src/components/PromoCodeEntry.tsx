@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tag } from 'lucide-react';
 import { PROMO_MAX_LEN, PROMO_MIN_LEN } from '../lib/promoCodes';
 import { useEntitlement } from '../lib/EntitlementContext';
+import SharePromoLink from './SharePromoLink';
 
 type Props = {
   currentTheme: 'day' | 'night';
@@ -9,12 +10,18 @@ type Props = {
 };
 
 export default function PromoCodeEntry({ currentTheme, compact = false }: Props) {
-  const { redeemPromo, isMember } = useEntitlement();
+  const { redeemPromo, isMember, pendingPromoCode } = useEntitlement();
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState(false);
   const isNight = currentTheme === 'night';
+
+  useEffect(() => {
+    if (pendingPromoCode && !code) {
+      setCode(pendingPromoCode);
+    }
+  }, [pendingPromoCode, code]);
 
   if (isMember) return null;
 
@@ -88,6 +95,7 @@ export default function PromoCodeEntry({ currentTheme, compact = false }: Props)
           {message}
         </p>
       )}
+      <SharePromoLink currentTheme={currentTheme} variant="inline" />
     </form>
   );
 }

@@ -6,6 +6,7 @@ import {
   formatMembershipExpiry,
   grantMembership,
   hasFeature,
+  isLifetimeMember,
   loadEntitlement,
   parsePurchaseReturn,
   parsePurchaseSessionId,
@@ -13,6 +14,8 @@ import {
   stripPurchaseReturnParams,
   trialFootline,
 } from './entitlement';
+import { isShareablePromoCode } from './promoCodes';
+import { parsePromoFromSearch, shareAnnualPromoLink, stripPromoFromSearch, type PromoShareResult } from './promoShare';
 import { isStripeCheckoutUrl, openPurchaseCheckout } from './purchaseConfig';
 import { verifyStripeCheckout } from './stripe.functions';
 import { runWhenIdle } from './deferredWork';
@@ -34,6 +37,9 @@ type EntitlementContextValue = {
   redeemPromo: (code: string) => Promise<{ ok: boolean; message: string }>;
   refresh: () => Promise<void>;
   membershipExpiresLabel: string | null;
+  isLifetimeMember: boolean;
+  pendingPromoCode: string | null;
+  shareAnnualPromo: () => Promise<PromoShareResult>;
 };
 
 const EntitlementContext = createContext<EntitlementContextValue | null>(null);
@@ -45,6 +51,7 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
   const [purchaseJustCompleted, setPurchaseJustCompleted] = useState(false);
   const [purchaseVerifyError, setPurchaseVerifyError] = useState<string | null>(null);
   const [promoMessage, setPromoMessage] = useState<string | null>(null);
+  const [pendingPromoCode, setPendingPromoCode] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const { record: next, effective: eff } = await loadEntitlement();
@@ -100,6 +107,34 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
     })();
   }, [refresh]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined' || loading) return;
+    const search = window.location.search;
+    const code = parsePromoFromSearch(search);
+    if (!code) return;
+
+    const clean = stripPromoFromSearch(search);
+    window.history.replaceState({}, '', `${window.location.pathname}${clean}`);
+
+    if (!isShareablePromoCode(code)) return;
+    if (effective === 'member') return;
+
+    void (async () => {
+      const result = await redeemPromoCode(code);
+      if (result.ok) {
+        await refresh();
+        setPromoMessage('Complimentary 1 year of access activated on this device.');
+        setPendingPromoCode(null);
+        return;
+      }
+      if (result.reason === 'already_redeemed') {
+        await refresh();
+        return;
+      }
+      setPendingPromoCode(code);
+    })();
+  }, [loading, effective, refresh]);
+
   const dismissPromoMessage = useCallback(() => {
     setPromoMessage(null);
   }, []);
@@ -131,6 +166,8 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
     openPurchaseCheckout();
   }, []);
 
+  const shareAnnualPromo = useCallback(async () => shareAnnualPromoLink(), []);
+
   const dismissPurchaseSuccess = useCallback(() => {
     setPurchaseJustCompleted(false);
   }, []);
@@ -148,6 +185,9 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
       can: (feature: EntitlementFeature) => hasFeature(effective, feature),
       footline: record ? trialFootline(record) : null,
       membershipExpiresLabel: record ? formatMembershipExpiry(record) : null,
+      isLifetimeMember: isLifetimeMember(record),
+      pendingPromoCode,
+      shareAnnualPromo,
       purchaseJustCompleted,
       purchaseVerifyError,
       promoMessage,
@@ -171,6 +211,8 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
       startPurchase,
       redeemPromo,
       refresh,
+      pendingPromoCode,
+      shareAnnualPromo,
     ],
   );
 
