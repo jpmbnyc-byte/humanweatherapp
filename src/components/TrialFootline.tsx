@@ -1,6 +1,7 @@
 import React from 'react';
 import { useEntitlement } from '../lib/EntitlementContext';
 import PurchaseOffer from './PurchaseOffer';
+import PromoCodeEntry from './PromoCodeEntry';
 
 type Props = {
   currentTheme: 'day' | 'night';
@@ -41,10 +42,13 @@ export default function TrialFootline({ currentTheme }: Props) {
         >
           <p className={`font-sans text-sm ${isNight ? 'text-white/60' : 'text-stone-600'}`}>
             {showEndingSoon
-              ? 'Lock in annual access before the trial closes.'
-              : 'Enjoying the full Field Station? Keep it with $60/year — no monthly plan.'}
+              ? 'Lock in annual access before this month\'s trial closes.'
+              : 'Monthly trial — full access renews on the 1st. Annual membership or a promo code keeps you open year-round.'}
           </p>
-          <PurchaseOffer currentTheme={currentTheme} variant="compact" />
+          <div className="flex flex-col gap-3 w-full sm:w-auto sm:min-w-[14rem]">
+            <PurchaseOffer currentTheme={currentTheme} variant="compact" />
+            <PromoCodeEntry currentTheme={currentTheme} compact />
+          </div>
         </div>
       )}
     </div>

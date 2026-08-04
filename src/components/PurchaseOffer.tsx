@@ -7,6 +7,7 @@ import {
   isPurchaseConfigured,
 } from '../lib/purchaseConfig';
 import { useEntitlement } from '../lib/EntitlementContext';
+import PromoCodeEntry from './PromoCodeEntry';
 
 type Props = {
   currentTheme: 'day' | 'night';
@@ -68,7 +69,7 @@ export default function PurchaseOffer({ currentTheme, variant = 'card', classNam
           </h3>
           <p className={`font-sans text-sm mt-2 leading-relaxed ${isNight ? 'text-white/60' : 'text-stone-600'}`}>
             {effective === 'lapsed'
-              ? 'Your access has ended. Core Field Station stays free — renew for another year when you are ready.'
+              ? 'This month\'s trial has ended. A fresh trial opens on the 1st — or unlock now with annual access or a promo code.'
               : '$60 unlocks one full year. No monthly plan — renew manually when your year ends.'}
           </p>
         </div>
@@ -108,6 +109,8 @@ export default function PurchaseOffer({ currentTheme, variant = 'card', classNam
           <code className="opacity-80">session_id={'{CHECKOUT_SESSION_ID}'}</code>.
         </p>
       )}
+
+      <PromoCodeEntry currentTheme={currentTheme} />
     </div>
   );
 }
