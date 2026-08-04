@@ -3,6 +3,7 @@ import SomaticGrid from './SomaticGrid';
 import ConditionsCard from './ConditionsCard';
 import TrialFootline from './TrialFootline';
 import PurchaseSuccessBanner from './PurchaseSuccessBanner';
+import PromoSuccessBanner from './PromoSuccessBanner';
 import PurchaseVerifyErrorBanner from './PurchaseVerifyErrorBanner';
 import { useFormingOptional } from '../lib/forming/FormingContext';
 import { useEntitlement } from '../lib/EntitlementContext';
@@ -53,8 +54,15 @@ export default function SomaticTabView({
   onStateChange,
   onNavigateTab,
 }: Props) {
-  const { can, purchaseJustCompleted, dismissPurchaseSuccess, purchaseVerifyError, dismissPurchaseVerifyError } =
-    useEntitlement();
+  const {
+    can,
+    purchaseJustCompleted,
+    dismissPurchaseSuccess,
+    purchaseVerifyError,
+    dismissPurchaseVerifyError,
+    promoMessage,
+    dismissPromoMessage,
+  } = useEntitlement();
   const nascimentoEnabled = can('nascimento');
   const conditionsSummary = `${activeWeather.clinicalIndex} · HRV ${activeWeather.hrv}%`;
   const [formingReady, setFormingReady] = useState(false);
@@ -78,6 +86,13 @@ export default function SomaticTabView({
             <PurchaseSuccessBanner
               currentTheme={currentTheme}
               onDismiss={dismissPurchaseSuccess}
+            />
+          )}
+          {promoMessage && (
+            <PromoSuccessBanner
+              currentTheme={currentTheme}
+              message={promoMessage}
+              onDismiss={dismissPromoMessage}
             />
           )}
           {purchaseVerifyError && (

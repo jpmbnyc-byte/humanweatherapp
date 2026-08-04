@@ -1,5 +1,10 @@
 import { idbGetJson, idbSetJson } from './idb';
 import {
+  lookupPromoCode,
+  PROMO_REDEEMED_KEY,
+  type PromoRedeemResult,
+} from './promoCodes';
+import {
   PURCHASE_SUCCESS_QUERY,
   PURCHASE_SUCCESS_VALUE,
 } from './purchaseConfig';
@@ -8,15 +13,25 @@ export const ENTITLEMENT_KEY = 'hw-entitlement';
 export const ANNUAL_ACCESS_DAYS = 365;
 
 export type EntitlementRecord =
-  | { state: 'trial'; startedAt: string }
-  | { state: 'member'; since: string; expiresAt?: string; stripeSessionId?: string }
-  | { state: 'lapsed'; trialStartedAt: string; lapsedAt: string };
+  | { state: 'trial'; startedAt: string; trialMonth: string }
+  | {
+      state: 'member';
+      since: string;
+      expiresAt?: string;
+      lifetime?: boolean;
+      stripeSessionId?: string;
+      promoCode?: string;
+    }
+  | { state: 'lapsed'; trialStartedAt: string; lapsedAt: string; lapsedMonth: string };
 
 export type EffectiveEntitlement = 'trial' | 'member' | 'lapsed';
 
 export type EntitlementFeature = 'nascimento' | 'offices' | 'prescriptions' | 'fascia';
 
-const TRIAL_LENGTH_DAYS = 7;
+/** Calendar month key — trial renews automatically each month. */
+export function monthKey(d: Date = new Date()): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
 
 export function trialDayNumber(startedAt: string, now: Date = new Date()): number {
   const start = new Date(startedAt);
@@ -28,7 +43,8 @@ export function trialDayNumber(startedAt: string, now: Date = new Date()): numbe
 
 export function membershipExpiresAt(
   record: Extract<EntitlementRecord, { state: 'member' }>,
-): Date {
+): Date | null {
+  if (record.lifetime) return null;
   if (record.expiresAt) return new Date(record.expiresAt);
   const since = new Date(record.since);
   since.setDate(since.getDate() + ANNUAL_ACCESS_DAYS);
@@ -37,7 +53,17 @@ export function membershipExpiresAt(
 
 export function isMembershipExpired(record: EntitlementRecord, now: Date = new Date()): boolean {
   if (record.state !== 'member') return false;
-  return now.getTime() >= membershipExpiresAt(record).getTime();
+  if (record.lifetime) return false;
+  const expires = membershipExpiresAt(record);
+  if (!expires) return false;
+  return now.getTime() >= expires.getTime();
+}
+
+function isTrialActiveForMonth(
+  record: Extract<EntitlementRecord, { state: 'trial' }>,
+  now: Date,
+): boolean {
+  return record.trialMonth === monthKey(now);
 }
 
 export function resolveEffectiveState(
@@ -48,8 +74,7 @@ export function resolveEffectiveState(
     return isMembershipExpired(record, now) ? 'lapsed' : 'member';
   }
   if (record.state === 'lapsed') return 'lapsed';
-  const day = trialDayNumber(record.startedAt, now);
-  return day > TRIAL_LENGTH_DAYS ? 'lapsed' : 'trial';
+  return isTrialActiveForMonth(record, now) ? 'trial' : 'lapsed';
 }
 
 export function hasFeature(
@@ -68,13 +93,21 @@ export function hasFeature(
   return false;
 }
 
-/** Days 6–7 of trial — foot-line copy at Threshold. */
+/** Days left in the current calendar-month trial window. */
+export function daysLeftInTrialMonth(now: Date = new Date()): number {
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+  return Math.max(0, Math.ceil((end.getTime() - now.getTime()) / 86_400_000));
+}
+
+/** Foot-line when trial month is ending soon. */
 export function trialFootline(record: EntitlementRecord, now: Date = new Date()): string | null {
-  if (record.state !== 'trial') return null;
-  const day = trialDayNumber(record.startedAt, now);
-  if (day < 6 || day > TRIAL_LENGTH_DAYS) return null;
-  const daysLeft = TRIAL_LENGTH_DAYS + 1 - day;
-  return `Trial ends in ${daysLeft} day${daysLeft === 1 ? '' : 's'}. Il Nascimento and the Diurnal Spine close with it.`;
+  if (record.state !== 'trial' || !isTrialActiveForMonth(record, now)) return null;
+  const daysLeft = daysLeftInTrialMonth(now);
+  if (daysLeft > 7) return null;
+  if (daysLeft === 0) {
+    return "This month's trial ends today. A fresh trial opens on the 1st.";
+  }
+  return `This month's trial ends in ${daysLeft} day${daysLeft === 1 ? '' : 's'}. A fresh trial opens on the 1st.`;
 }
 
 export function formatMembershipExpiry(
@@ -82,22 +115,46 @@ export function formatMembershipExpiry(
   now: Date = new Date(),
 ): string | null {
   if (record.state !== 'member' || isMembershipExpired(record, now)) return null;
-  return membershipExpiresAt(record).toLocaleDateString([], {
+  if (record.lifetime) return 'Lifetime access';
+  const expires = membershipExpiresAt(record);
+  if (!expires) return null;
+  return expires.toLocaleDateString([], {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
   });
 }
 
-async function persistLapsed(
-  record: EntitlementRecord,
-  now: Date,
-  startedAt: string,
-): Promise<EntitlementRecord> {
+function shouldRenewMonthlyTrial(record: EntitlementRecord, now: Date): boolean {
+  const current = monthKey(now);
+  if (record.state === 'trial') {
+    return record.trialMonth !== current;
+  }
+  if (record.state === 'lapsed') {
+    return record.lapsedMonth !== current;
+  }
+  if (record.state === 'member' && isMembershipExpired(record, now)) {
+    return true;
+  }
+  return false;
+}
+
+async function renewMonthlyTrial(now: Date): Promise<EntitlementRecord> {
+  const record: EntitlementRecord = {
+    state: 'trial',
+    startedAt: now.toISOString(),
+    trialMonth: monthKey(now),
+  };
+  await idbSetJson(ENTITLEMENT_KEY, record);
+  return record;
+}
+
+async function persistLapsed(startedAt: string, now: Date): Promise<EntitlementRecord> {
   const lapsed: EntitlementRecord = {
     state: 'lapsed',
     trialStartedAt: startedAt,
     lapsedAt: now.toISOString(),
+    lapsedMonth: monthKey(now),
   };
   await idbSetJson(ENTITLEMENT_KEY, lapsed);
   return lapsed;
@@ -110,44 +167,113 @@ export async function loadEntitlement(now: Date = new Date()): Promise<{
   let record = await idbGetJson<EntitlementRecord>(ENTITLEMENT_KEY);
 
   if (!record) {
-    record = { state: 'trial', startedAt: now.toISOString() };
+    record = await renewMonthlyTrial(now);
+    return { record, effective: 'trial' };
+  }
+
+  if (record.state === 'trial' && !('trialMonth' in record && record.trialMonth)) {
+    record = {
+      state: 'trial',
+      startedAt: record.startedAt,
+      trialMonth: monthKey(new Date(record.startedAt)),
+    };
+    await idbSetJson(ENTITLEMENT_KEY, record);
+  }
+
+  if (record.state === 'lapsed' && !('lapsedMonth' in record && record.lapsedMonth)) {
+    record = {
+      ...record,
+      lapsedMonth: monthKey(new Date(record.lapsedAt)),
+    };
     await idbSetJson(ENTITLEMENT_KEY, record);
   }
 
   if (record.state === 'member' && isMembershipExpired(record, now)) {
-    record = await persistLapsed(record, now, record.since);
+    record = await persistLapsed(record.since, now);
+  }
+
+  if (shouldRenewMonthlyTrial(record, now)) {
+    record = await renewMonthlyTrial(now);
+    return { record, effective: 'trial' };
   }
 
   const effective = resolveEffectiveState(record, now);
 
   if (effective === 'lapsed' && record.state === 'trial') {
-    record = await persistLapsed(record, now, record.startedAt);
+    record = await persistLapsed(record.startedAt, now);
   }
 
-  return { record, effective };
+  return { record, effective: resolveEffectiveState(record, now) };
 }
 
-/** Grant one year of access after successful checkout return. */
+/** Grant annual or lifetime access (checkout or promo). */
 export async function grantMembership(
   now: Date = new Date(),
-  opts?: { expiresAt?: string; stripeSessionId?: string },
+  opts?: { expiresAt?: string; stripeSessionId?: string; promoCode?: string; lifetime?: boolean },
 ): Promise<EntitlementRecord> {
   const since = now.toISOString();
-  const expires = opts?.expiresAt
-    ? new Date(opts.expiresAt)
-    : (() => {
-        const d = new Date(now);
-        d.setDate(d.getDate() + ANNUAL_ACCESS_DAYS);
-        return d;
-      })();
-  const record: EntitlementRecord = {
-    state: 'member',
-    since,
-    expiresAt: expires.toISOString(),
-    ...(opts?.stripeSessionId ? { stripeSessionId: opts.stripeSessionId } : {}),
-  };
+  const record: EntitlementRecord = opts?.lifetime
+    ? {
+        state: 'member',
+        since,
+        lifetime: true,
+        ...(opts.promoCode ? { promoCode: opts.promoCode } : {}),
+      }
+    : {
+        state: 'member',
+        since,
+        expiresAt: (opts?.expiresAt
+          ? new Date(opts.expiresAt)
+          : (() => {
+              const d = new Date(now);
+              d.setDate(d.getDate() + ANNUAL_ACCESS_DAYS);
+              return d;
+            })()
+        ).toISOString(),
+        ...(opts?.stripeSessionId ? { stripeSessionId: opts.stripeSessionId } : {}),
+        ...(opts?.promoCode ? { promoCode: opts.promoCode } : {}),
+      };
   await idbSetJson(ENTITLEMENT_KEY, record);
   return record;
+}
+
+async function getRedeemedPromos(): Promise<string[]> {
+  return (await idbGetJson<string[]>(PROMO_REDEEMED_KEY)) ?? [];
+}
+
+async function markPromoRedeemed(code: string): Promise<void> {
+  const redeemed = await getRedeemedPromos();
+  if (!redeemed.includes(code)) {
+    await idbSetJson(PROMO_REDEEMED_KEY, [...redeemed, code]);
+  }
+}
+
+export async function redeemPromoCode(raw: string, now: Date = new Date()): Promise<PromoRedeemResult> {
+  const definition = lookupPromoCode(raw);
+  if (!definition) {
+    const normalized = raw.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (normalized.length < 7 || normalized.length > 17) {
+      return { ok: false, reason: 'invalid' };
+    }
+    return { ok: false, reason: 'unknown' };
+  }
+
+  const code = raw.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const redeemed = await getRedeemedPromos();
+  if (redeemed.includes(code)) {
+    return { ok: false, reason: 'already_redeemed' };
+  }
+
+  if (definition.grant === 'lifetime') {
+    await grantMembership(now, { lifetime: true, promoCode: code });
+  } else {
+    const expires = new Date(now);
+    expires.setDate(expires.getDate() + (definition.days ?? ANNUAL_ACCESS_DAYS));
+    await grantMembership(now, { expiresAt: expires.toISOString(), promoCode: code });
+  }
+
+  await markPromoRedeemed(code);
+  return { ok: true, code, definition };
 }
 
 export function parsePurchaseSessionId(search: string): string | null {

@@ -9,6 +9,7 @@ import {
   loadEntitlement,
   parsePurchaseReturn,
   parsePurchaseSessionId,
+  redeemPromoCode,
   stripPurchaseReturnParams,
   trialFootline,
 } from './entitlement';
@@ -25,9 +26,12 @@ type EntitlementContextValue = {
   footline: string | null;
   purchaseJustCompleted: boolean;
   purchaseVerifyError: string | null;
+  promoMessage: string | null;
   dismissPurchaseSuccess: () => void;
   dismissPurchaseVerifyError: () => void;
+  dismissPromoMessage: () => void;
   startPurchase: () => void;
+  redeemPromo: (code: string) => Promise<{ ok: boolean; message: string }>;
   refresh: () => Promise<void>;
   membershipExpiresLabel: string | null;
 };
@@ -40,6 +44,7 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
   const [loading, setLoading] = useState(true);
   const [purchaseJustCompleted, setPurchaseJustCompleted] = useState(false);
   const [purchaseVerifyError, setPurchaseVerifyError] = useState<string | null>(null);
+  const [promoMessage, setPromoMessage] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const { record: next, effective: eff } = await loadEntitlement();
@@ -95,6 +100,33 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
     })();
   }, [refresh]);
 
+  const dismissPromoMessage = useCallback(() => {
+    setPromoMessage(null);
+  }, []);
+
+  const redeemPromo = useCallback(
+    async (code: string) => {
+      const result = await redeemPromoCode(code);
+      if (result.ok) {
+        await refresh();
+        const msg =
+          result.definition.grant === 'lifetime'
+            ? 'Lifetime access activated on this device.'
+            : 'Complimentary 1 year of access activated on this device.';
+        setPromoMessage(msg);
+        return { ok: true, message: msg };
+      }
+      const message =
+        result.reason === 'invalid'
+          ? 'Enter a valid code (7–17 letters or numbers).'
+          : result.reason === 'already_redeemed'
+            ? 'This code was already used on this device.'
+            : 'That code is not recognized.';
+      return { ok: false, message };
+    },
+    [refresh],
+  );
+
   const startPurchase = useCallback(() => {
     openPurchaseCheckout();
   }, []);
@@ -118,9 +150,12 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
       membershipExpiresLabel: record ? formatMembershipExpiry(record) : null,
       purchaseJustCompleted,
       purchaseVerifyError,
+      promoMessage,
       dismissPurchaseSuccess,
       dismissPurchaseVerifyError,
+      dismissPromoMessage,
       startPurchase,
+      redeemPromo,
       refresh,
     }),
     [
@@ -129,9 +164,12 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
       loading,
       purchaseJustCompleted,
       purchaseVerifyError,
+      promoMessage,
       dismissPurchaseSuccess,
       dismissPurchaseVerifyError,
+      dismissPromoMessage,
       startPurchase,
+      redeemPromo,
       refresh,
     ],
   );
