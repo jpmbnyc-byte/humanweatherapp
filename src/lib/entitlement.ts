@@ -110,6 +110,10 @@ export function trialFootline(record: EntitlementRecord, now: Date = new Date())
   return `This month's trial ends in ${daysLeft} day${daysLeft === 1 ? '' : 's'}. A fresh trial opens on the 1st.`;
 }
 
+export function isLifetimeMember(record: EntitlementRecord | null): boolean {
+  return record?.state === 'member' && !!record.lifetime;
+}
+
 export function formatMembershipExpiry(
   record: EntitlementRecord,
   now: Date = new Date(),

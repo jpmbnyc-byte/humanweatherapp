@@ -5,14 +5,20 @@ export type PromoDefinition = {
   /** For annual grants */
   days?: number;
   label: string;
+  /** May be distributed via share link (never set on owner/lifetime codes). */
+  shareable?: boolean;
 };
+
+/** Complimentary annual code — safe to share via gift link. */
+export const SHAREABLE_ANNUAL_PROMO = 'HUMAN11';
 
 /** Built-in promo codes (7–17 alphanumeric characters). */
 export const PROMO_CODES: Record<string, PromoDefinition> = {
-  HUMAN11: {
+  [SHAREABLE_ANNUAL_PROMO]: {
     grant: 'annual',
     days: 365,
     label: 'Complimentary 1 year of access',
+    shareable: true,
   },
   JPB2211: {
     grant: 'lifetime',
@@ -36,6 +42,16 @@ export function lookupPromoCode(raw: string): PromoDefinition | null {
   const code = normalizePromoCode(raw);
   if (!isValidPromoFormat(code)) return null;
   return PROMO_CODES[code] ?? null;
+}
+
+export function isShareablePromoCode(raw: string): boolean {
+  const code = normalizePromoCode(raw);
+  const definition = PROMO_CODES[code];
+  return !!definition?.shareable;
+}
+
+export function getShareableAnnualPromo(): { code: string; definition: PromoDefinition } {
+  return { code: SHAREABLE_ANNUAL_PROMO, definition: PROMO_CODES[SHAREABLE_ANNUAL_PROMO] };
 }
 
 export type PromoRedeemResult =
