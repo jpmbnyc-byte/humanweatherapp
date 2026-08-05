@@ -1,4 +1,5 @@
 import { getShareableAnnualPromo, normalizePromoCode } from './promoCodes';
+import { getSiteUrl } from './purchaseConfig';
 
 export const PROMO_QUERY = 'promo';
 
@@ -16,9 +17,9 @@ export function stripPromoFromSearch(search: string): string {
   return next ? `?${next}` : '';
 }
 
-export function buildPromoShareUrl(origin = typeof window !== 'undefined' ? window.location.origin : ''): string {
+export function buildPromoShareUrl(origin?: string): string {
   const { code } = getShareableAnnualPromo();
-  const base = origin.replace(/\/$/, '') || 'https://humanweather.app';
+  const base = getSiteUrl(origin);
   return `${base}/?${PROMO_QUERY}=${code}`;
 }
 
