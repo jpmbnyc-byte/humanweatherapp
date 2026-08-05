@@ -10,6 +10,7 @@ export const PURCHASE_SUCCESS_QUERY = 'purchase';
 export const PURCHASE_SUCCESS_VALUE = 'success';
 
 const DEFAULT_PURCHASE_URL = 'https://humanweather.app/membership';
+const DEFAULT_SITE_URL = 'https://humanweather.social';
 const DEFAULT_PRICE = '60';
 
 function readEnv(key: string): string | undefined {
@@ -21,6 +22,15 @@ function readEnv(key: string): string | undefined {
 
 export function getPurchaseUrl(): string {
   return readEnv('VITE_PURCHASE_URL')?.trim() || DEFAULT_PURCHASE_URL;
+}
+
+/** Public site origin for share links and redirects when window is unavailable. */
+export function getSiteUrl(origin?: string): string {
+  const fromEnv = readEnv('VITE_SITE_URL')?.trim();
+  if (fromEnv) return fromEnv.replace(/\/$/, '');
+  if (origin?.trim()) return origin.replace(/\/$/, '');
+  if (typeof window !== 'undefined') return window.location.origin.replace(/\/$/, '');
+  return DEFAULT_SITE_URL;
 }
 
 export function isStripeCheckoutUrl(url = getPurchaseUrl()): boolean {

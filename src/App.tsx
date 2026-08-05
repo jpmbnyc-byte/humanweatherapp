@@ -308,7 +308,7 @@ export default function App() {
               <span className="opacity-50 mt-1.5 normal-case tracking-normal font-sans text-sm italic">Peer-reviewed clinical somatics system</span>
             </div>
             <div className="flex gap-4 opacity-80">
-              <a href="https://humanweather.app" className="hover:text-accent transition-colors">humanweather.app</a>
+              <a href="https://humanweather.social" className="hover:text-accent transition-colors">humanweather.social</a>
               <span>·</span>
               <span>@PBWYWORLDWIDE</span>
             </div>
