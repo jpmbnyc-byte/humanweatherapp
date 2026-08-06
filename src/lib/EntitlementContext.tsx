@@ -5,6 +5,7 @@ import {
   type EntitlementRecord,
   applyStripeCheckout,
   formatMembershipExpiry,
+  canReadFascia as canReadFasciaState,
   hasFeature,
   isLifetimeMember,
   isStripeSessionRedeemed,
@@ -18,7 +19,7 @@ import {
 import { isShareablePromoCode } from './promoCodes';
 import { parsePromoFromSearch, shareAnnualPromoLink, stripPromoFromSearch, type PromoShareResult } from './promoShare';
 import { isPurchaseConfigured, isStripeCheckoutUrl, openPurchaseCheckout } from './purchaseConfig';
-import { verifyStripeCheckout } from './stripe.functions';
+import { recoverStripeGrant } from './entitlement.functions';
 
 type EntitlementContextValue = {
   record: EntitlementRecord | null;
@@ -26,6 +27,7 @@ type EntitlementContextValue = {
   loading: boolean;
   isMember: boolean;
   can: (feature: EntitlementFeature) => boolean;
+  canReadFascia: boolean;
   footline: string | null;
   purchaseJustCompleted: boolean;
   purchaseVerifyError: string | null;
@@ -105,7 +107,7 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
           return;
         }
 
-        const result = await verifyStripeCheckout({ data: { sessionId } });
+        const result = await recoverStripeGrant({ data: { sessionId } });
         if (!result.verified) {
           setPurchaseVerifyError(
             'Payment could not be verified. If you were charged, contact support with your receipt.',
@@ -172,7 +174,9 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
           ? 'Enter a valid code (7–17 letters or numbers).'
           : result.reason === 'already_redeemed'
             ? 'This code was already used on this device.'
-            : 'That code is not recognized.';
+            : result.reason === 'server_error'
+              ? 'Could not reach the server. Check your connection and try again.'
+              : 'That code is not recognized.';
       return { ok: false, message };
     },
     [refresh],
@@ -199,6 +203,7 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
       loading,
       isMember: effective === 'member',
       can: (feature: EntitlementFeature) => hasFeature(effective, feature),
+      canReadFascia: canReadFasciaState(effective),
       footline: record ? trialFootline(record) : null,
       membershipExpiresLabel: record ? formatMembershipExpiry(record) : null,
       isLifetimeMember: isLifetimeMember(record),

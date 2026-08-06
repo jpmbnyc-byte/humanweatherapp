@@ -184,7 +184,7 @@ export default function OfficeSequence({ place, currentTheme, onNavigateTab }: P
       stop();
       return;
     }
-    speak(step.speak);
+    void speak(step.speak);
   };
 
   if (!officesEnabled) {

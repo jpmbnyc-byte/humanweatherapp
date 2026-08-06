@@ -23,8 +23,8 @@ export function buildPromoShareUrl(origin = typeof window !== 'undefined' ? wind
 }
 
 export function buildPromoShareMessage(url = buildPromoShareUrl()): string {
-  const { code, definition } = getShareableAnnualPromo();
-  return `Human Weather — ${definition.label.toLowerCase()}. Open this link or enter code ${code}:\n${url}`;
+  const { code } = getShareableAnnualPromo();
+  return `Human Weather — complimentary 1 year of access. Open this link or enter code ${code}:\n${url}`;
 }
 
 export type PromoShareResult = 'shared' | 'copied' | 'failed';

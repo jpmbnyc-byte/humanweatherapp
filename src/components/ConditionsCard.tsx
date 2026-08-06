@@ -35,7 +35,7 @@ export default function ConditionsCard({
       stop();
       return;
     }
-    speak(conditionsText);
+    void speak(conditionsText);
   };
 
   const handlePrescription = () => {

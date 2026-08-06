@@ -1,4 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
+import { ensureVoicesReady, getActiveVoiceLabel, getPaceRate } from '../lib/stationSpeech';
 
 export type SpokenProseStatus = 'idle' | 'speaking' | 'error';
 
@@ -28,10 +29,8 @@ function findVoice(voices: SpeechSynthesisVoice[], preferredVoiceName?: string |
 export function useSpokenProse() {
   const [status, setStatus] = useState<SpokenProseStatus>('idle');
   const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
-  // iOS garbage-collects utterance objects that aren't referenced — hold the ref.
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  // iOS loads voices async — capture them whenever they arrive.
   useEffect(() => {
     const syn = synthesis();
     if (!syn) return;
@@ -43,25 +42,25 @@ export function useSpokenProse() {
     return () => syn.removeEventListener('voiceschanged', load);
   }, []);
 
-  const speak = useCallback((text: string, preferredVoiceName?: string | null, options?: SpeakProseOptions) => {
+  const speak = useCallback(async (text: string, preferredVoiceName?: string | null, options?: SpeakProseOptions) => {
     const syn = synthesis();
     const trimmed = text.trim();
     if (!syn || !trimmed) return;
 
-    // Clear iOS's wedged queue before every speak.
+    await ensureVoicesReady();
+    voicesRef.current = syn.getVoices();
+
     syn.cancel();
 
     const u = new SpeechSynthesisUtterance(trimmed);
-
-    // Validate voice against CURRENT roster at speak time — null = system default.
-    const match = findVoice(voicesRef.current, preferredVoiceName);
+    const voiceLabel = preferredVoiceName ?? getActiveVoiceLabel();
+    const match = findVoice(voicesRef.current, voiceLabel);
     u.voice = match ?? null;
 
-    u.rate = options?.rate ?? 0.92;
+    u.rate = options?.rate ?? getPaceRate();
     u.pitch = options?.pitch ?? 1.0;
     u.volume = 1;
 
-    // UI state comes from the audio layer, not the tap.
     u.onstart = () => setStatus('speaking');
     u.onend = () => setStatus('idle');
     u.onerror = e => {
