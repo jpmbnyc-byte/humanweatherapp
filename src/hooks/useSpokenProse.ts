@@ -1,5 +1,11 @@
-import { useRef, useState, useCallback, useEffect } from 'react';
-import { ensureVoicesReady, getActiveVoiceLabel, getPaceRate } from '../lib/stationSpeech';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  getPaceRate,
+  primeSpeechEngine,
+  setPaceRate,
+  stationSpeakFromUserGesture,
+  stationStop,
+} from '../lib/stationSpeech';
 
 export type SpokenProseStatus = 'idle' | 'speaking' | 'error';
 
@@ -8,74 +14,38 @@ export type SpeakProseOptions = {
   pitch?: number;
 };
 
-function synthesis(): SpeechSynthesis | null {
-  if (typeof window === 'undefined' || !window.speechSynthesis) return null;
-  return window.speechSynthesis;
-}
-
-function findVoice(voices: SpeechSynthesisVoice[], preferredVoiceName?: string | null): SpeechSynthesisVoice | null {
-  if (!preferredVoiceName) return null;
-  const exact = voices.find(v => v.name === preferredVoiceName);
-  if (exact) return exact;
-  const cleaned = preferredVoiceName.replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
-  return (
-    voices.find(v => {
-      const name = v.name.replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
-      return name === cleaned || v.name === preferredVoiceName;
-    }) ?? null
-  );
-}
-
+/**
+ * Spoken prose for Conditions, offices, and Tender.
+ * Uses stationSpeech so iOS gets a synchronous speak from the tap handler.
+ */
 export function useSpokenProse() {
   const [status, setStatus] = useState<SpokenProseStatus>('idle');
-  const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   useEffect(() => {
-    const syn = synthesis();
-    if (!syn) return;
-    const load = () => {
-      voicesRef.current = syn.getVoices();
-    };
-    load();
-    syn.addEventListener('voiceschanged', load);
-    return () => syn.removeEventListener('voiceschanged', load);
+    primeSpeechEngine();
   }, []);
 
-  const speak = useCallback(async (text: string, preferredVoiceName?: string | null, options?: SpeakProseOptions) => {
-    const syn = synthesis();
-    const trimmed = text.trim();
-    if (!syn || !trimmed) return;
+  const speak = useCallback(
+    (text: string, _preferredVoiceName?: string | null, options?: SpeakProseOptions) => {
+      const trimmed = text.trim();
+      if (!trimmed) return;
 
-    await ensureVoicesReady();
-    voicesRef.current = syn.getVoices();
+      stationStop();
 
-    syn.cancel();
+      if (options?.rate != null) {
+        void setPaceRate(options.rate);
+      }
 
-    const u = new SpeechSynthesisUtterance(trimmed);
-    const voiceLabel = preferredVoiceName ?? getActiveVoiceLabel();
-    const match = findVoice(voicesRef.current, voiceLabel);
-    u.voice = match ?? null;
-
-    u.rate = options?.rate ?? getPaceRate();
-    u.pitch = options?.pitch ?? 1.0;
-    u.volume = 1;
-
-    u.onstart = () => setStatus('speaking');
-    u.onend = () => setStatus('idle');
-    u.onerror = e => {
-      console.error('speech error:', e.error);
-      setStatus('error');
-    };
-
-    utteranceRef.current = u;
-    if (syn.paused) syn.resume();
-    syn.speak(u);
-  }, []);
+      setStatus('speaking');
+      void stationSpeakFromUserGesture(trimmed)
+        .then(() => setStatus('idle'))
+        .catch(() => setStatus('error'));
+    },
+    [],
+  );
 
   const stop = useCallback(() => {
-    synthesis()?.cancel();
-    utteranceRef.current = null;
+    stationStop();
     setStatus('idle');
   }, []);
 

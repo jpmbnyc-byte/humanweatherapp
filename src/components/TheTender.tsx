@@ -232,7 +232,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     setCurrentTier(tier);
     setCurrentVoiceFamiliar(isFamiliarEntry(entry));
     persistStationVoice(entry);
-    speakProse(AUDITION_LINE, entry.name, { rate: PACE_VALUES[pace] });
+    void speakProse(AUDITION_LINE, entry.name, { rate: PACE_VALUES[pace] });
     void getSavedVoiceMeta().then(meta => {
       setSavedVoice(meta);
       setInlineVoiceOpen(false);
@@ -252,7 +252,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     stopAllAudio({ skipSpeechCancel: true });
     suppressTenderStopRef.current = false;
     if (!isIosPlatform() && soundEnv !== 'silence') startSoundEnvironment(soundEnv);
-    speakProse(textSrc, preferredVoiceName(), { rate: PACE_VALUES[pace] });
+    void speakProse(textSrc, preferredVoiceName(), { rate: PACE_VALUES[pace] });
   };
 
   const handleRefreshVoices = () => {
