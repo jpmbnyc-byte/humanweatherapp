@@ -25,7 +25,7 @@ export default function MembershipButton({ isNight, themeStyles, currentTheme }:
     <button
       type="button"
       onClick={startPurchase}
-      className={`hw-pressable hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-full border text-[10px] font-mono uppercase tracking-widest cursor-pointer transition-colors ${themeStyles.border} ${themeStyles.cardBg} ${
+      className={`hw-pressable inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-full border text-[9px] sm:text-[10px] font-mono uppercase tracking-widest cursor-pointer transition-colors ${themeStyles.border} ${themeStyles.cardBg} ${
         isNight ? 'text-accent hover:bg-accent/10' : 'text-[#8a6f2e] hover:bg-accent/5'
       }`}
       id="membership-header-btn"

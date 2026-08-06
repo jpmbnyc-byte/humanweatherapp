@@ -1,4 +1,5 @@
 import React from 'react';
+import { reportLovableError } from '../lib/lovable-error-reporting';
 
 interface TabErrorBoundaryProps {
   children: React.ReactNode;
@@ -14,6 +15,13 @@ export default class TabErrorBoundary extends React.Component<TabErrorBoundaryPr
 
   static getDerivedStateFromError() {
     return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    reportLovableError(error, {
+      boundary: 'tab_error_boundary',
+      componentStack: info.componentStack,
+    });
   }
 
   render() {

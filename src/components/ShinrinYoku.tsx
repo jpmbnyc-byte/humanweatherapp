@@ -1,36 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { SHINRIN_YOKU_PROTOCOLS } from '../data';
-import { ShinrinYokuProtocol } from '../types';
 import { Trees, Check, RefreshCw, Sparkles, Heart } from 'lucide-react';
+
+function loadShinrinSessions(): Record<string, boolean[]> {
+  if (typeof window === 'undefined') return {};
+  const saved = localStorage.getItem('human_weather_shinrin_yoku');
+  if (saved) {
+    try {
+      return JSON.parse(saved) as Record<string, boolean[]>;
+    } catch {
+      /* fall through */
+    }
+  }
+  const initial: Record<string, boolean[]> = {};
+  SHINRIN_YOKU_PROTOCOLS.forEach(p => {
+    initial[p.id] = Array(4).fill(false);
+  });
+  return initial;
+}
 
 interface ShinrinYokuProps {
   currentTheme: 'day' | 'night';
 }
 
 export default function ShinrinYoku({ currentTheme }: ShinrinYokuProps) {
-  // Track completed sessions as a map of protocolId -> boolean array [day1, day2, day3, day4]
-  const [completedSessions, setCompletedSessions] = useState<Record<string, boolean[]>>({});
+  const [completedSessions, setCompletedSessions] = useState<Record<string, boolean[]>>(loadShinrinSessions);
   const [activeAlert, setActiveAlert] = useState(false);
-
-  // Load from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem('human_weather_shinrin_yoku');
-    if (saved) {
-      try {
-        setCompletedSessions(JSON.parse(saved));
-      } catch (e) {
-        console.error('Error parsing shinrin-yoku sessions:', e);
-      }
-    } else {
-      // Initialize with 4 progress slots for each protocol
-      const initial: Record<string, boolean[]> = {};
-      SHINRIN_YOKU_PROTOCOLS.forEach(p => {
-        initial[p.id] = Array(4).fill(false);
-      });
-      setCompletedSessions(initial);
-    }
-  }, []);
 
   const saveSessions = (updated: Record<string, boolean[]>) => {
     setCompletedSessions(updated);

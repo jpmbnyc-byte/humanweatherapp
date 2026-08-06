@@ -10,6 +10,7 @@ import {
 } from './purchaseConfig';
 
 export const ENTITLEMENT_KEY = 'hw-entitlement';
+export const STRIPE_REDEEMED_KEY = 'hw-stripe-redeemed';
 export const ANNUAL_ACCESS_DAYS = 365;
 
 export type EntitlementRecord =
@@ -210,11 +211,16 @@ export async function loadEntitlement(now: Date = new Date()): Promise<{
   return { record, effective: resolveEffectiveState(record, now) };
 }
 
-/** Grant annual or lifetime access (checkout or promo). */
+/** Grant annual or lifetime access (checkout or promo). Preserves existing lifetime grants. */
 export async function grantMembership(
   now: Date = new Date(),
   opts?: { expiresAt?: string; stripeSessionId?: string; promoCode?: string; lifetime?: boolean },
 ): Promise<EntitlementRecord> {
+  const existing = await idbGetJson<EntitlementRecord>(ENTITLEMENT_KEY);
+  if (existing?.state === 'member' && existing.lifetime && !opts?.lifetime) {
+    return existing;
+  }
+
   const since = now.toISOString();
   const record: EntitlementRecord = opts?.lifetime
     ? {
@@ -238,6 +244,37 @@ export async function grantMembership(
         ...(opts?.promoCode ? { promoCode: opts.promoCode } : {}),
       };
   await idbSetJson(ENTITLEMENT_KEY, record);
+  return record;
+}
+
+async function getRedeemedStripeSessions(): Promise<string[]> {
+  return (await idbGetJson<string[]>(STRIPE_REDEEMED_KEY)) ?? [];
+}
+
+export async function isStripeSessionRedeemed(sessionId: string): Promise<boolean> {
+  const redeemed = await getRedeemedStripeSessions();
+  return redeemed.includes(sessionId);
+}
+
+async function markStripeSessionRedeemed(sessionId: string): Promise<void> {
+  const redeemed = await getRedeemedStripeSessions();
+  if (!redeemed.includes(sessionId)) {
+    await idbSetJson(STRIPE_REDEEMED_KEY, [...redeemed, sessionId]);
+  }
+}
+
+/** Apply verified Stripe checkout on this device (once per session id). */
+export async function applyStripeCheckout(
+  sessionId: string,
+  expiresAt: string,
+  now: Date = new Date(),
+): Promise<EntitlementRecord> {
+  if (await isStripeSessionRedeemed(sessionId)) {
+    const { record } = await loadEntitlement(now);
+    return record;
+  }
+  const record = await grantMembership(now, { expiresAt, stripeSessionId: sessionId });
+  await markStripeSessionRedeemed(sessionId);
   return record;
 }
 
