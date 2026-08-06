@@ -11,7 +11,7 @@ interface SolarRayProps {
 }
 
 export default function SolarRay({ currentTheme, isActive = true }: SolarRayProps) {
-  const { geo, status: geoStatus, setManualLocation } = useGeo();
+  const { geo, setManualLocation } = useGeo();
   const coords = geo ? { lat: geo.lat, lon: geo.lon } : { lat: 40.7128, lon: -74.006 };
   const city = geo?.city ?? 'New York City';
   const [solarData, setSolarData] = useState<SunData | null>(null);
