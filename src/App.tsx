@@ -10,6 +10,7 @@ import type { WhereAreWeResult } from './lib/whereAreWe';
 import { runWhenIdle, runAfterFirstPaint } from './lib/deferredWork';
 import { primeSpeechEngine, warmSpeechVoicesFromGesture } from './lib/stationSpeech';
 import { EntitlementProvider } from './lib/EntitlementContext';
+import { GeoProvider, useGeo } from './lib/GeoContext';
 import { dismissBootSplash } from './components/BootSplashFallback';
 import MembershipButton from './components/MembershipButton';
 import SomaticTabView from './components/SomaticTabView';
@@ -60,22 +61,24 @@ const getThemeForNow = (): 'day' | 'night' => {
 const THRESHOLD_TAB = 'somatic' as const;
 type AppTab = 'somatic' | 'therapy' | 'rhythms' | 'tender';
 
-async function resolvePlace(): Promise<WhereAreWeResult> {
+async function resolvePlace(coords?: { lat: number; lon: number }): Promise<WhereAreWeResult> {
   const { whereAreWe } = await import('./lib/whereAreWe');
-  return whereAreWe();
+  return whereAreWe(new Date(), coords);
 }
 
-export default function App() {
+function AppBody() {
   const [currentTheme, setCurrentTheme] = useState<'day' | 'night'>('day');
   const [manualOverride, setManualOverride] = useState(false);
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState<AppTab>(THRESHOLD_TAB);
   const [activeWeather, setActiveWeather] = useState<WeatherState>(DEFAULT_WEATHER);
   const [place, setPlace] = useState<WhereAreWeResult | null>(null);
+  const { geo } = useGeo();
 
   const refreshPlace = useCallback(() => {
-    void resolvePlace().then(setPlace);
-  }, []);
+    if (!geo) return;
+    void resolvePlace({ lat: geo.lat, lon: geo.lon }).then(setPlace);
+  }, [geo]);
 
   const transitionToTab = useCallback((id: AppTab) => {
     stopAllAudio();
@@ -150,7 +153,6 @@ export default function App() {
   const themeStyles = getThemeStyles(currentTheme);
 
   return (
-    <EntitlementProvider>
     <div
       className={`min-h-screen w-full flex flex-col ${themeStyles.bg} ${themeStyles.text} theme-transition relative overflow-x-hidden`}
       id="app-root-container"
@@ -313,6 +315,15 @@ export default function App() {
 
       </div>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <EntitlementProvider>
+      <GeoProvider>
+        <AppBody />
+      </GeoProvider>
     </EntitlementProvider>
   );
 }

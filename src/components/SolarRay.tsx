@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { calculateSunPosition, reverseGeocode, SunData } from '../utils/solar';
+import { calculateSunPosition, SunData } from '../utils/solar';
 import { SOLAR_PROTOCOLS } from '../data';
 import { Sun, Compass, MapPin, AlertCircle, Sparkles, CheckCircle2, Circle } from 'lucide-react';
+import { useGeo } from '../lib/GeoContext';
 
 interface SolarRayProps {
   currentTheme: 'day' | 'night';
@@ -10,62 +11,29 @@ interface SolarRayProps {
 }
 
 export default function SolarRay({ currentTheme, isActive = true }: SolarRayProps) {
-  // Default fallback: New York
-  const [coords, setCoords] = useState({ lat: 40.7128, lon: -74.0060 });
-  const [city, setCity] = useState('New York City');
+  const { geo, status: geoStatus, setManualLocation } = useGeo();
+  const coords = geo ? { lat: geo.lat, lon: geo.lon } : { lat: 40.7128, lon: -74.006 };
+  const city = geo?.city ?? 'New York City';
   const [solarData, setSolarData] = useState<SunData | null>(null);
-  const [geoStatus, setGeoStatus] = useState<'idle' | 'loading' | 'success' | 'denied' | 'error'>('idle');
   const [manualCityInput, setManualCityInput] = useState('');
 
-  // 1. Fetch Geolocation on load
-  useEffect(() => {
-    setGeoStatus('loading');
-    if (!navigator.geolocation) {
-      setGeoStatus('error');
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude, longitude } = pos.coords;
-        setCoords({ lat: latitude, lon: longitude });
-        setGeoStatus('success');
-
-        // Reverse geocode
-        const cityName = await reverseGeocode(latitude, longitude);
-        setCity(cityName);
-      },
-      (err) => {
-        console.warn('Geolocation access denied/failed:', err);
-        setGeoStatus('denied');
-        // Fallback to New York calculations on load
-        setCity('New York (Default)');
-      },
-      { enableHighAccuracy: true, timeout: 8000 }
-    );
-  }, []);
-
-  // 2. Compute solar data on demand when this section is active (no interval timer)
   useEffect(() => {
     if (!isActive) return;
     const data = calculateSunPosition(coords.lat, coords.lon, new Date());
     setSolarData({
       ...data,
-      city: city,
+      city,
     });
-  }, [coords, city, isActive]);
+  }, [coords.lat, coords.lon, city, isActive]);
 
-  // 3. Manual coordinate lookup
   const handleManualSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!manualCityInput.trim()) return;
 
     try {
-      setGeoStatus('loading');
-      // Forward geocode city name via OpenStreetMap
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(manualCityInput)}&format=json&limit=1&accept-language=en`,
-        { headers: { 'User-Agent': 'HumanWeatherApplet/1.0' } }
+        { headers: { 'User-Agent': 'HumanWeatherApplet/1.0' } },
       );
       if (!response.ok) throw new Error('Geocoding search failed');
       const data = await response.json();
@@ -73,16 +41,12 @@ export default function SolarRay({ currentTheme, isActive = true }: SolarRayProp
         const first = data[0];
         const newLat = parseFloat(first.lat);
         const newLon = parseFloat(first.lon);
-        setCoords({ lat: newLat, lon: newLon });
-        setCity(first.display_name.split(',')[0]);
-        setGeoStatus('success');
+        await setManualLocation(newLat, newLon, first.display_name.split(',')[0]);
       } else {
         alert('Location not found. Please try again.');
-        setGeoStatus('success');
       }
     } catch (err) {
       console.error(err);
-      setGeoStatus('error');
     }
   };
 

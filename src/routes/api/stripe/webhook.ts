@@ -1,5 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { constructStripeWebhookEvent } from '@/lib/stripe.server';
+import { recordStripeGrant } from '@/lib/entitlement-store.server';
+
+const ANNUAL_ACCESS_DAYS = 365;
 
 export const Route = createFileRoute('/api/stripe/webhook')({
   server: {
@@ -17,7 +20,13 @@ export const Route = createFileRoute('/api/stripe/webhook')({
 
           if (event.type === 'checkout.session.completed') {
             const session = event.data.object;
-            console.info('[stripe] checkout.session.completed', session.id, session.payment_status);
+            if (session.payment_status === 'paid' && session.id) {
+              const since = new Date();
+              const expires = new Date(since);
+              expires.setDate(expires.getDate() + ANNUAL_ACCESS_DAYS);
+              await recordStripeGrant(session.id, expires.toISOString());
+              console.info('[stripe] recorded grant backup', session.id);
+            }
           }
 
           return Response.json({ received: true });

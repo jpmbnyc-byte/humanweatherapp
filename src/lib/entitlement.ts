@@ -1,9 +1,13 @@
 import { idbGetJson, idbSetJson } from './idb';
 import {
-  lookupPromoCode,
+  isValidPromoFormat,
+  normalizePromoCode,
   PROMO_REDEEMED_KEY,
+  type PromoDefinition,
   type PromoRedeemResult,
 } from './promoCodes';
+import { getOrCreateDeviceKey } from './deviceKey';
+import { redeemPromo as redeemPromoOnServer } from './promo.functions';
 import {
   PURCHASE_SUCCESS_QUERY,
   PURCHASE_SUCCESS_VALUE,
@@ -92,6 +96,11 @@ export function hasFeature(
     }
   }
   return false;
+}
+
+/** Lapsed users can still browse saved marks (read-only). */
+export function canReadFascia(effective: EffectiveEntitlement): boolean {
+  return effective === 'member' || effective === 'trial' || effective === 'lapsed';
 }
 
 /** Days left in the current calendar-month trial window. */
@@ -290,27 +299,45 @@ async function markPromoRedeemed(code: string): Promise<void> {
 }
 
 export async function redeemPromoCode(raw: string, now: Date = new Date()): Promise<PromoRedeemResult> {
-  const definition = lookupPromoCode(raw);
-  if (!definition) {
-    const normalized = raw.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-    if (normalized.length < 7 || normalized.length > 17) {
-      return { ok: false, reason: 'invalid' };
-    }
-    return { ok: false, reason: 'unknown' };
+  const code = normalizePromoCode(raw);
+  if (!isValidPromoFormat(code)) {
+    return { ok: false, reason: 'invalid' };
   }
 
-  const code = raw.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
   const redeemed = await getRedeemedPromos();
   if (redeemed.includes(code)) {
     return { ok: false, reason: 'already_redeemed' };
   }
 
-  if (definition.grant === 'lifetime') {
+  const deviceKey = await getOrCreateDeviceKey();
+  let serverResult;
+  try {
+    serverResult = await redeemPromoOnServer({ data: { code, deviceKey } });
+  } catch {
+    return { ok: false, reason: 'server_error' };
+  }
+
+  if (!serverResult.ok) {
+    if (serverResult.reason === 'already_redeemed') {
+      await markPromoRedeemed(code);
+    }
+    return { ok: false, reason: serverResult.reason === 'already_redeemed' ? 'already_redeemed' : serverResult.reason };
+  }
+
+  const definition: PromoDefinition = {
+    grant: serverResult.grant,
+    days: serverResult.grant === 'annual' ? ANNUAL_ACCESS_DAYS : undefined,
+    label: serverResult.label,
+    shareable: serverResult.shareable,
+  };
+
+  if (serverResult.grant === 'lifetime') {
     await grantMembership(now, { lifetime: true, promoCode: code });
   } else {
-    const expires = new Date(now);
-    expires.setDate(expires.getDate() + (definition.days ?? ANNUAL_ACCESS_DAYS));
-    await grantMembership(now, { expiresAt: expires.toISOString(), promoCode: code });
+    await grantMembership(now, {
+      expiresAt: serverResult.expiresAt,
+      promoCode: code,
+    });
   }
 
   await markPromoRedeemed(code);

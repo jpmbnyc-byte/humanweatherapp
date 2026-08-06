@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { useFormingOptional } from '../lib/forming/FormingContext';
+import { getRecentMementos } from '../lib/forming/genesis';
 import { drawSketchMarkToCanvas, markDrawOptions, markRenderSeed } from '../lib/forming/sketchMark';
 import { resolveSceneAnswer } from '../lib/forming/sketchScenes';
 import { formatMarkDateLabel } from '../lib/forming/markDates';
@@ -16,17 +17,24 @@ type Props = {
 
 export default function TheFascia({ currentTheme }: Props) {
   const forming = useFormingOptional();
-  const { can } = useEntitlement();
+  const { can, canReadFascia, effective } = useEntitlement();
   const fasciaEnabled = can('fascia');
+  const [readOnlyMarks, setReadOnlyMarks] = useState<Memento[]>([]);
   const [open, setOpen] = useState(false);
   const prevCountRef = useRef(0);
   const isNight = currentTheme === 'night';
 
-  const marks = forming?.mementos ?? [];
+  useEffect(() => {
+    if (!canReadFascia || forming?.mementos?.length) return;
+    void getRecentMementos().then(setReadOnlyMarks);
+  }, [canReadFascia, forming?.mementos?.length]);
+
+  const marks = forming?.mementos?.length ? forming.mementos : readOnlyMarks;
   const count = marks.length;
   const todayKey = localDateKey();
   const todayMark = marks.find(m => m.date === todayKey) ?? marks[0] ?? null;
   const historyMarks = todayMark ? marks.filter(m => m.id !== todayMark.id) : marks;
+  const readOnly = effective === 'lapsed' || !fasciaEnabled;
 
   useEffect(() => {
     if (count > prevCountRef.current) {
@@ -41,7 +49,7 @@ export default function TheFascia({ currentTheme }: Props) {
     }
   }, [forming?.todaySaved]);
 
-  if (!fasciaEnabled) {
+  if (!canReadFascia) {
     return (
       <div className="w-full mt-8 pt-6 border-t border-accent/10 flex flex-col gap-4" id="marked-days">
         <div>
@@ -55,12 +63,12 @@ export default function TheFascia({ currentTheme }: Props) {
     );
   }
 
-  if (!forming || count === 0) {
+  if (count === 0) {
     return (
       <div className="w-full mt-8 pt-6 border-t border-accent/10" id="marked-days">
         <span className="hw-eyebrow block mb-1">Marked days</span>
         <p className={`font-sans text-sm italic ${isNight ? 'text-white/45' : 'text-stone-500'}`}>
-          Unmarked days leave no trace.
+          {readOnly ? 'No saved marks on this device yet.' : 'Unmarked days leave no trace.'}
         </p>
       </div>
     );
@@ -85,7 +93,9 @@ export default function TheFascia({ currentTheme }: Props) {
               {count} mark{count === 1 ? '' : 's'} on this device
             </p>
             <p className={`font-sans text-sm mt-1 ${isNight ? 'text-white/55' : 'text-stone-600'}`}>
-              Your internal climate, kept as notebook sketches
+              {readOnly
+                ? 'Your saved marks — read-only while access is lapsed'
+                : 'Your internal climate, kept as notebook sketches'}
               {!open && historyMarks.length > 0 ? ' · tap for earlier marks' : ''}
             </p>
           </div>
@@ -105,7 +115,7 @@ export default function TheFascia({ currentTheme }: Props) {
             >
               {todayMark.date === todayKey ? 'Today\u2019s mark' : 'Latest mark'}
             </p>
-            <MarkTile memento={todayMark} isNight={isNight} highlight />
+            <MarkTile memento={todayMark} isNight={isNight} highlight readOnly={readOnly} />
           </div>
         )}
 
@@ -117,7 +127,7 @@ export default function TheFascia({ currentTheme }: Props) {
             <ul className="flex flex-col gap-5 pl-3 border-l border-accent/25 max-h-[min(420px,50vh)] overflow-y-auto pr-1" role="list">
               {historyMarks.map(m => (
                 <li key={m.id}>
-                  <MarkTile memento={m} isNight={isNight} />
+                  <MarkTile memento={m} isNight={isNight} readOnly={readOnly} />
                 </li>
               ))}
             </ul>
@@ -132,10 +142,12 @@ function MarkTile({
   memento,
   isNight,
   highlight = false,
+  readOnly = false,
 }: {
   memento: Memento;
   isNight: boolean;
   highlight?: boolean;
+  readOnly?: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const resolved = resolveSceneAnswer(memento.formSeed.weatherId, markRenderSeed(memento.formSeed));
@@ -196,7 +208,7 @@ function MarkTile({
         >
           {resolved.prose}
         </p>
-        <SaveSketchButton seed={memento.formSeed} isNight={isNight} compact={!highlight} />
+        {!readOnly && <SaveSketchButton seed={memento.formSeed} isNight={isNight} compact={!highlight} />}
       </div>
     </article>
   );
