@@ -182,7 +182,7 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <MembershipButton isNight={isNight} themeStyles={themeStyles} />
+            <MembershipButton isNight={isNight} themeStyles={themeStyles} currentTheme={currentTheme} />
             <div className={`hidden sm:flex flex-col items-end px-3 border-r ${themeStyles.border}`}>
               <span className="font-mono text-xs font-medium tracking-wider leading-none">{timeString}</span>
               <span className="hw-meta opacity-45 leading-none mt-1">{dateString}</span>

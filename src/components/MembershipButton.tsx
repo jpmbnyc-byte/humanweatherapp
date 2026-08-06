@@ -2,17 +2,22 @@ import React from 'react';
 import { Sparkles } from 'lucide-react';
 import { useEntitlement } from '../lib/EntitlementContext';
 import { getPurchasePriceDisplay } from '../lib/purchaseConfig';
+import SharePromoLink from './SharePromoLink';
 
 type Props = {
   isNight: boolean;
   themeStyles: { border: string; cardBg: string };
+  currentTheme: 'day' | 'night';
 };
 
-export default function MembershipButton({ isNight, themeStyles }: Props) {
-  const { isMember, startPurchase, effective } = useEntitlement();
+export default function MembershipButton({ isNight, themeStyles, currentTheme }: Props) {
+  const { isMember, startPurchase, effective, isLifetimeMember } = useEntitlement();
   const price = getPurchasePriceDisplay();
 
-  if (isMember) return null;
+  if (isMember) {
+    if (!isLifetimeMember) return null;
+    return <SharePromoLink currentTheme={currentTheme} variant="header" themeStyles={themeStyles} />;
+  }
 
   const label = effective === 'lapsed' ? 'Renew access' : 'Annual access';
 

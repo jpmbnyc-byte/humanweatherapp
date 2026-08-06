@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Tag } from 'lucide-react';
 import { PROMO_MAX_LEN, PROMO_MIN_LEN } from '../lib/promoCodes';
 import { useEntitlement } from '../lib/EntitlementContext';
+import SharePromoLink from './SharePromoLink';
 
 type Props = {
   currentTheme: 'day' | 'night';
@@ -94,6 +95,7 @@ export default function PromoCodeEntry({ currentTheme, compact = false }: Props)
           {message}
         </p>
       )}
+      <SharePromoLink currentTheme={currentTheme} variant="inline" />
     </form>
   );
 }
