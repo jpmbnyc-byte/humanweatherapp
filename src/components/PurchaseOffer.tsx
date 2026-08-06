@@ -29,20 +29,22 @@ export default function PurchaseOffer({ currentTheme, variant = 'card', classNam
 
   if (variant === 'compact') {
     return (
-      <div className={`flex flex-wrap items-center gap-3 ${className}`}>
+      <div className={`flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-3 w-full ${className}`}>
         <button
           type="button"
           onClick={startPurchase}
           disabled={!configured}
-          className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border text-xs font-mono uppercase tracking-widest cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+          className={`flex w-full sm:w-auto sm:inline-flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 rounded-xl border text-[11px] sm:text-xs font-mono uppercase tracking-widest cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
             isNight
               ? 'border-accent/40 text-accent hover:bg-accent/10'
               : 'border-accent/50 text-[#8a6f2e] hover:bg-accent/5'
           }`}
         >
-          <Sparkles className="w-3.5 h-3.5" />
-          {ctaLabel}
-          {price ? ` · ${price}` : ''}
+          <Sparkles className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate">
+            {ctaLabel}
+            {price ? ` · ${price}` : ''}
+          </span>
         </button>
         {!configured && (
           <span className={`font-mono text-[10px] opacity-45 ${isNight ? 'text-white/50' : 'text-stone-500'}`}>
