@@ -205,7 +205,7 @@ function AppBody() {
           </div>
 
           <div className="hidden sm:flex items-center gap-2 sm:gap-3 shrink-0">
-            <MembershipButton isNight={isNight} themeStyles={themeStyles} currentTheme={currentTheme} />
+            <MembershipButton isNight={isNight} themeStyles={themeStyles} />
             <div className={`flex flex-col items-end px-3 border-r ${themeStyles.border}`}>
               <span className="font-mono text-xs font-medium tracking-wider leading-none">{timeString}</span>
               <span className="hw-meta opacity-45 leading-none mt-1">{dateString}</span>
