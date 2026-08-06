@@ -36,16 +36,16 @@ export default function TrialFootline({ currentTheme }: Props) {
         <PurchaseOffer currentTheme={currentTheme} variant="card" />
       ) : (
         <div
-          className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 rounded-xl border ${
+          className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-4 py-4 sm:py-3 rounded-xl border overflow-visible ${
             isNight ? 'border-white/10 bg-black/15' : 'border-stone-200/80 bg-white/50'
           }`}
         >
-          <p className={`font-sans text-sm ${isNight ? 'text-white/60' : 'text-stone-600'}`}>
+          <p className={`font-sans text-sm leading-relaxed min-w-0 ${isNight ? 'text-white/60' : 'text-stone-600'}`}>
             {showEndingSoon
               ? 'Lock in annual access before this month\'s trial closes.'
               : 'Monthly trial — full access renews on the 1st. Annual membership or a promo code keeps you open year-round.'}
           </p>
-          <div className="flex flex-col gap-3 w-full sm:w-auto sm:min-w-[14rem]">
+          <div className="flex flex-col gap-3 w-full sm:w-auto sm:min-w-[14rem] shrink-0">
             <PurchaseOffer currentTheme={currentTheme} variant="compact" />
             <PromoCodeEntry currentTheme={currentTheme} compact />
           </div>

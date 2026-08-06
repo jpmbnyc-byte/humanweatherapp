@@ -164,26 +164,49 @@ function AppBody() {
       <div className="relative z-10 flex flex-col flex-1 w-full max-w-5xl mx-auto px-6 md:px-10 lg:px-12">
 
         {/* Header */}
-        <header className={`w-full py-8 md:py-10 flex items-start sm:items-center justify-between gap-4 border-b ${themeStyles.border}`} id="app-header">
-          <div className="flex flex-col text-left max-w-md min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-3 w-full mb-3">
-              <span className="hw-eyebrow tracking-[0.25em] opacity-40">human weather</span>
-              <div className={`flex sm:hidden flex-col items-end shrink-0 ${themeStyles.textMuted}`}>
+        <header
+          className={`w-full py-6 sm:py-8 md:py-10 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 border-b ${themeStyles.border}`}
+          id="app-header"
+        >
+          <div className="flex items-center justify-between gap-3 w-full sm:hidden">
+            <span className="hw-eyebrow tracking-[0.2em] opacity-40 shrink-0">human weather</span>
+            <div className="flex items-center gap-2 shrink-0">
+              <div className={`flex flex-col items-end ${themeStyles.textMuted}`}>
                 <span className="font-mono text-[10px] font-medium tracking-wider leading-none">{timeString}</span>
                 <span className="font-mono text-[10px] opacity-45 leading-none mt-1">{dateString}</span>
               </div>
+              <button
+                type="button"
+                id="theme-toggle-btn-mobile"
+                onClick={toggleTheme}
+                className={`hw-pressable flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-sans font-medium tracking-wide transition-all cursor-pointer ${themeStyles.border} ${themeStyles.cardBg}`}
+              >
+                {isNight ? (
+                  <span className="flex items-center gap-1 text-accent">
+                    <MoonIcon /> Night
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1 text-accent">
+                    <SunIcon /> Day
+                  </span>
+                )}
+              </button>
             </div>
+          </div>
+
+          <div className="flex flex-col text-left w-full min-w-0 sm:max-w-md sm:flex-1">
+            <span className="hidden sm:block hw-eyebrow tracking-[0.25em] opacity-40 mb-3">human weather</span>
             <h1 className="font-serif text-4xl md:text-5xl font-medium tracking-tight leading-[1.1]">
               Human <span className="italic text-accent">Weather</span>
             </h1>
-            <p className="font-sans text-lg md:text-xl italic opacity-70 mt-4 leading-relaxed">
+            <p className="font-sans text-lg md:text-xl italic opacity-70 mt-3 sm:mt-4 leading-relaxed max-w-prose">
               What is your weather right now?
             </p>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="hidden sm:flex items-center gap-2 sm:gap-3 shrink-0">
             <MembershipButton isNight={isNight} themeStyles={themeStyles} currentTheme={currentTheme} />
-            <div className={`hidden sm:flex flex-col items-end px-3 border-r ${themeStyles.border}`}>
+            <div className={`flex flex-col items-end px-3 border-r ${themeStyles.border}`}>
               <span className="font-mono text-xs font-medium tracking-wider leading-none">{timeString}</span>
               <span className="hw-meta opacity-45 leading-none mt-1">{dateString}</span>
             </div>
