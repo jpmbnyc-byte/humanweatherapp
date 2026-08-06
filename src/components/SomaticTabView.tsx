@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useEffect, useState } from 'react';
 import SomaticGrid from './SomaticGrid';
 import ConditionsCard from './ConditionsCard';
 import TrialFootline from './TrialFootline';
+import OfficeSequence from './OfficeSequence';
 import PurchaseSuccessBanner from './PurchaseSuccessBanner';
 import PromoSuccessBanner from './PromoSuccessBanner';
 import PurchaseVerifyErrorBanner from './PurchaseVerifyErrorBanner';
@@ -12,7 +13,6 @@ import type { WhereAreWeResult } from '../lib/whereAreWe';
 import type { WeatherState } from '../types';
 
 const BreathworkOrb = lazy(() => import('./BreathworkOrb'));
-const OfficeSequence = lazy(() => import('./OfficeSequence'));
 const TheFascia = lazy(() => import('./TheFascia'));
 const FormingCaptureOverlay = lazy(() => import('./FormingCaptureOverlay'));
 const FormingProvider = lazy(() =>
@@ -69,7 +69,7 @@ export default function SomaticTabView({
 
   useEffect(() => {
     if (!nascimentoEnabled) return;
-    runWhenIdle(() => setFormingReady(true), 5000);
+    runWhenIdle(() => setFormingReady(true), 1500);
   }, [nascimentoEnabled]);
 
   const inner = (
@@ -102,13 +102,11 @@ export default function SomaticTabView({
               onDismiss={dismissPurchaseVerifyError}
             />
           )}
-          <Suspense fallback={<div className="h-24 animate-pulse rounded-xl bg-accent/5 mb-6" aria-hidden />}>
-            <OfficeSequence
-              place={place}
-              currentTheme={currentTheme}
-              onNavigateTab={onNavigateTab}
-            />
-          </Suspense>
+          <OfficeSequence
+            place={place}
+            currentTheme={currentTheme}
+            onNavigateTab={onNavigateTab}
+          />
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start w-full min-w-0">
             <div className="lg:col-span-5 flex flex-col items-center w-full min-w-0">

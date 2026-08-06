@@ -104,10 +104,10 @@ ${cssLink}
   window.__hwBootStatus=set;
   var t0=Date.now();
   var steps=[
-    [1200,'Loading app…'],
-    [3500,'Preparing field station…'],
-    [8000,'Still loading — slow connection…'],
-    [15000,'Almost there…']
+    [600,'Loading app…'],
+    [2000,'Preparing field station…'],
+    [5000,'Still loading — slow connection…'],
+    [10000,'Almost there…']
   ];
   steps.forEach(function(s){setTimeout(function(){set(s[1]);},s[0]);});
   window.addEventListener('error',function(){set('Having trouble loading. Try refresh.');});
