@@ -6,7 +6,6 @@ import {
   formatMembershipExpiry,
   grantMembership,
   hasFeature,
-  isLifetimeMember,
   loadEntitlement,
   parsePurchaseReturn,
   parsePurchaseSessionId,
@@ -15,7 +14,7 @@ import {
   trialFootline,
 } from './entitlement';
 import { isShareablePromoCode } from './promoCodes';
-import { parsePromoFromSearch, shareAnnualPromoLink, stripPromoFromSearch, type PromoShareResult } from './promoShare';
+import { parsePromoFromSearch, stripPromoFromSearch } from './promoShare';
 import { isStripeCheckoutUrl, openPurchaseCheckout } from './purchaseConfig';
 import { verifyStripeCheckout } from './stripe.functions';
 import { runWhenIdle } from './deferredWork';
@@ -37,9 +36,7 @@ type EntitlementContextValue = {
   redeemPromo: (code: string) => Promise<{ ok: boolean; message: string }>;
   refresh: () => Promise<void>;
   membershipExpiresLabel: string | null;
-  isLifetimeMember: boolean;
   pendingPromoCode: string | null;
-  shareAnnualPromo: () => Promise<PromoShareResult>;
 };
 
 const EntitlementContext = createContext<EntitlementContextValue | null>(null);
@@ -178,8 +175,6 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
     openPurchaseCheckout();
   }, []);
 
-  const shareAnnualPromo = useCallback(async () => shareAnnualPromoLink(), []);
-
   const dismissPurchaseSuccess = useCallback(() => {
     setPurchaseJustCompleted(false);
   }, []);
@@ -197,9 +192,7 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
       can: (feature: EntitlementFeature) => hasFeature(effective, feature),
       footline: record ? trialFootline(record) : null,
       membershipExpiresLabel: record ? formatMembershipExpiry(record) : null,
-      isLifetimeMember: isLifetimeMember(record),
       pendingPromoCode,
-      shareAnnualPromo,
       purchaseJustCompleted,
       purchaseVerifyError,
       promoMessage,
@@ -224,7 +217,6 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
       redeemPromo,
       refresh,
       pendingPromoCode,
-      shareAnnualPromo,
     ],
   );
 
