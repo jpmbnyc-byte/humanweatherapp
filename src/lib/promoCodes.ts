@@ -28,10 +28,6 @@ export function isShareablePromoCode(raw: string): boolean {
   return normalizePromoCode(raw) === SHAREABLE_ANNUAL_PROMO;
 }
 
-export function getShareableAnnualPromo(): { code: string } {
-  return { code: SHAREABLE_ANNUAL_PROMO };
-}
-
 export type PromoRedeemResult =
   | { ok: true; code: string; definition: PromoDefinition }
   | { ok: false; reason: 'invalid' | 'unknown' | 'already_redeemed' | 'server_error' };

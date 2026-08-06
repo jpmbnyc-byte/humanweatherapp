@@ -17,7 +17,7 @@ import {
   trialFootline,
 } from './entitlement';
 import { isShareablePromoCode } from './promoCodes';
-import { parsePromoFromSearch, shareAnnualPromoLink, stripPromoFromSearch, type PromoShareResult } from './promoShare';
+import { parsePromoFromSearch, stripPromoFromSearch } from './promoShare';
 import { isPurchaseConfigured, isStripeCheckoutUrl, openPurchaseCheckout } from './purchaseConfig';
 import { recoverStripeGrant } from './entitlement.functions';
 
@@ -41,7 +41,6 @@ type EntitlementContextValue = {
   membershipExpiresLabel: string | null;
   isLifetimeMember: boolean;
   pendingPromoCode: string | null;
-  shareAnnualPromo: () => Promise<PromoShareResult>;
 };
 
 const EntitlementContext = createContext<EntitlementContextValue | null>(null);
@@ -186,8 +185,6 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
     openPurchaseCheckout();
   }, []);
 
-  const shareAnnualPromo = useCallback(async () => shareAnnualPromoLink(), []);
-
   const dismissPurchaseSuccess = useCallback(() => {
     setPurchaseJustCompleted(false);
   }, []);
@@ -208,7 +205,6 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
       membershipExpiresLabel: record ? formatMembershipExpiry(record) : null,
       isLifetimeMember: isLifetimeMember(record),
       pendingPromoCode,
-      shareAnnualPromo,
       purchaseJustCompleted,
       purchaseVerifyError,
       promoMessage,
@@ -233,7 +229,6 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
       redeemPromo,
       refresh,
       pendingPromoCode,
-      shareAnnualPromo,
     ],
   );
 
