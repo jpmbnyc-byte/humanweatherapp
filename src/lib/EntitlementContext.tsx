@@ -61,18 +61,6 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
   }, []);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const search = window.location.search;
-    const promoCode = parsePromoFromSearch(search);
-    const urgent =
-      parsePurchaseReturn(search) === 'success' ||
-      Boolean(promoCode && isShareablePromoCode(promoCode));
-
-    if (urgent) {
-      void refresh();
-      return;
-    }
-
     runWhenIdle(() => {
       void refresh();
     }, 2500);
