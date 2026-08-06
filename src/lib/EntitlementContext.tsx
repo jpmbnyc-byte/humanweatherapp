@@ -3,10 +3,11 @@ import {
   type EffectiveEntitlement,
   type EntitlementFeature,
   type EntitlementRecord,
+  applyStripeCheckout,
   formatMembershipExpiry,
-  grantMembership,
   hasFeature,
   isLifetimeMember,
+  isStripeSessionRedeemed,
   loadEntitlement,
   parsePurchaseReturn,
   parsePurchaseSessionId,
@@ -16,7 +17,7 @@ import {
 } from './entitlement';
 import { isShareablePromoCode } from './promoCodes';
 import { parsePromoFromSearch, shareAnnualPromoLink, stripPromoFromSearch, type PromoShareResult } from './promoShare';
-import { isStripeCheckoutUrl, openPurchaseCheckout } from './purchaseConfig';
+import { isPurchaseConfigured, isStripeCheckoutUrl, openPurchaseCheckout } from './purchaseConfig';
 import { verifyStripeCheckout } from './stripe.functions';
 
 type EntitlementContextValue = {
@@ -68,15 +69,39 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
     const search = window.location.search;
     if (parsePurchaseReturn(search) !== 'success') return;
 
-    void (async () => {
-      const sessionId = parsePurchaseSessionId(search);
-      const stripeCheckout = isStripeCheckoutUrl();
+    const stripReturnParams = () => {
+      const clean = stripPurchaseReturnParams(search);
+      window.history.replaceState({}, '', `${window.location.pathname}${clean}`);
+    };
 
-      if (stripeCheckout) {
+    void (async () => {
+      try {
+        if (!isPurchaseConfigured() || !isStripeCheckoutUrl()) {
+          setPurchaseVerifyError(
+            'Checkout is not configured. Set VITE_PURCHASE_URL to your Stripe Payment Link.',
+          );
+          return;
+        }
+
+        const sessionId = parsePurchaseSessionId(search);
         if (!sessionId) {
           setPurchaseVerifyError(
             'Stripe did not return a checkout session. Confirm your Payment Link redirect includes session_id.',
           );
+          return;
+        }
+
+        const { record: current } = await loadEntitlement();
+        if (isLifetimeMember(current)) {
+          setPurchaseJustCompleted(true);
+          setPurchaseVerifyError(null);
+          return;
+        }
+
+        if (await isStripeSessionRedeemed(sessionId)) {
+          await refresh();
+          setPurchaseJustCompleted(true);
+          setPurchaseVerifyError(null);
           return;
         }
 
@@ -88,19 +113,13 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
           return;
         }
 
-        await grantMembership(new Date(), {
-          expiresAt: result.expiresAt,
-          stripeSessionId: result.sessionId,
-        });
-      } else {
-        await grantMembership();
+        await applyStripeCheckout(result.sessionId, result.expiresAt);
+        setPurchaseJustCompleted(true);
+        setPurchaseVerifyError(null);
+        await refresh();
+      } finally {
+        stripReturnParams();
       }
-
-      const clean = stripPurchaseReturnParams(search);
-      window.history.replaceState({}, '', `${window.location.pathname}${clean}`);
-      setPurchaseJustCompleted(true);
-      setPurchaseVerifyError(null);
-      await refresh();
     })();
   }, [refresh]);
 

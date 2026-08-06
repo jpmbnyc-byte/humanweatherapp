@@ -71,7 +71,6 @@ export default function App() {
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState<AppTab>(THRESHOLD_TAB);
   const [activeWeather, setActiveWeather] = useState<WeatherState>(DEFAULT_WEATHER);
-  const [activeCoordinates, setActiveCoordinates] = useState<[number, number][]>([]);
   const [place, setPlace] = useState<WhereAreWeResult | null>(null);
 
   const refreshPlace = useCallback(() => {
@@ -143,9 +142,8 @@ export default function App() {
     return () => clearInterval(id);
   }, [manualOverride]);
 
-  const handleStateChange = useCallback((state: WeatherState, coords: [number, number][]) => {
+  const handleStateChange = useCallback((state: WeatherState, _coords: [number, number][]) => {
     setActiveWeather(state);
-    setActiveCoordinates(coords);
   }, []);
 
   const isNight = currentTheme === 'night';

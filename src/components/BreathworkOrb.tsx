@@ -17,6 +17,8 @@ export default function BreathworkOrb({ weatherState, currentTheme }: Breathwork
   const [isPlaying, setIsPlaying] = useState(true);
   const exhaleCycleRef = useRef(0);
   const forming = useFormingOptional();
+  const formingRef = useRef(forming);
+  formingRef.current = forming;
 
   useEffect(() => {
     // Reset when state changes
@@ -39,11 +41,14 @@ export default function BreathworkOrb({ weatherState, currentTheme }: Breathwork
     const interval = setInterval(() => {
       setSecondsLeft((prev) => {
         if (prev <= 1) {
-          if (phase === 'Exhale' && forming?.canForm) {
-            forming.onExhaleEnd(exhaleCycleRef.current);
-            exhaleCycleRef.current += 1;
-            if (exhaleCycleRef.current >= FORMING_CYCLE_COUNT) {
-              setIsPlaying(false);
+          if (phase === 'Exhale') {
+            const activeForming = formingRef.current;
+            if (activeForming?.canForm) {
+              activeForming.onExhaleEnd(exhaleCycleRef.current);
+              exhaleCycleRef.current += 1;
+              if (exhaleCycleRef.current >= FORMING_CYCLE_COUNT) {
+                setIsPlaying(false);
+              }
             }
           }
 
