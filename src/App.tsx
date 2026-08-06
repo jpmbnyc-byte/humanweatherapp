@@ -7,11 +7,12 @@ import { WeatherState } from './types';
 import { getThemeStyles } from './lib/theme';
 import { stopAllAudio } from './lib/stopAllAudio';
 import type { WhereAreWeResult } from './lib/whereAreWe';
-import { runWhenIdle } from './lib/deferredWork';
+import { runWhenIdle, runAfterFirstPaint } from './lib/deferredWork';
 import { primeSpeechEngine, warmSpeechVoicesFromGesture } from './lib/stationSpeech';
 import { EntitlementProvider } from './lib/EntitlementContext';
-import BootSplashFallback, { dismissBootSplash } from './components/BootSplashFallback';
+import { dismissBootSplash } from './components/BootSplashFallback';
 import MembershipButton from './components/MembershipButton';
+import SomaticTabView from './components/SomaticTabView';
 
 const SunIcon = () => (
   <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-accent" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
@@ -26,7 +27,6 @@ const MoonIcon = () => (
   </svg>
 );
 
-const SomaticTabView = lazy(() => import('./components/SomaticTabView'));
 const FrequencyTherapy = lazy(() => import('./components/FrequencyTherapy'));
 const LightTherapy = lazy(() => import('./components/LightTherapy'));
 const ClassicalMusic = lazy(() => import('./components/ClassicalMusic'));
@@ -101,7 +101,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    runWhenIdle(refreshPlace, 3500);
+    runAfterFirstPaint(refreshPlace);
   }, [refreshPlace]);
 
   useEffect(() => {
@@ -237,17 +237,15 @@ export default function App() {
         {/* Main views */}
         <main className="flex-1 w-full py-10 md:py-12 min-w-0" id="app-main-view">
             {activeTab === 'somatic' && (
-              <Suspense fallback={<BootSplashFallback />}>
-                <SomaticTabView
-                  currentTheme={currentTheme}
-                  activeWeather={activeWeather}
-                  themeStyles={themeStyles}
-                  isNight={isNight}
-                  place={place}
-                  onStateChange={handleStateChange}
-                  onNavigateTab={transitionToTab}
-                />
-              </Suspense>
+              <SomaticTabView
+                currentTheme={currentTheme}
+                activeWeather={activeWeather}
+                themeStyles={themeStyles}
+                isNight={isNight}
+                place={place}
+                onStateChange={handleStateChange}
+                onNavigateTab={transitionToTab}
+              />
             )}
 
             {activeTab === 'therapy' && (

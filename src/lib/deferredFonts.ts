@@ -18,8 +18,8 @@ export function scheduleDeferredFonts(): void {
   };
 
   if ('requestIdleCallback' in window) {
-    requestIdleCallback(load, { timeout: 4000 });
+    requestIdleCallback(load, { timeout: 2000 });
   } else {
-    setTimeout(load, 1200);
+    setTimeout(load, 600);
   }
 }

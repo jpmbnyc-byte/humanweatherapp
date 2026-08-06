@@ -18,7 +18,6 @@ import { isShareablePromoCode } from './promoCodes';
 import { parsePromoFromSearch, shareAnnualPromoLink, stripPromoFromSearch, type PromoShareResult } from './promoShare';
 import { isStripeCheckoutUrl, openPurchaseCheckout } from './purchaseConfig';
 import { verifyStripeCheckout } from './stripe.functions';
-import { runWhenIdle } from './deferredWork';
 
 type EntitlementContextValue = {
   record: EntitlementRecord | null;
@@ -61,9 +60,7 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
   }, []);
 
   useEffect(() => {
-    runWhenIdle(() => {
-      void refresh();
-    }, 2500);
+    void refresh();
   }, [refresh]);
 
   useEffect(() => {
