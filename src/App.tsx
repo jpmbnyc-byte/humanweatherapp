@@ -8,7 +8,7 @@ import { getThemeStyles } from './lib/theme';
 import { stopAllAudio } from './lib/stopAllAudio';
 import type { WhereAreWeResult } from './lib/whereAreWe';
 import { runWhenIdle, runAfterFirstPaint } from './lib/deferredWork';
-import { primeSpeechEngine, warmSpeechVoicesFromGesture } from './lib/stationSpeech';
+import { primeSpeechEngine, warmSpeechVoicesFromGesture, hydrateSavedVoiceCache } from './lib/stationSpeech';
 import { EntitlementProvider } from './lib/EntitlementContext';
 import { GeoProvider, useGeo } from './lib/GeoContext';
 import { dismissBootSplash } from './components/BootSplashFallback';
@@ -106,6 +106,12 @@ function AppBody() {
   const handleDismissAddToHome = useCallback(() => {
     dismissAddToHome();
     setShowAddToHome(false);
+  }, []);
+
+  useEffect(() => {
+    runAfterFirstPaint(() => {
+      void hydrateSavedVoiceCache();
+    });
   }, []);
 
   useEffect(() => {
