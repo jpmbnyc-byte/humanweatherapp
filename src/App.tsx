@@ -13,7 +13,9 @@ import { EntitlementProvider } from './lib/EntitlementContext';
 import { GeoProvider, useGeo } from './lib/GeoContext';
 import { dismissBootSplash } from './components/BootSplashFallback';
 import MembershipButton from './components/MembershipButton';
+import AddToHomePrompt from './components/AddToHomePrompt';
 import SomaticTabView from './components/SomaticTabView';
+import { dismissAddToHome, shouldOfferAddToHome } from './lib/addToHome';
 
 const SunIcon = () => (
   <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-accent" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
@@ -73,6 +75,7 @@ function AppBody() {
   const [activeTab, setActiveTab] = useState<AppTab>(THRESHOLD_TAB);
   const [activeWeather, setActiveWeather] = useState<WeatherState>(DEFAULT_WEATHER);
   const [place, setPlace] = useState<WhereAreWeResult | null>(null);
+  const [showAddToHome, setShowAddToHome] = useState(false);
   const { geo } = useGeo();
 
   const refreshPlace = useCallback(() => {
@@ -87,6 +90,22 @@ function AppBody() {
 
   useEffect(() => {
     dismissBootSplash();
+  }, []);
+
+  useEffect(() => {
+    let timeoutId: number | undefined;
+    runAfterFirstPaint(() => {
+      if (!shouldOfferAddToHome()) return;
+      timeoutId = window.setTimeout(() => setShowAddToHome(true), 500);
+    });
+    return () => {
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+    };
+  }, []);
+
+  const handleDismissAddToHome = useCallback(() => {
+    dismissAddToHome();
+    setShowAddToHome(false);
   }, []);
 
   useEffect(() => {
@@ -160,6 +179,14 @@ function AppBody() {
       data-office-state={place?.officeState ?? 'none'}
     >
       <MountainBackground theme={currentTheme} />
+
+      {showAddToHome && (
+        <AddToHomePrompt
+          currentTheme={currentTheme}
+          themeStyles={themeStyles}
+          onDismiss={handleDismissAddToHome}
+        />
+      )}
 
       <div className="relative z-10 flex flex-col flex-1 w-full max-w-5xl mx-auto px-6 md:px-10 lg:px-12">
 
