@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Volume2, Play, Square, Music, Headphones, Sliders, Check, RefreshCw, Bookmark, BookOpen } from 'lucide-react';
-import { PRESETS, UPCOMING_PRESETS } from '../data/presets';
+import { Volume2, Play, Square, Music, Headphones, Sliders, Check, RefreshCw, Bookmark, BookOpen, ExternalLink } from 'lucide-react';
+import { PRESETS, HUMAN_WEATHER_PRESS_URL } from '../data/presets';
 import { getThemeStyles } from '../lib/theme';
 import { loadTenderSlots, saveTenderSlot, persistTenderSlots, type TenderSlot } from '../lib/tenderSlots';
 import { registerAudioStop, stopAllAudio } from '../lib/stopAllAudio';
@@ -345,7 +345,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     }
     setSource({ type: 'preset', presetId: preset.id });
     setInputText(preset.text);
-    if (preset.id === 'solitude') setSoundEnv('ocean');
+    if (preset.id === 'on-bliss') setSoundEnv('forest');
     else if (preset.id === 'reflection') setSoundEnv('rain');
     else setSoundEnv('silence');
   };
@@ -491,11 +491,18 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                   type="button"
                   id={`preset-tab-${preset.id}`}
                   onClick={() => handlePresetSelect(preset)}
-                  className={`px-4 py-2 rounded-full border font-sans text-sm transition-all cursor-pointer ${
+                  className={`px-4 py-2 rounded-full border font-sans text-sm transition-all cursor-pointer text-left ${
                     selected ? styles.badgeActive : styles.badgeInactive
                   }`}
                 >
-                  {preset.title}
+                  <span className="block">{preset.title}</span>
+                  {preset.durationLabel && (
+                    <span className={`block font-mono text-[9px] uppercase tracking-widest mt-0.5 ${
+                      selected ? 'opacity-80' : 'opacity-60'
+                    }`}>
+                      {preset.durationLabel}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -816,35 +823,35 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
         </div>
       </div>
 
-      {UPCOMING_PRESETS.length > 0 && (
-        <div className="relative z-10 mt-8 pt-6 border-t border-accent/10" id="tender-upcoming-series">
-          <span className={`hw-eyebrow block mb-4 ${styles.mutedText}`}>Coming in this series</span>
-          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4" role="list">
-            {UPCOMING_PRESETS.map(entry => (
-              <li
-                key={entry.id}
-                className={`p-4 rounded-xl border text-left ${
-                  isNight ? 'border-white/10 bg-black/20' : 'border-stone-200/80 bg-white/50'
-                }`}
-              >
-                <span className={`font-mono text-[10px] tracking-[0.2em] uppercase block mb-2 ${styles.mutedText}`}>
-                  {entry.chapter} · {entry.series}
-                </span>
-                <h3 className={`font-serif text-lg font-medium leading-snug mb-2 ${styles.titleText}`}>
-                  {entry.title}
-                  <span className={`italic ${isNight ? 'text-[#d4b05a]/90' : 'text-[#7a3318]'}`}>
-                    {' '}— {entry.subtitle}
-                  </span>
-                </h3>
-                <p className={`font-sans text-sm leading-relaxed ${styles.mutedText}`}>{entry.description}</p>
-                <span className={`font-mono text-[10px] tracking-widest uppercase block mt-3 ${styles.accentText} opacity-70`}>
-                  {entry.status}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <div className="relative z-10 mt-8 pt-6 border-t border-accent/10" id="tender-press-card">
+        <a
+          href={HUMAN_WEATHER_PRESS_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`hw-pressable block p-5 rounded-xl border text-left transition-colors ${
+            isNight
+              ? 'border-white/10 bg-black/20 hover:border-[#d4b05a]/30 hover:bg-black/30'
+              : 'border-stone-200/80 bg-white/50 hover:border-stone-300 hover:bg-white/80'
+          }`}
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <span className={`hw-eyebrow block mb-2 ${styles.mutedText}`}>Human Weather Press</span>
+              <h3 className={`font-serif text-lg font-medium leading-snug mb-2 ${styles.titleText}`}>
+                More available at Human Weather Press
+              </h3>
+              <p className={`font-sans text-sm leading-relaxed ${styles.mutedText}`}>
+                The full On Bliss series, essays, and books — beyond what plays here in The Tender.
+              </p>
+              <span className={`inline-flex items-center gap-1.5 font-mono text-[10px] tracking-widest uppercase mt-4 ${styles.accentText}`}>
+                humanweather.press
+                <ExternalLink className="w-3 h-3" aria-hidden />
+              </span>
+            </div>
+            <BookOpen className={`w-5 h-5 shrink-0 mt-1 ${styles.accentText} opacity-70`} aria-hidden />
+          </div>
+        </a>
+      </div>
     </div>
   );
 }
