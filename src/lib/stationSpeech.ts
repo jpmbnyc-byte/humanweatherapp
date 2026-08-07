@@ -124,6 +124,11 @@ export function isIosPlatform(): boolean {
   return /iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
 
+export function isAndroidPlatform(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /Android/i.test(navigator.userAgent);
+}
+
 export function cleanVoiceName(name: string): string {
   return name.replace(/\s*\([^)]*\)/g, '').trim();
 }
@@ -708,7 +713,7 @@ export function platformVoiceHint(): string {
     return 'On iPhone, Safari exposes a fixed set of system voices to web apps — Personal Voice is not included, even with “Allow Apps to Request” enabled. Tap a voice to audition, then Listen now. Use Live Speech or Read & Speak for your Personal Voice.';
   }
   if (/Android/i.test(ua)) {
-    return 'Add voices in Settings → Text-to-speech output. New voices appear here automatically.';
+    return 'Web apps get a limited voice list. For your full Google Text-to-Speech voice, select prose in The Tender and use ⋮ More → Speak or Read aloud (see guide below). Optional: Settings → Accessibility → Select to Speak.';
   }
   return 'Your system\u2019s installed voices appear here automatically.';
 }
