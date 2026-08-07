@@ -259,10 +259,10 @@ export default function OfficeSequence({ place, currentTheme, onNavigateTab }: P
         <h2 className={`font-serif text-2xl md:text-3xl mb-2 ${isNight ? 'text-accent' : 'text-[#2c2824]'}`}>
           {def.designation}
         </h2>
-        <p className={`font-mono text-[10px] uppercase tracking-widest opacity-45 mb-3`}>
+        <p className={`font-mono text-xs uppercase tracking-widest opacity-55 mb-3`}>
           {def.subtitle} · {formatHour(windowStart)} – {formatHour(windowEnd)}
         </p>
-        <p className={`font-sans text-sm leading-relaxed ${isNight ? 'text-white/65' : 'text-stone-600'}`}>
+        <p className={`hw-section-intro ${isNight ? 'text-white/75' : 'text-stone-600'}`}>
           {def.explainer}
         </p>
       </div>
@@ -272,17 +272,17 @@ export default function OfficeSequence({ place, currentTheme, onNavigateTab }: P
           isNight ? 'border-white/8 bg-white/[0.03]' : 'border-stone-200 bg-stone-50/80'
         }`}
       >
-        <span className="font-mono text-[10px] uppercase tracking-[0.15em] opacity-40 block mb-2">
+        <span className="font-mono text-xs uppercase tracking-[0.12em] opacity-50 block mb-2">
           Step {stepIndex + 1} of {def.steps.length}
         </span>
         <h3 className={`font-serif text-lg mb-2 ${isNight ? 'text-accent' : 'text-[#2c2824]'}`}>
           {step.title}
         </h3>
-        <p className={`font-sans text-sm leading-relaxed mb-3 ${isNight ? 'text-white/75' : 'text-stone-700'}`}>
+        <p className={`hw-instruction mb-3 ${isNight ? 'text-white/85' : 'text-stone-700'}`}>
           {step.body}
         </p>
         {step.hint && (
-          <p className={`font-mono text-[11px] opacity-50 italic ${isNight ? 'text-white/50' : 'text-stone-500'}`}>
+          <p className={`hw-instruction-setup italic ${isNight ? 'text-white/65' : 'text-stone-600'}`}>
             {step.hint}
           </p>
         )}

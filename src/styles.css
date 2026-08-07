@@ -213,10 +213,43 @@ body {
 
   .hw-caption {
     font-family: var(--font-serif);
-    font-size: 0.875rem;
+    font-size: 1rem;
     font-style: italic;
     line-height: 1.65;
     opacity: 0.85;
+  }
+
+  /* Readable instructional copy — minimum ~16px body for all ages */
+  .hw-instruction {
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.65;
+  }
+
+  .hw-instruction-steps {
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.7;
+  }
+
+  .hw-instruction-setup {
+    font-family: var(--font-sans);
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    opacity: 0.9;
+  }
+
+  .hw-instruction-action {
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .hw-section-intro {
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.65;
   }
 
   .hw-body {

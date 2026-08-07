@@ -467,7 +467,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
         <div className="text-left max-w-prose">
           <span className="hw-eyebrow block">Guided narration</span>
           <h2 className={`hw-display mt-1 ${styles.titleText}`}>The Tender</h2>
-          <p className={`font-serif text-sm italic mt-2 leading-relaxed ${styles.mutedText}`}>
+          <p className={`hw-section-intro italic mt-2 ${styles.mutedText}`}>
             Write your own words in one of four personal slots — save your message, then press Listen to hear it read aloud.
           </p>
         </div>
@@ -479,7 +479,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
             <Bookmark className={`w-3.5 h-3.5 ${styles.accentText}`} aria-hidden />
             <span className="hw-eyebrow">Your recordable messages</span>
           </div>
-          <p className={`font-sans text-sm leading-relaxed mb-3 ${styles.mutedText}`}>
+          <p className={`hw-section-intro mb-3 ${styles.mutedText}`}>
             Choose a slot, type or paste your own prose, and tap <strong className="font-medium opacity-90">Save message</strong>. Each slot keeps your text on this device for easy replay.
           </p>
           <div className="flex flex-wrap gap-2" role="tablist" aria-label="Your message slots">
@@ -531,7 +531,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                 >
                   <span className="block">{preset.title}</span>
                   {preset.durationLabel && (
-                    <span className={`block font-mono text-[9px] uppercase tracking-widest mt-0.5 ${
+                    <span className={`block font-mono text-xs uppercase tracking-widest mt-0.5 ${
                       selected ? 'opacity-80' : 'opacity-60'
                     }`}>
                       {preset.durationLabel}
@@ -626,7 +626,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                       type="button"
                       id="tender-save-slot-btn"
                       onClick={handleSaveSlot}
-                      className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full border text-xs font-mono uppercase tracking-widest cursor-pointer transition-colors ${
+                      className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full border hw-instruction-action cursor-pointer transition-colors ${
                         isNight
                           ? 'border-accent/40 text-accent hover:bg-accent/10'
                           : 'border-accent/50 text-[#8a6f2e] hover:bg-accent/5'
@@ -636,7 +636,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                       {saveAck ? 'Saved' : 'Save message'}
                     </button>
                     {saveAck && (
-                      <span className={`font-mono text-[10px] uppercase tracking-wide ${styles.mutedText}`} aria-live="polite">
+                      <span className={`font-mono text-xs uppercase tracking-wide ${styles.mutedText}`} aria-live="polite">
                         Ready to listen
                       </span>
                     )}
@@ -664,7 +664,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
 
             {nativeReadAloudGuide && inputText.trim() && (
               <div
-                className={`mb-4 p-4 rounded-xl border ${
+                className={`mb-4 p-4 sm:p-5 rounded-xl border ${
                   isNight
                     ? 'border-[#d4b05a]/25 bg-[#d4b05a]/5'
                     : 'border-amber-200/80 bg-amber-50/60'
@@ -672,21 +672,21 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                 id="tender-native-read-aloud-guide"
               >
                 <span className={`hw-eyebrow block mb-2 ${styles.mutedText}`}>{nativeReadAloudGuide.title}</span>
-                <p className={`font-sans text-xs leading-relaxed mb-3 ${isNight ? 'text-white/75' : 'text-stone-700'}`}>
+                <p className={`hw-instruction mb-3 ${isNight ? 'text-white/85' : 'text-stone-700'}`}>
                   {nativeReadAloudGuide.intro}
                 </p>
-                <div className="flex flex-wrap gap-2 mb-3">
+                <div className="flex flex-wrap gap-2 mb-4">
                   <button
                     type="button"
                     id="tender-select-all-prose-btn"
                     onClick={handleSelectAllProse}
-                    className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-full border text-[10px] font-mono uppercase tracking-widest cursor-pointer transition-colors ${
+                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full border hw-instruction-action cursor-pointer transition-colors ${
                       isNight
                         ? 'border-white/15 text-white/80 hover:border-[#d4b05a]/40'
                         : 'border-stone-300 text-stone-700 hover:border-amber-400'
                     }`}
                   >
-                    <TextSelect className="w-3.5 h-3.5" aria-hidden />
+                    <TextSelect className="w-4 h-4" aria-hidden />
                     Select all
                   </button>
                   {nativeReadAloudGuide.showCopyButton && (
@@ -694,23 +694,23 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                       type="button"
                       id="tender-copy-live-speech-btn"
                       onClick={handleCopyForLiveSpeech}
-                      className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-full border text-[10px] font-mono uppercase tracking-widest cursor-pointer transition-colors ${
+                      className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full border hw-instruction-action cursor-pointer transition-colors ${
                         isNight
                           ? 'border-[#d4b05a]/40 text-[#d4b05a] hover:bg-[#d4b05a]/10'
                           : 'border-amber-400 text-[#8a6f2e] hover:bg-amber-50'
                       }`}
                     >
-                      <Copy className="w-3.5 h-3.5" aria-hidden />
+                      <Copy className="w-4 h-4" aria-hidden />
                       {liveSpeechCopyAck ? 'Copied' : nativeReadAloudGuide.copyButtonLabel}
                     </button>
                   )}
                 </div>
-                <ol className={`list-decimal list-inside space-y-1.5 font-sans text-xs leading-relaxed ${isNight ? 'text-white/70' : 'text-stone-600'}`}>
+                <ol className={`list-decimal list-inside space-y-2 hw-instruction-steps ${isNight ? 'text-white/80' : 'text-stone-700'}`}>
                   {nativeReadAloudGuide.steps.map(step => (
                     <li key={step}>{step}</li>
                   ))}
                 </ol>
-                <p className={`font-mono text-[10px] leading-relaxed mt-3 ${styles.mutedText}`}>
+                <p className={`hw-instruction-setup mt-4 ${styles.mutedText}`}>
                   {nativeReadAloudGuide.setupHint}
                 </p>
               </div>
@@ -725,9 +725,9 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                   className="overflow-hidden mb-3"
                   id="tender-inline-voice-chooser"
                 >
-                  {isIos && (
-                    <p className={`font-mono text-xs mb-3 ${styles.mutedText}`}>
-                      {familiarVoiceCopy()}
+                  {(isIos || isAndroidPlatform()) && (
+                    <p className={`hw-instruction-setup mb-4 ${styles.mutedText}`}>
+                      {isIos ? familiarVoiceCopy() : platformVoiceHint()}
                     </p>
                   )}
                   <ul className="space-y-2 max-h-[180px] overflow-y-auto scrollbar-thin" role="list">
@@ -827,7 +827,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
 
             {isPersonalVoiceBlockedOnWeb() && roster.length > 0 && !hasFamiliarInRoster(roster) && (
               <p
-                className={`font-sans text-xs leading-relaxed mb-4 p-3 rounded-lg border ${
+                className={`hw-instruction leading-relaxed mb-4 p-4 rounded-lg border ${
                   isNight
                     ? 'border-[#d4b05a]/25 bg-[#d4b05a]/5 text-white/75'
                     : 'border-amber-200 bg-amber-50/80 text-stone-700'
@@ -840,7 +840,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
 
             {isAndroidPlatform() && roster.length > 0 && (
               <p
-                className={`font-sans text-xs leading-relaxed mb-4 p-3 rounded-lg border ${
+                className={`hw-instruction leading-relaxed mb-4 p-4 rounded-lg border ${
                   isNight
                     ? 'border-[#d4b05a]/25 bg-[#d4b05a]/5 text-white/75'
                     : 'border-amber-200 bg-amber-50/80 text-stone-700'
@@ -877,7 +877,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                   {renderRosterRows(handleVoiceSelect)}
                 </ul>
 
-                <p className={`hw-caption text-xs mb-4 ${styles.mutedText}`}>{platformVoiceHint()}</p>
+                <p className={`hw-instruction-setup mb-4 ${styles.mutedText}`}>{platformVoiceHint()}</p>
               </>
             )}
 
