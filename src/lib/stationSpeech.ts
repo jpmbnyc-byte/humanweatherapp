@@ -589,7 +589,15 @@ export async function setFamiliarGreeted(): Promise<void> {
 }
 
 export function familiarVoiceCopy(): string {
+  if (isIosPlatform()) {
+    return 'Apple does not expose Personal Voice to web apps or Home Screen PWAs on iPhone — only to system features like Live Speech, Read & Speak, and VoiceOver, plus native apps that request special permission. The voices here are the standard set Safari provides via the Web Speech API. Tap Refresh voices to reload that list.';
+  }
   return 'Enable Personal Voice in Settings → Accessibility → Personal Voice, turn on “Allow Apps to Request to Use My Personal Voice,” then tap Refresh voices. Your smooth Personal Voice and other installed voices will appear here.';
+}
+
+/** True when iOS Safari/PWA cannot surface Personal Voice in getVoices(). */
+export function isPersonalVoiceBlockedOnWeb(): boolean {
+  return isIosPlatform();
 }
 
 export async function getSavedVoiceMeta(): Promise<SavedVoiceMeta> {
@@ -697,7 +705,7 @@ export function platformVoiceHint(): string {
   }
   const ua = navigator.userAgent;
   if (/iPhone|iPad|iPod/i.test(ua)) {
-    return 'On iPhone, tap Refresh voices after enabling Personal Voice (Settings → Accessibility → Personal Voice → Allow Apps to Request to Use). Tap a voice to audition, then Listen now to hear your prose.';
+    return 'On iPhone, Safari exposes a fixed set of system voices to web apps — Personal Voice is not included, even with “Allow Apps to Request” enabled. Tap a voice to audition, then Listen now. Use Live Speech or Read & Speak for your Personal Voice.';
   }
   if (/Android/i.test(ua)) {
     return 'Add voices in Settings → Text-to-speech output. New voices appear here automatically.';

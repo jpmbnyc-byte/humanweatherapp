@@ -29,6 +29,7 @@ import {
   getFamiliarGreeted,
   setFamiliarGreeted,
   familiarVoiceCopy,
+  isPersonalVoiceBlockedOnWeb,
   AUDITION_LINE,
   FAMILIAR_GREETING_LINE,
   type RosterEntry,
@@ -735,6 +736,19 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                 Refresh voices
               </button>
             </div>
+
+            {isPersonalVoiceBlockedOnWeb() && roster.length > 0 && !hasFamiliarInRoster(roster) && (
+              <p
+                className={`font-sans text-xs leading-relaxed mb-4 p-3 rounded-lg border ${
+                  isNight
+                    ? 'border-[#d4b05a]/25 bg-[#d4b05a]/5 text-white/75'
+                    : 'border-amber-200 bg-amber-50/80 text-stone-700'
+                }`}
+                id="tender-personal-voice-pwa-notice"
+              >
+                Personal Voice does not appear in iPhone web apps — only the {displayRoster.length} standard voices Safari exposes. Use Live Speech or Read &amp; Speak for your own voice.
+              </p>
+            )}
 
             {displayRoster.length === 0 ? (
               <p className={`hw-caption ${styles.mutedText}`}>
