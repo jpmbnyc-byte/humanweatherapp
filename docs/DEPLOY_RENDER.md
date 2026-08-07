@@ -2,7 +2,7 @@
 
 Human Weather runs as a **Node web service** on [Render](https://render.com), with your custom domain on Namecheap.
 
-> **Domain:** You mentioned `humanwetaher.social` — confirm the exact spelling in Namecheap before DNS setup.
+> **Domain:** You mentioned `humanweather.social` — confirm the exact spelling in Namecheap before DNS setup.
 
 ---
 
@@ -48,8 +48,8 @@ Render injects `PORT` automatically — do not set it.
 ### In Render
 
 1. Web Service → **Settings → Custom Domains**
-2. Add `humanwetaher.social`
-3. Add `www.humanwetaher.social` (recommended)
+2. Add `humanweather.social`
+3. Add `www.humanweather.social` (recommended)
 4. Copy the DNS records Render shows
 
 ### In Namecheap
@@ -61,7 +61,7 @@ Render injects `PORT` automatically — do not set it.
 | **CNAME** | `www` | `your-service.onrender.com` (from Render) |
 | **ALIAS** or **URL Redirect** | `@` | Render apex instructions, or redirect `@` → `www` |
 
-For apex (`humanwetaher.social` without www), Render provides an **ANAME/ALIAS** target — Namecheap supports this on some plans; otherwise redirect root to `www`.
+For apex (`humanweather.social` without www), Render provides an **ANAME/ALIAS** target — Namecheap supports this on some plans; otherwise redirect root to `www`.
 
 Wait for SSL (Render provisions Let’s Encrypt automatically).
 
@@ -73,12 +73,12 @@ Update **Stripe Dashboard** when Render + domain are live:
 
 **Payment Link redirect:**
 ```text
-https://humanwetaher.social/?purchase=success&session_id={CHECKOUT_SESSION_ID}
+https://humanweather.social/?purchase=success&session_id={CHECKOUT_SESSION_ID}
 ```
 
 **Webhook:**
 ```text
-https://humanwetaher.social/api/stripe/webhook
+https://humanweather.social/api/stripe/webhook
 ```
 
 Event: `checkout.session.completed`
@@ -89,7 +89,7 @@ Event: `checkout.session.completed`
 
 | | Lovable | Render (primary) |
 |--|---------|------------------|
-| URL | `humanweatherapp.lovable.app` | `humanwetaher.social` |
+| URL | `humanweatherapp.lovable.app` | `humanweather.social` |
 | Build preset | Cloudflare (forced in Lovable) | `node-server` |
 | Stripe redirect | Remove / stop using | Use this domain |
 | Role | Optional editor/preview only | **Production** |
@@ -101,8 +101,8 @@ You can keep Lovable connected to GitHub for editing, but **production traffic a
 ## 6. Verify deploy
 
 ```bash
-curl -I https://humanwetaher.social/
-curl -I https://humanwetaher.social/api/stripe/webhook
+curl -I https://humanweather.social/
+curl -I https://humanweather.social/api/stripe/webhook
 ```
 
 In browser:

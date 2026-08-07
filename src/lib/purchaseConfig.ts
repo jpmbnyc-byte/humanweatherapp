@@ -9,7 +9,9 @@ export const MEMBERSHIP_FEATURES = [
 export const PURCHASE_SUCCESS_QUERY = 'purchase';
 export const PURCHASE_SUCCESS_VALUE = 'success';
 
-const DEFAULT_PURCHASE_URL = 'https://humanweather.app/membership';
+/** Production Stripe Payment Link — public checkout URL (also in render.yaml). */
+export const STRIPE_PAYMENT_LINK_URL = 'https://buy.stripe.com/5kQ28r28T8OY9s56G34ow00';
+
 const DEFAULT_PRICE = '60';
 
 function readEnv(key: string): string | undefined {
@@ -19,8 +21,33 @@ function readEnv(key: string): string | undefined {
   return undefined;
 }
 
+/** Detect Lovable/Render placeholder or non-checkout URLs baked in at build time. */
+export function isPlaceholderPurchaseUrl(url: string): boolean {
+  const u = url.trim().toLowerCase();
+  if (!u) return true;
+  if (u.includes('placeholder') || u.includes('your_link') || u.includes('your-live-domain')) {
+    return true;
+  }
+  if (u.includes('example.com') || u.endsWith('/membership')) return true;
+  try {
+    const { hostname, pathname } = new URL(url);
+    if (hostname === 'buy.stripe.com' && (!pathname || pathname === '/' || /\/(your|placeholder|xxx)/i.test(pathname))) {
+      return true;
+    }
+  } catch {
+    return true;
+  }
+  return false;
+}
+
+function resolvePurchaseUrl(): string {
+  const explicit = readEnv('VITE_PURCHASE_URL')?.trim();
+  if (explicit && !isPlaceholderPurchaseUrl(explicit)) return explicit;
+  return STRIPE_PAYMENT_LINK_URL;
+}
+
 export function getPurchaseUrl(): string {
-  return readEnv('VITE_PURCHASE_URL')?.trim() || DEFAULT_PURCHASE_URL;
+  return resolvePurchaseUrl();
 }
 
 export function isStripeCheckoutUrl(url = getPurchaseUrl()): boolean {
@@ -44,8 +71,8 @@ export function getPurchasePriceDisplay(): string | null {
 }
 
 export function isPurchaseConfigured(): boolean {
-  const explicit = readEnv('VITE_PURCHASE_URL')?.trim();
-  return Boolean(explicit && !explicit.includes('PLACEHOLDER'));
+  const url = resolvePurchaseUrl();
+  return !isPlaceholderPurchaseUrl(url);
 }
 
 /** Configure this exact URL in Stripe Payment Link → After payment → Redirect */

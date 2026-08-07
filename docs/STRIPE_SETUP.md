@@ -25,7 +25,7 @@ https://YOUR-LIVE-DOMAIN/?purchase=success&session_id={CHECKOUT_SESSION_ID}
 Example for production on Render:
 
 ```text
-https://humanwetaher.social/?purchase=success&session_id={CHECKOUT_SESSION_ID}
+https://humanweather.social/?purchase=success&session_id={CHECKOUT_SESSION_ID}
 ```
 
 (Use your exact Namecheap domain. While testing on Lovable preview only, use `https://humanweatherapp.lovable.app/...` temporarily.)
@@ -59,7 +59,7 @@ Redeploy after saving env vars.
 2. URL:
 
 ```text
-https://humanwetaher.social/api/stripe/webhook
+https://humanweather.social/api/stripe/webhook
 ```
 
 Full Render setup: see `docs/DEPLOY_RENDER.md`.
