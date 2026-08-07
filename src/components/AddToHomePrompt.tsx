@@ -59,20 +59,20 @@ export default function AddToHomePrompt({ currentTheme, themeStyles, onDismiss }
             <h2 id="add-to-home-title" className="font-serif text-xl leading-snug">
               Add Human Weather to your Home Screen
             </h2>
-            <p className={`font-sans text-sm mt-2 leading-relaxed ${themeStyles.textMuted}`}>
+            <p className={`hw-section-intro mt-2 ${themeStyles.textMuted}`}>
               Open the field station like an app — one tap, full screen, no browser chrome.
-              <span className="block mt-1 font-mono text-[10px] uppercase tracking-widest opacity-60">
+              <span className="block mt-2 font-mono text-xs uppercase tracking-widest opacity-70">
                 {platformLabel}
               </span>
             </p>
           </div>
         </div>
 
-        <ol className={`mt-5 space-y-3 font-sans text-sm leading-relaxed list-none ${isNight ? 'text-white/75' : 'text-stone-700'}`}>
+        <ol className={`mt-5 space-y-4 hw-instruction-steps list-none ${isNight ? 'text-white/85' : 'text-stone-700'}`}>
           {steps.map((step, index) => (
             <li key={step} className="flex gap-3">
               <span
-                className={`shrink-0 w-6 h-6 rounded-full border flex items-center justify-center font-mono text-[11px] ${
+                className={`shrink-0 w-7 h-7 rounded-full border flex items-center justify-center font-mono text-sm ${
                   isNight ? 'border-accent/35 text-accent' : 'border-accent/40 text-[#8a6f2e]'
                 }`}
               >
@@ -86,7 +86,7 @@ export default function AddToHomePrompt({ currentTheme, themeStyles, onDismiss }
         <button
           type="button"
           onClick={onDismiss}
-          className={`hw-pressable mt-6 w-full py-3 rounded-xl border text-xs font-mono uppercase tracking-widest cursor-pointer transition-colors ${themeStyles.border} ${themeStyles.cardBg} ${
+          className={`hw-pressable mt-6 w-full py-3.5 rounded-xl border hw-instruction-action cursor-pointer transition-colors ${themeStyles.border} ${themeStyles.cardBg} ${
             isNight ? 'text-accent hover:bg-accent/10' : 'text-[#8a6f2e] hover:bg-accent/5'
           }`}
         >

@@ -137,11 +137,11 @@ export default function ConditionsCard({
           ) : (
             <div className="flex flex-col sm:flex-row sm:items-center gap-4">
               <div className="flex-1">
-                <p className="font-sans text-sm opacity-75 mb-2">{prescription.reason}</p>
+                <p className="hw-instruction opacity-90 mb-2">{prescription.reason}</p>
                 <p className="font-mono text-sm uppercase tracking-wide opacity-90 mb-2">{prescription.label}</p>
                 <p
-                  className={`font-mono text-[11px] leading-relaxed tracking-wide ${
-                    isNight ? 'text-white/40' : 'text-stone-500'
+                  className={`hw-instruction-setup ${
+                    isNight ? 'text-white/55' : 'text-stone-600'
                   }`}
                 >
                   {prescription.research}
@@ -166,7 +166,7 @@ export default function ConditionsCard({
           <span className="font-mono text-xs uppercase tracking-widest opacity-40 block mb-3">
             Prescription
           </span>
-          <p className={`font-sans text-sm mb-4 ${isNight ? 'text-white/55' : 'text-stone-600'}`}>
+          <p className={`hw-section-intro mb-4 ${isNight ? 'text-white/70' : 'text-stone-600'}`}>
             Routed prescriptions unlock with membership.
           </p>
           <PurchaseOffer currentTheme={isNight ? 'night' : 'day'} variant="compact" />
