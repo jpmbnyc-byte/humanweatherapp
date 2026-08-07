@@ -72,9 +72,29 @@ export default function SomaticGrid({ onStateChange, currentTheme }: SomaticGrid
 
     const coherenceRatio = neighborsCount / count; // 0 to 1
 
+    const headCells = activeCoords.filter(([r]) => r <= 2).length;
+    const headRatio = headCells / count;
+    const rows = activeCoords.map(([r]) => r);
+    const rowSpread = rows.length > 0 ? Math.max(...rows) - Math.min(...rows) : 0;
+
     let detectedStateId = 'vaporous_resonance_drift'; // default equilibrium
 
-    if (count >= 20) {
+    if (count >= 2 && count <= 12 && headRatio >= 0.7) {
+      detectedStateId = 'frontal_tension_headache';
+    } else if (count >= 3 && count <= 14 && headRatio >= 0.55 && coherenceRatio < 0.45) {
+      detectedStateId = 'sleep_debt_drift';
+    } else if (
+      count >= 4 &&
+      count <= 18 &&
+      avgRow >= 1.2 &&
+      avgRow <= 3.8 &&
+      coherenceRatio >= 0.2 &&
+      coherenceRatio < 0.55
+    ) {
+      detectedStateId = 'cognitive_morning_fog';
+    } else if (count >= 8 && count <= 20 && rowSpread >= 3 && avgRow >= 2 && avgRow <= 5.2) {
+      detectedStateId = 'barometric_rainy_grey';
+    } else if (count >= 20) {
       // Very high load
       detectedStateId = 'sympathetic_heat_dome';
     } else if (coherenceRatio < 0.4 && count >= 3) {

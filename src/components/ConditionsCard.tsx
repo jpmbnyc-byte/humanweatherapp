@@ -3,6 +3,7 @@ import { Square, Play } from 'lucide-react';
 import type { WeatherState } from '../types';
 import { getConditionCopy } from '../data/conditions';
 import { prescriptionTab, routePrescription } from '../lib/prescriptionRouter';
+import { setPrescriptionFocus } from '../lib/prescriptionFocus';
 import { useSpokenProse } from '../hooks/useSpokenProse';
 import { useEntitlement } from '../lib/EntitlementContext';
 import PurchaseOffer from './PurchaseOffer';
@@ -40,6 +41,7 @@ export default function ConditionsCard({
 
   const handlePrescription = () => {
     if (prescription.target === 'clear') return;
+    if (prescription.focus) setPrescriptionFocus(prescription.focus);
     const tab = prescriptionTab(prescription.target);
     if (tab) onNavigateTab(tab);
   };
@@ -135,8 +137,15 @@ export default function ConditionsCard({
           ) : (
             <div className="flex flex-col sm:flex-row sm:items-center gap-4">
               <div className="flex-1">
-                <p className="font-sans text-sm opacity-75 mb-1">{prescription.reason}</p>
-                <p className="font-mono text-sm uppercase tracking-wide opacity-90">{prescription.label}</p>
+                <p className="font-sans text-sm opacity-75 mb-2">{prescription.reason}</p>
+                <p className="font-mono text-sm uppercase tracking-wide opacity-90 mb-2">{prescription.label}</p>
+                <p
+                  className={`font-mono text-[11px] leading-relaxed tracking-wide ${
+                    isNight ? 'text-white/40' : 'text-stone-500'
+                  }`}
+                >
+                  {prescription.research}
+                </p>
               </div>
               <button
                 type="button"

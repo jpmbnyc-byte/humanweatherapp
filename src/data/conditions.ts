@@ -52,6 +52,34 @@ export const CONDITIONS_COPY: Record<string, ConditionCopy> = {
     spoken:
       'Current conditions: Autonomic Stillness. The field is unmarked. Touch the grid when you are ready to name what you feel.',
   },
+  frontal_tension_headache: {
+    felt: 'Band of pressure at the temples or forehead. The head is holding the day.',
+    fact: 'Pericranial tension elevated. Sympathetic vascular load in the head.',
+    faith: 'The pressure is information, not a verdict. Cool air and slow exhale are medicine enough to start.',
+    spoken:
+      'Current conditions: Frontal Tension Headache. Coherence forty-eight percent. Felt: pressure at the temples. Fact: sympathetic hold in the head. Faith: lengthen the exhale and let the heat drain.',
+  },
+  sleep_debt_drift: {
+    felt: 'Tired but wired. Eyes heavy, mind still narrating.',
+    fact: 'Sleep pressure elevated. Fragmented or insufficient rest on the ledger.',
+    faith: 'You are under-fueled, not failing. Evening can arrive early today.',
+    spoken:
+      'Current conditions: Sleep Debt Drift. Coherence fifty-two percent. Felt: tired but wired. Fact: sleep debt is active. Faith: honor rest without punishing the day.',
+  },
+  cognitive_morning_fog: {
+    felt: 'Thoughts move through cotton. Focus slips before it lands.',
+    fact: 'Reduced morning alpha coherence. Mild hypofrontality on waking.',
+    faith: 'Equal breath before equal effort — clarity often follows pacing, not force.',
+    spoken:
+      'Current conditions: Cognitive Morning Fog. Coherence fifty-eight percent. Felt: slow thinking behind a veil. Fact: alpha coherence is low. Faith: one matched breath at a time.',
+  },
+  barometric_rainy_grey: {
+    felt: 'Grey light, heavy air. The weather has moved inside.',
+    fact: 'Circadian amplitude reduced. Low lux and barometric drag.',
+    faith: 'You are not lazy — the sky is dim. A little light and movement can help.',
+    spoken:
+      'Current conditions: Barometric Rainy Grey. Coherence sixty-two percent. Felt: grey weather inside and out. Fact: circadian signal is muted. Faith: brief bright light, gentle pace.',
+  },
 };
 
 export function getConditionCopy(weatherId: string): ConditionCopy | null {
