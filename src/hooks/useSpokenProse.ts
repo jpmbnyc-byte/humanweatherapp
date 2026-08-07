@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
+  applyPreferredVoiceByName,
   getPaceRate,
+  hydrateSavedVoiceCache,
   primeSpeechEngine,
   setPaceRate,
   stationSpeakFromUserGesture,
   stationStop,
+  warmSpeechVoicesFromGesture,
 } from '../lib/stationSpeech';
 
 export type SpokenProseStatus = 'idle' | 'speaking' | 'error';
@@ -23,12 +26,16 @@ export function useSpokenProse() {
 
   useEffect(() => {
     primeSpeechEngine();
+    void hydrateSavedVoiceCache();
   }, []);
 
   const speak = useCallback(
-    (text: string, _preferredVoiceName?: string | null, options?: SpeakProseOptions) => {
+    (text: string, preferredVoiceName?: string | null, options?: SpeakProseOptions) => {
       const trimmed = text.trim();
       if (!trimmed) return;
+
+      warmSpeechVoicesFromGesture();
+      applyPreferredVoiceByName(preferredVoiceName);
 
       stationStop();
 

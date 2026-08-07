@@ -16,7 +16,7 @@ import {
   getActiveVoiceLabel,
   getSavedVoiceMeta,
   isSavedVoiceEntry,
-  dedupeRoster,
+  pinSavedVoiceInRoster,
   cleanVoiceName,
   rosterTier,
   platformVoiceHint,
@@ -119,7 +119,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
 
   const preferredVoiceName = useCallback(() => {
     const label = currentVoiceLabel || getActiveVoiceLabel();
-    const match = dedupeRoster(roster).find(e => cleanVoiceName(e.name) === label);
+    const match = pinSavedVoiceInRoster(roster).find(e => cleanVoiceName(e.name) === label);
     return match?.name ?? null;
   }, [currentVoiceLabel, roster]);
 
@@ -375,7 +375,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
         ? isNight ? 'text-emerald-300/80 border-emerald-500/30' : 'text-emerald-800 border-emerald-300'
         : isNight ? 'text-white/40 border-white/10' : 'text-stone-500 border-stone-200';
 
-  const displayRoster = dedupeRoster(roster);
+  const displayRoster = pinSavedVoiceInRoster(roster);
   const isIos = isIosPlatform();
   const chipName = currentVoiceLabel || (displayRoster[0] ? cleanVoiceName(displayRoster[0].name) : '');
 

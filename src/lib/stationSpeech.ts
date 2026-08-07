@@ -2,6 +2,8 @@ import { idbGet, idbSet } from './idb';
 
 const VOICE_KEY = 'hw-station-voice';
 const VOICE_URI_KEY = 'hw-station-voice-uri';
+const VOICE_LS_URI = 'hw-station-voice-uri';
+const VOICE_LS_NAME = 'hw-station-voice-name';
 const PACE_KEY = 'hw-pace';
 const FAMILIAR_GREETED_KEY = 'hw-familiar-greeted';
 
@@ -208,19 +210,20 @@ export function dedupeRoster(roster: RosterEntry[], max = rosterMaxCount()): Ros
 async function pickDefaultVoice(roster: RosterEntry[]): Promise<SpeechSynthesisVoice | null> {
   if (!roster.length) return null;
 
-  const savedUri = await idbGet(VOICE_URI_KEY);
-  if (savedUri) {
-    const byUri = roster.find(e => e.uri === savedUri);
-    if (byUri) return byUri.voice;
-  }
+  readVoiceCacheFromLocalStorage();
+  const savedUri = _savedVoiceUriCache ?? (await idbGet(VOICE_URI_KEY));
+  const savedName = _savedVoiceNameCache ?? (await idbGet(VOICE_KEY));
 
-  const savedName = await idbGet(VOICE_KEY);
-  if (savedName) {
-    const byName = roster.find(
-      e => cleanVoiceName(e.name) === savedName || e.name === savedName,
-    );
-    if (byName) return byName.voice;
-  }
+  const fromRoster = findVoiceInList(
+    roster.map(entry => entry.voice),
+    savedUri,
+    savedName,
+  );
+  if (fromRoster) return fromRoster;
+
+  const all = synthesis()?.getVoices() ?? [];
+  const fromSystem = findVoiceInList(all, savedUri, savedName);
+  if (fromSystem) return fromSystem;
 
   const personal = roster.find(isFamiliarEntry);
   if (personal) return personal.voice;
@@ -255,6 +258,36 @@ function startIosSpeechKeepAlive(): void {
   }, 1000);
 }
 
+function findVoiceInList(
+  voices: SpeechSynthesisVoice[],
+  uri: string | null,
+  name: string | null,
+): SpeechSynthesisVoice | null {
+  if (uri) {
+    const byUri = voices.find(v => v.voiceURI === uri);
+    if (byUri) return byUri;
+  }
+  if (name) {
+    const byName = voices.find(
+      v => cleanVoiceName(v.name) === name || v.name === name,
+    );
+    if (byName) return byName;
+  }
+  return null;
+}
+
+function readVoiceCacheFromLocalStorage(): void {
+  if (typeof localStorage === 'undefined') return;
+  if (!_savedVoiceUriCache) _savedVoiceUriCache = localStorage.getItem(VOICE_LS_URI);
+  if (!_savedVoiceNameCache) _savedVoiceNameCache = localStorage.getItem(VOICE_LS_NAME);
+}
+
+function writeVoiceCacheToLocalStorage(uri: string, name: string): void {
+  if (typeof localStorage === 'undefined') return;
+  localStorage.setItem(VOICE_LS_URI, uri);
+  localStorage.setItem(VOICE_LS_NAME, name);
+}
+
 function resolveVoice(voice: SpeechSynthesisVoice | null): SpeechSynthesisVoice | null {
   const syn = synthesis();
   if (!syn) return voice;
@@ -262,22 +295,16 @@ function resolveVoice(voice: SpeechSynthesisVoice | null): SpeechSynthesisVoice 
   const all = syn.getVoices();
   if (!all.length) return voice;
 
+  readVoiceCacheFromLocalStorage();
+
+  const saved = findVoiceInList(all, _savedVoiceUriCache, _savedVoiceNameCache);
+  if (saved) return saved;
+
   if (voice) {
     const byUri = all.find(v => v.voiceURI === voice.voiceURI);
     if (byUri) return byUri;
     const byName = all.find(v => v.name === voice.name);
     if (byName) return byName;
-  }
-
-  if (_savedVoiceUriCache) {
-    const saved = all.find(v => v.voiceURI === _savedVoiceUriCache);
-    if (saved) return saved;
-  }
-  if (_savedVoiceNameCache) {
-    const saved = all.find(
-      v => cleanVoiceName(v.name) === _savedVoiceNameCache || v.name === _savedVoiceNameCache,
-    );
-    if (saved) return saved;
   }
 
   if (_stationVoice) {
@@ -294,17 +321,51 @@ function pickVoiceSync(): SpeechSynthesisVoice | null {
   return resolveVoice(_stationVoice);
 }
 
+function entryFromVoice(voice: SpeechSynthesisVoice): RosterEntry {
+  return rosterFromVoices([voice])[0];
+}
+
+/** Keep a saved voice visible even when it would be trimmed from the roster cap. */
+export function pinSavedVoiceInRoster(roster: RosterEntry[]): RosterEntry[] {
+  readVoiceCacheFromLocalStorage();
+  if (!_savedVoiceUriCache && !_savedVoiceNameCache) return dedupeRoster(roster);
+
+  const syn = synthesis();
+  const voices = syn?.getVoices() ?? roster.map(entry => entry.voice);
+  const savedVoice = findVoiceInList(voices, _savedVoiceUriCache, _savedVoiceNameCache);
+  if (!savedVoice) return dedupeRoster(roster);
+
+  const savedEntry = entryFromVoice(savedVoice);
+  const deduped = dedupeRoster(roster);
+  if (deduped.some(entry => entry.uri === savedEntry.uri)) return deduped;
+  return dedupeRoster([savedEntry, ...deduped]);
+}
+
 /** Sync voice cache during a tap — never await before stationSpeakFromUserGesture on iOS. */
 export function warmSpeechVoicesFromGesture(): void {
   const syn = synthesis();
   if (!syn) return;
   syn.getVoices();
   if (syn.paused) syn.resume();
+  readVoiceCacheFromLocalStorage();
+  _stationVoice = resolveVoice(_stationVoice);
   if (!_stationVoice) {
     const roster = dedupeRoster(rosterFromVoices(syn.getVoices()));
     if (roster.length) _stationVoice = roster[0].voice;
   }
-  _stationVoice = resolveVoice(_stationVoice);
+}
+
+/** Apply a voice by display name synchronously from a user gesture (iOS-safe). */
+export function applyPreferredVoiceByName(name: string | null | undefined): void {
+  if (!name) return;
+  const syn = synthesis();
+  if (!syn) return;
+  const all = syn.getVoices();
+  const match = findVoiceInList(all, null, name);
+  if (!match) return;
+  _stationVoice = match;
+  _savedVoiceUriCache = match.voiceURI;
+  _savedVoiceNameCache = cleanVoiceName(match.name);
 }
 
 function normalizeSpeechText(text: string): string {
@@ -543,6 +604,14 @@ export function isSavedVoiceEntry(entry: RosterEntry, saved: SavedVoiceMeta): bo
   return false;
 }
 
+export async function hydrateSavedVoiceCache(): Promise<void> {
+  readVoiceCacheFromLocalStorage();
+  const [uri, name] = await Promise.all([idbGet(VOICE_URI_KEY), idbGet(VOICE_KEY)]);
+  if (uri) _savedVoiceUriCache = uri;
+  if (name) _savedVoiceNameCache = name;
+  if (uri && name) writeVoiceCacheToLocalStorage(uri, name);
+}
+
 export async function initStationSpeech(): Promise<RosterEntry[]> {
   primeSpeechEngine();
 
@@ -552,10 +621,9 @@ export async function initStationSpeech(): Promise<RosterEntry[]> {
     if ([0.75, 0.88, 1.0].includes(n)) _paceRate = n;
   }
 
-  _savedVoiceUriCache = await idbGet(VOICE_URI_KEY);
-  _savedVoiceNameCache = await idbGet(VOICE_KEY);
+  await hydrateSavedVoiceCache();
 
-  const roster = dedupeRoster(await buildVoiceRoster());
+  const roster = pinSavedVoiceInRoster(await buildVoiceRoster());
   _stationVoice = await pickDefaultVoice(roster);
   return roster;
 }
@@ -570,7 +638,10 @@ export async function ensureVoicesReady(): Promise<RosterEntry[]> {
 /** Load roster in background without clearing the active voice mid-playback. */
 export async function loadVoiceRosterInBackground(): Promise<RosterEntry[]> {
   warmVoiceList();
-  const roster = dedupeRoster(await buildVoiceRoster(isIosPlatform() ? 8000 : 6000, true));
+  await hydrateSavedVoiceCache();
+  const roster = pinSavedVoiceInRoster(
+    await buildVoiceRoster(isIosPlatform() ? 8000 : 6000, true),
+  );
   if (!_stationVoice) _stationVoice = await pickDefaultVoice(roster);
   return roster;
 }
@@ -585,16 +656,18 @@ export async function refreshStationVoices(): Promise<RosterEntry[]> {
   syn?.cancel();
   if (syn?.paused) syn.resume();
 
+  await hydrateSavedVoiceCache();
+
   const firstTimeout = isIosPlatform() ? 15000 : 8000;
-  let roster = dedupeRoster(await buildVoiceRoster(firstTimeout, true));
+  let roster = pinSavedVoiceInRoster(await buildVoiceRoster(firstTimeout, true));
 
   if (isIosPlatform()) {
     await new Promise<void>(resolve => window.setTimeout(resolve, 500));
     warmVoiceList();
     _voicesPromise = null;
-    const second = dedupeRoster(await buildVoiceRoster(8000, true));
+    const second = pinSavedVoiceInRoster(await buildVoiceRoster(8000, true));
     if (second.length >= roster.length) roster = second;
-    else roster = dedupeRoster(mergeRosterEntries(roster, second));
+    else roster = pinSavedVoiceInRoster(mergeRosterEntries(roster, second));
   }
 
   _stationVoice = await pickDefaultVoice(roster);
@@ -603,7 +676,9 @@ export async function refreshStationVoices(): Promise<RosterEntry[]> {
 
 export function persistStationVoice(entry: RosterEntry): void {
   setStationVoice(entry);
-  void idbSet(VOICE_KEY, cleanVoiceName(entry.name));
+  const cleaned = cleanVoiceName(entry.name);
+  writeVoiceCacheToLocalStorage(entry.uri, cleaned);
+  void idbSet(VOICE_KEY, cleaned);
   void idbSet(VOICE_URI_KEY, entry.uri);
 }
 
