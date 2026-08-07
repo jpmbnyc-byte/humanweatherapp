@@ -4,6 +4,7 @@ import { FREQUENCY_TONES } from '../data';
 import { FrequencyTone } from '../types';
 import { Headphones, Volume2, Play, Square, Info } from 'lucide-react';
 import { registerAudioStop, stopAllAudio } from '../lib/stopAllAudio';
+import { consumePrescriptionFocus } from '../lib/prescriptionFocus';
 
 interface FrequencyTherapyProps {
   currentTheme: 'day' | 'night';
@@ -135,6 +136,18 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
       startAudio(tone);
     }
   };
+
+  // Open prescribed frequency when routed from Conditions
+  useEffect(() => {
+    const focus = consumePrescriptionFocus();
+    if (!focus?.frequencyId) return;
+    const tone = FREQUENCY_TONES.find(t => t.id === focus.frequencyId);
+    if (!tone) return;
+    setActiveTone(tone);
+    window.requestAnimationFrame(() => {
+      document.getElementById(`freq-card-${tone.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }, []);
 
   // Clean up on component unmount
   useEffect(() => {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { SHINRIN_YOKU_PROTOCOLS } from '../data';
 import type { ShinrinYokuProtocol } from '../types';
@@ -12,6 +12,7 @@ import {
   Sparkles,
   X,
 } from 'lucide-react';
+import { consumePrescriptionFocus } from '../lib/prescriptionFocus';
 
 const STORAGE_KEY = 'human_weather_shinrin_yoku';
 
@@ -105,6 +106,16 @@ export default function ShinrinYoku({ currentTheme }: ShinrinYokuProps) {
   const [activeProtocol, setActiveProtocol] = useState<ShinrinYokuProtocol | null>(null);
   const [activeAlert, setActiveAlert] = useState(false);
   const [showResearch, setShowResearch] = useState(false);
+
+  useEffect(() => {
+    const focus = consumePrescriptionFocus();
+    if (!focus?.shinrinProtocolId) return;
+    const protocol = SHINRIN_YOKU_PROTOCOLS.find(p => p.id === focus.shinrinProtocolId);
+    if (protocol) {
+      setShowResearch(false);
+      setActiveProtocol(protocol);
+    }
+  }, []);
 
   const saveSessions = (updated: Record<string, boolean[]>) => {
     setCompletedSessions(updated);

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LIGHT_MODES } from '../data';
 import { LightMode } from '../types';
 import { Sun, Sparkles, X, Eye, HelpCircle } from 'lucide-react';
+import { consumePrescriptionFocus } from '../lib/prescriptionFocus';
 
 interface LightTherapyProps {
   currentTheme: 'day' | 'night';
@@ -10,6 +11,13 @@ interface LightTherapyProps {
 
 export default function LightTherapy({ currentTheme }: LightTherapyProps) {
   const [activeMode, setActiveMode] = useState<LightMode | null>(null);
+
+  useEffect(() => {
+    const focus = consumePrescriptionFocus();
+    if (!focus?.lightModeId) return;
+    const mode = LIGHT_MODES.find(m => m.id === focus.lightModeId);
+    if (mode) setActiveMode(mode);
+  }, []);
 
   return (
     <div className={`flex flex-col w-full max-w-4xl mx-auto p-6 rounded-2xl border backdrop-blur-md ${

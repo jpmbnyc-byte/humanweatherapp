@@ -66,6 +66,50 @@ export const WEATHER_STATES: WeatherState[] = [
     clinicalIndex: 'Absolute stillness. Low-frequency dominance.',
     respiratoryRatio: '1:1',
     guidanceText: 'Rest in this silent, unburdened potential. There is no active weather system because you have not marked any sensations. When you are ready, touch or drag across the grid to begin mapping your internal climate.'
+  },
+  {
+    id: 'frontal_tension_headache',
+    title: 'Frontal Tension Headache',
+    subtitle: 'Pressure at the temples. Sympathetic hold in the head.',
+    description: 'Sensation clusters at the forehead and temples — the body bracing against noise, glare, or unfinished strain. Vascular tone in the head is elevated; the neck may be quietly participating.',
+    hrv: 48,
+    breathPattern: { inhale: 4, holdIn: 0, exhale: 8, holdOut: 0 },
+    clinicalIndex: 'Elevated pericranial muscle tone. Sympathetic vascular load.',
+    respiratoryRatio: '1:2',
+    guidanceText: 'Do not fight the pressure — lengthen the exhale as a release valve. Let each out-breath drain heat from the temples and jaw. Cool air, dim light, and unhurried pace are allies today.'
+  },
+  {
+    id: 'sleep_debt_drift',
+    title: 'Sleep Debt Drift',
+    subtitle: 'Under-rested. Mind racing behind tired eyes.',
+    description: 'You are running on incomplete sleep — not the deep restorative slumber of choice, but the thin, fragmented rest of a debt still owed. The head holds the ledger.',
+    hrv: 52,
+    breathPattern: { inhale: 4, holdIn: 0, exhale: 6, holdOut: 0 },
+    clinicalIndex: 'Sleep pressure elevated. Cortisol awakening response blunted.',
+    respiratoryRatio: '1:1.5',
+    guidanceText: 'Honor the debt without punishing the day. Keep stimulation low this afternoon; let evening arrive early. Breathe slowly — you are not failing, you are under-fueled.'
+  },
+  {
+    id: 'cognitive_morning_fog',
+    title: 'Cognitive Morning Fog',
+    subtitle: 'Slow thinking. Attention won\'t quite land.',
+    description: 'The field is humid with unformed thought — not scattered panic, but a dull veil between you and clarity. Tasks feel one step farther than they should.',
+    hrv: 58,
+    breathPattern: { inhale: 4, holdIn: 0, exhale: 4, holdOut: 0 },
+    clinicalIndex: 'Reduced alpha coherence. Mild hypofrontality on waking.',
+    respiratoryRatio: '1:1',
+    guidanceText: 'Equal breath before equal effort. Match each inhale to each exhale at the nostrils until the fog thins. Light movement and morning spectrum help — force is not required.'
+  },
+  {
+    id: 'barometric_rainy_grey',
+    title: 'Barometric Rainy Grey',
+    subtitle: 'Low light. Heavy air. Grey outside, grey inside.',
+    description: 'The weather has entered the body — low barometric pressure, muted lux, and the familiar drag of an overcast day. Energy is present but diffuse, like rain on glass.',
+    hrv: 62,
+    breathPattern: { inhale: 5, holdIn: 0, exhale: 6, holdOut: 0 },
+    clinicalIndex: 'Circadian amplitude reduced. Sub-threshold seasonal drag.',
+    respiratoryRatio: '1:1.2',
+    guidanceText: 'You are not lazy — the sky is dim. A brief bright-light pause and gentle movement can lift circadian signal without overriding the quiet the rain offers.'
   }
 ];
 
@@ -102,5 +146,29 @@ export const PATHWAYS: Pathway[] = [
       [0, 0], [0, 1], [0, 2], [0, 3], [0, 4], [0, 5], [0, 6], [0, 7],
       [1, 1], [1, 2], [1, 3], [1, 4], [1, 5], [1, 6], [2, 3], [2, 4]
     ]
+  },
+  {
+    id: 'headache',
+    name: 'Headache',
+    description: 'Pressure at temples, forehead, or base of skull.',
+    cells: [[0, 2], [0, 3], [0, 4], [0, 5], [1, 2], [1, 3], [1, 4], [1, 5]]
+  },
+  {
+    id: 'poor_sleep',
+    name: 'Poor Sleep',
+    description: 'Racing mind, shallow rest, morning heaviness.',
+    cells: [[0, 3], [0, 4], [1, 2], [1, 3], [1, 4], [1, 5], [2, 3], [2, 4]]
+  },
+  {
+    id: 'mental_fog',
+    name: 'Mental Fog',
+    description: 'Slow thinking, dull focus, hard to land on a task.',
+    cells: [[1, 1], [1, 2], [2, 3], [2, 4], [2, 5], [3, 2], [3, 3], [3, 4]]
+  },
+  {
+    id: 'rainy_day',
+    name: 'Rainy Day',
+    description: 'Grey outside, low energy, barometric heaviness.',
+    cells: [[2, 2], [2, 3], [2, 4], [2, 5], [3, 2], [3, 3], [3, 4], [3, 5], [4, 2], [4, 3], [4, 4], [4, 5]]
   }
 ];
