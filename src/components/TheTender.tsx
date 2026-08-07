@@ -23,6 +23,7 @@ import {
   PACE_VALUES,
   paceFromRate,
   isIosPlatform,
+  isAndroidPlatform,
   isFamiliarEntry,
   hasFamiliarInRoster,
   isActiveVoiceFamiliar,
@@ -37,11 +38,9 @@ import {
   type SavedVoiceMeta,
 } from '../lib/stationSpeech';
 import {
-  IOS_LIVE_SPEECH_STEPS,
-  copyTextForLiveSpeech,
-  iosLiveSpeechSetupHint,
-  showIosLiveSpeechGuide,
-} from '../lib/iosLiveSpeechGuide';
+  copyProseForReadAloud,
+  getNativeReadAloudGuide,
+} from '../lib/nativeReadAloudGuide';
 
 interface TheTenderProps {
   currentTheme: 'day' | 'night';
@@ -73,6 +72,8 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const [refreshing, setRefreshing] = useState(false);
   const [savedVoice, setSavedVoice] = useState<SavedVoiceMeta>({ uri: null, name: null });
   const [liveSpeechCopyAck, setLiveSpeechCopyAck] = useState(false);
+
+  const nativeReadAloudGuide = getNativeReadAloudGuide();
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const noiseSourceRef = useRef<AudioBufferSourceNode | null>(null);
@@ -360,7 +361,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   };
 
   const handleCopyForLiveSpeech = () => {
-    void copyTextForLiveSpeech(inputText).then(ok => {
+    void copyProseForReadAloud(inputText).then(ok => {
       if (!ok) return;
       setLiveSpeechCopyAck(true);
       window.setTimeout(() => setLiveSpeechCopyAck(false), 2400);
@@ -661,18 +662,18 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
               )}
             </div>
 
-            {showIosLiveSpeechGuide() && inputText.trim() && (
+            {nativeReadAloudGuide && inputText.trim() && (
               <div
                 className={`mb-4 p-4 rounded-xl border ${
                   isNight
                     ? 'border-[#d4b05a]/25 bg-[#d4b05a]/5'
                     : 'border-amber-200/80 bg-amber-50/60'
                 }`}
-                id="tender-live-speech-guide"
+                id="tender-native-read-aloud-guide"
               >
-                <span className={`hw-eyebrow block mb-2 ${styles.mutedText}`}>Personal Voice via Live Speech</span>
+                <span className={`hw-eyebrow block mb-2 ${styles.mutedText}`}>{nativeReadAloudGuide.title}</span>
                 <p className={`font-sans text-xs leading-relaxed mb-3 ${isNight ? 'text-white/75' : 'text-stone-700'}`}>
-                  iPhone web apps cannot play Personal Voice directly. Highlight your prose here, then hand off to iOS Live Speech.
+                  {nativeReadAloudGuide.intro}
                 </p>
                 <div className="flex flex-wrap gap-2 mb-3">
                   <button
@@ -688,27 +689,29 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                     <TextSelect className="w-3.5 h-3.5" aria-hidden />
                     Select all
                   </button>
-                  <button
-                    type="button"
-                    id="tender-copy-live-speech-btn"
-                    onClick={handleCopyForLiveSpeech}
-                    className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-full border text-[10px] font-mono uppercase tracking-widest cursor-pointer transition-colors ${
-                      isNight
-                        ? 'border-[#d4b05a]/40 text-[#d4b05a] hover:bg-[#d4b05a]/10'
-                        : 'border-amber-400 text-[#8a6f2e] hover:bg-amber-50'
-                    }`}
-                  >
-                    <Copy className="w-3.5 h-3.5" aria-hidden />
-                    {liveSpeechCopyAck ? 'Copied' : 'Copy for Live Speech'}
-                  </button>
+                  {nativeReadAloudGuide.showCopyButton && (
+                    <button
+                      type="button"
+                      id="tender-copy-live-speech-btn"
+                      onClick={handleCopyForLiveSpeech}
+                      className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-full border text-[10px] font-mono uppercase tracking-widest cursor-pointer transition-colors ${
+                        isNight
+                          ? 'border-[#d4b05a]/40 text-[#d4b05a] hover:bg-[#d4b05a]/10'
+                          : 'border-amber-400 text-[#8a6f2e] hover:bg-amber-50'
+                      }`}
+                    >
+                      <Copy className="w-3.5 h-3.5" aria-hidden />
+                      {liveSpeechCopyAck ? 'Copied' : nativeReadAloudGuide.copyButtonLabel}
+                    </button>
+                  )}
                 </div>
                 <ol className={`list-decimal list-inside space-y-1.5 font-sans text-xs leading-relaxed ${isNight ? 'text-white/70' : 'text-stone-600'}`}>
-                  {IOS_LIVE_SPEECH_STEPS.map(step => (
+                  {nativeReadAloudGuide.steps.map(step => (
                     <li key={step}>{step}</li>
                   ))}
                 </ol>
                 <p className={`font-mono text-[10px] leading-relaxed mt-3 ${styles.mutedText}`}>
-                  {iosLiveSpeechSetupHint()}
+                  {nativeReadAloudGuide.setupHint}
                 </p>
               </div>
             )}
@@ -832,6 +835,19 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                 id="tender-personal-voice-pwa-notice"
               >
                 Personal Voice does not appear in iPhone web apps. Use the Live Speech guide below the prose — highlight, copy, then triple-click the side button.
+              </p>
+            )}
+
+            {isAndroidPlatform() && roster.length > 0 && (
+              <p
+                className={`font-sans text-xs leading-relaxed mb-4 p-3 rounded-lg border ${
+                  isNight
+                    ? 'border-[#d4b05a]/25 bg-[#d4b05a]/5 text-white/75'
+                    : 'border-amber-200 bg-amber-50/80 text-stone-700'
+                }`}
+                id="tender-android-read-aloud-notice"
+              >
+                For your full system voice, use the read-aloud guide below the prose — Select all, then ⋮ More → Speak or Read aloud.
               </p>
             )}
 
