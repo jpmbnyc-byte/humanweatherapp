@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Volume2, Play, Square, Music, Headphones, Sliders, Edit2, Check, RefreshCw } from 'lucide-react';
+import { Volume2, Play, Square, Music, Headphones, Sliders, Check, RefreshCw, Bookmark, BookOpen } from 'lucide-react';
 import { PRESETS, UPCOMING_PRESETS } from '../data/presets';
 import { getThemeStyles } from '../lib/theme';
+import { loadTenderSlots, saveTenderSlot, persistTenderSlots, type TenderSlot } from '../lib/tenderSlots';
 import { registerAudioStop, stopAllAudio } from '../lib/stopAllAudio';
 import { useSpokenProse } from '../hooks/useSpokenProse';
 import {
@@ -39,8 +40,17 @@ interface TheTenderProps {
   currentTheme: 'day' | 'night';
 }
 
+type ProseSource =
+  | { type: 'slot'; slotId: string }
+  | { type: 'preset'; presetId: string };
+
 export default function TheTender({ currentTheme }: TheTenderProps) {
-  const [inputText, setInputText] = useState(PRESETS[0].text);
+  const [slots, setSlots] = useState<TenderSlot[]>(() => loadTenderSlots());
+  const [source, setSource] = useState<ProseSource>({ type: 'slot', slotId: 'slot-1' });
+  const [slotLabel, setSlotLabel] = useState(() => loadTenderSlots()[0]?.label ?? 'Morning note');
+  const [inputText, setInputText] = useState(() => loadTenderSlots()[0]?.text ?? '');
+  const [saveAck, setSaveAck] = useState(false);
+  const [lastSlotId, setLastSlotId] = useState('slot-1');
   const [soundEnv, setSoundEnv] = useState<'rain' | 'forest' | 'ocean' | 'hearth' | 'crickets' | 'silence'>('silence');
   const { speak: speakProse, stop: stopProse, status: proseStatus } = useSpokenProse();
   const isProseSpeaking = proseStatus === 'speaking';
@@ -50,7 +60,6 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const [currentVoiceFamiliar, setCurrentVoiceFamiliar] = useState(false);
   const [pace, setPace] = useState<PaceOption>('standard');
   const [ambientVolume, setAmbientVolume] = useState(0.4);
-  const [isEditMode, setIsEditMode] = useState(false);
   const [inlineVoiceOpen, setInlineVoiceOpen] = useState(false);
   const [showFamiliarGreeting, setShowFamiliarGreeting] = useState(false);
   const [familiarGreetingFading, setFamiliarGreetingFading] = useState(false);
@@ -62,6 +71,51 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const envGainNodeRef = useRef<GainNode | null>(null);
   const suppressTenderStopRef = useRef(false);
   const proseRef = useRef<HTMLDivElement | null>(null);
+
+  const activeSlot = slots.find(s => s.id === (source.type === 'slot' ? source.slotId : ''));
+  const isSlotMode = source.type === 'slot';
+
+  const selectSlot = (slotId: string) => {
+    stopReading(true);
+    let nextSlots = slots;
+    if (source.type === 'slot') {
+      nextSlots = slots.map(s =>
+        s.id === source.slotId ? { ...s, label: slotLabel.trim() || s.label, text: inputText } : s,
+      );
+      setSlots(nextSlots);
+      persistTenderSlots(nextSlots);
+    }
+    const target = nextSlots.find(s => s.id === slotId);
+    if (!target) return;
+    setSource({ type: 'slot', slotId });
+    setLastSlotId(slotId);
+    setSlotLabel(target.label);
+    setInputText(target.text);
+  };
+
+  const handleSaveSlot = () => {
+    if (source.type !== 'slot') return;
+    const next = saveTenderSlot({
+      id: source.slotId,
+      label: slotLabel.trim() || activeSlot?.label || 'Your message',
+      text: inputText,
+    });
+    setSlots(next);
+    setSaveAck(true);
+    window.setTimeout(() => setSaveAck(false), 2200);
+  };
+
+  const copyPresetToSlot = (slotId: string) => {
+    if (source.type !== 'preset') return;
+    const preset = PRESETS.find(p => p.id === source.presetId);
+    const target = slots.find(s => s.id === slotId);
+    if (!preset || !target) return;
+    stopReading(true);
+    setSource({ type: 'slot', slotId });
+    setLastSlotId(slotId);
+    setSlotLabel(target.label);
+    setInputText(preset.text);
+  };
 
   const preferredVoiceName = useCallback(() => {
     const label = currentVoiceLabel || getActiveVoiceLabel();
@@ -246,7 +300,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
       return;
     }
     const textSrc = inputText.trim();
-    if (!textSrc || isEditMode) return;
+    if (!textSrc) return;
     if (showFamiliarGreeting) dismissFamiliarGreeting();
     suppressTenderStopRef.current = true;
     stopAllAudio({ skipSpeechCancel: true });
@@ -282,11 +336,17 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
 
   const handlePresetSelect = (preset: typeof PRESETS[0]) => {
     stopReading(true);
+    if (source.type === 'slot') {
+      const next = slots.map(s =>
+        s.id === source.slotId ? { ...s, label: slotLabel.trim() || s.label, text: inputText } : s,
+      );
+      setSlots(next);
+      persistTenderSlots(next);
+    }
+    setSource({ type: 'preset', presetId: preset.id });
     setInputText(preset.text);
-    setIsEditMode(false);
     if (preset.id === 'solitude') setSoundEnv('ocean');
     else if (preset.id === 'reflection') setSoundEnv('rain');
-    else if (preset.id === 'relational-faith-01') setSoundEnv('silence');
     else setSoundEnv('silence');
   };
 
@@ -369,39 +429,77 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     >
       <div className={`absolute top-0 right-0 w-72 h-72 rounded-full blur-3xl pointer-events-none z-0 ${isNight ? 'bg-[#d4b05a]/[0.04]' : 'bg-stone-300/20'}`} />
 
-      <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between border-b pb-4 mb-5 border-accent/10">
-        <div className="text-left">
+      <div className="relative z-10 flex flex-col sm:flex-row sm:items-start justify-between border-b pb-4 mb-5 border-accent/10 gap-3">
+        <div className="text-left max-w-prose">
           <span className="hw-eyebrow block">Guided narration</span>
           <h2 className={`hw-display mt-1 ${styles.titleText}`}>The Tender</h2>
+          <p className={`font-serif text-sm italic mt-2 leading-relaxed ${styles.mutedText}`}>
+            Write your own words in one of four personal slots — save your message, then press Listen to hear it read aloud.
+          </p>
         </div>
-        <button
-          id="toggle-edit-mode-btn"
-          onClick={() => { stopReading(true); setIsEditMode(!isEditMode); }}
-          className={`mt-3 sm:mt-0 px-4 py-2.5 rounded-full border hw-btn-label flex items-center gap-1.5 cursor-pointer transition-all ${
-            isEditMode ? styles.badgeActive : styles.badgeInactive
-          }`}
-        >
-          {isEditMode ? <><Check className="w-3.5 h-3.5" /> Done</> : <><Edit2 className="w-3.5 h-3.5" /> Edit</>}
-        </button>
       </div>
 
-      <div className="relative z-10 mb-5">
-        <div className="flex flex-wrap gap-2">
-          {PRESETS.map(preset => {
-            const selected = !isEditMode && inputText === preset.text;
-            return (
-              <button
-                key={preset.id}
-                id={`preset-tab-${preset.id}`}
-                onClick={() => handlePresetSelect(preset)}
-                className={`px-4 py-2 rounded-full border font-sans text-sm transition-all cursor-pointer ${
-                  selected ? styles.badgeActive : styles.badgeInactive
-                }`}
-              >
-                {preset.title}
-              </button>
-            );
-          })}
+      <div className="relative z-10 mb-5 space-y-4">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Bookmark className={`w-3.5 h-3.5 ${styles.accentText}`} aria-hidden />
+            <span className="hw-eyebrow">Your recordable messages</span>
+          </div>
+          <p className={`font-sans text-sm leading-relaxed mb-3 ${styles.mutedText}`}>
+            Choose a slot, type or paste your own prose, and tap <strong className="font-medium opacity-90">Save message</strong>. Each slot keeps your text on this device for easy replay.
+          </p>
+          <div className="flex flex-wrap gap-2" role="tablist" aria-label="Your message slots">
+            {slots.map(slot => {
+              const selected = source.type === 'slot' && source.slotId === slot.id;
+              const hasText = Boolean(slot.text.trim());
+              return (
+                <button
+                  key={slot.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={selected}
+                  id={`tender-slot-${slot.id}`}
+                  onClick={() => selectSlot(slot.id)}
+                  className={`px-4 py-2 rounded-full border font-sans text-sm transition-all cursor-pointer flex items-center gap-2 ${
+                    selected ? styles.badgeActive : styles.badgeInactive
+                  }`}
+                >
+                  {slot.label}
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                      hasText ? 'bg-accent shadow-[0_0_6px_rgba(196,160,68,0.45)]' : isNight ? 'bg-white/20' : 'bg-stone-300'
+                    }`}
+                    aria-hidden
+                  />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <BookOpen className={`w-3.5 h-3.5 ${styles.accentText}`} aria-hidden />
+            <span className="hw-eyebrow">From the library</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {PRESETS.map(preset => {
+              const selected = source.type === 'preset' && source.presetId === preset.id;
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  id={`preset-tab-${preset.id}`}
+                  onClick={() => handlePresetSelect(preset)}
+                  className={`px-4 py-2 rounded-full border font-sans text-sm transition-all cursor-pointer ${
+                    selected ? styles.badgeActive : styles.badgeInactive
+                  }`}
+                >
+                  {preset.title}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -451,27 +549,74 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
             <div
               ref={proseRef}
               tabIndex={-1}
-              className="flex-1 max-h-[220px] overflow-y-auto pr-1 select-text scrollbar-thin mb-4 outline-none"
+              className="flex-1 max-h-[260px] overflow-y-auto pr-1 select-text scrollbar-thin mb-4 outline-none"
             >
-              {isEditMode ? (
-                <textarea
-                  id="tender-custom-textarea"
-                  rows={8}
-                  className={`w-full p-3 rounded-xl border hw-body focus:outline-none ${
-                    isNight ? 'bg-black/60 border-white/10 text-white' : 'bg-white border-stone-300 text-[#2c2824]'
-                  }`}
-                  placeholder="Write or paste your reflection…"
-                  value={inputText}
-                  onChange={e => { stopReading(true); setInputText(e.target.value); }}
-                />
+              {isSlotMode ? (
+                <div className="flex flex-col gap-3">
+                  <label className="flex flex-col gap-1.5">
+                    <span className={`hw-meta ${styles.mutedText}`}>Slot name</span>
+                    <input
+                      type="text"
+                      id="tender-slot-label"
+                      value={slotLabel}
+                      onChange={e => setSlotLabel(e.target.value)}
+                      className={`w-full px-3 py-2 rounded-lg border font-sans text-sm focus:outline-none ${
+                        isNight ? 'bg-black/60 border-white/10 text-white' : 'bg-white border-stone-300 text-[#2c2824]'
+                      }`}
+                      placeholder="Name this message"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1.5 flex-1">
+                    <span className={`hw-meta ${styles.mutedText}`}>Your words</span>
+                    <textarea
+                      id="tender-custom-textarea"
+                      rows={9}
+                      className={`w-full p-3 rounded-xl border hw-body focus:outline-none resize-y min-h-[180px] ${
+                        isNight ? 'bg-black/60 border-white/10 text-white' : 'bg-white border-stone-300 text-[#2c2824]'
+                      }`}
+                      placeholder="Write or paste your own reflection, prayer, letter, or reminder here…"
+                      value={inputText}
+                      onChange={e => { stopReading(true); setInputText(e.target.value); }}
+                    />
+                  </label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      id="tender-save-slot-btn"
+                      onClick={handleSaveSlot}
+                      className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full border text-xs font-mono uppercase tracking-widest cursor-pointer transition-colors ${
+                        isNight
+                          ? 'border-accent/40 text-accent hover:bg-accent/10'
+                          : 'border-accent/50 text-[#8a6f2e] hover:bg-accent/5'
+                      }`}
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      {saveAck ? 'Saved' : 'Save message'}
+                    </button>
+                    {saveAck && (
+                      <span className={`font-mono text-[10px] uppercase tracking-wide ${styles.mutedText}`} aria-live="polite">
+                        Ready to listen
+                      </span>
+                    )}
+                  </div>
+                </div>
               ) : inputText.trim() ? (
-                inputText.split('\n\n').map((paragraph, pIdx) => (
-                  <p key={pIdx} className={`mb-4 hw-body text-left ${isNight ? 'text-white/85' : 'text-[#2c2824]'}`}>
-                    {paragraph}
-                  </p>
-                ))
+                <>
+                  {inputText.split('\n\n').map((paragraph, pIdx) => (
+                    <p key={pIdx} className={`mb-4 hw-body text-left ${isNight ? 'text-white/85' : 'text-[#2c2824]'}`}>
+                      {paragraph}
+                    </p>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => copyPresetToSlot(lastSlotId)}
+                    className={`mt-2 font-mono text-[10px] uppercase tracking-widest cursor-pointer hover:opacity-80 ${styles.accentText}`}
+                  >
+                    Copy to {slots.find(s => s.id === lastSlotId)?.label ?? 'your slot'} →
+                  </button>
+                </>
               ) : (
-                <p className={`hw-caption ${styles.mutedText}`}>Choose a preset or edit your own prose.</p>
+                <p className={`hw-caption ${styles.mutedText}`}>Select a library piece or choose one of your message slots above.</p>
               )}
             </div>
 
@@ -539,7 +684,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
               </div>
               <button
                 id="tender-play-toggle-btn"
-                disabled={isEditMode || !inputText.trim()}
+                disabled={!inputText.trim()}
                 onClick={handleListenStop}
                 aria-label={isProseSpeaking ? 'Stop reading' : 'Listen now'}
                 aria-pressed={isProseSpeaking}
