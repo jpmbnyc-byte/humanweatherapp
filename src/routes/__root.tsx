@@ -11,19 +11,13 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { scheduleDeferredFonts } from "../lib/deferredFonts";
-import { dismissBootSplash } from "../components/BootSplashFallback";
 
 const BOOT_SPLASH_CSS = `
 #hw-boot{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#faf8f5;color:#2c2824;font-family:Georgia,"Times New Roman",serif}
 #hw-boot-inner{text-align:center;padding:1.5rem}
-#hw-boot-eyebrow{font-size:11px;letter-spacing:0.25em;text-transform:uppercase;opacity:0.4;margin:0 0 1rem}
-#hw-boot-title{font-size:clamp(1.75rem,6vw,2.5rem);font-weight:500;margin:0;line-height:1.15}
-#hw-boot-title em{font-style:italic;color:#8a6f2e}
-#hw-boot-sub{font-size:0.95rem;font-style:italic;opacity:0.65;margin:1rem 0 0}
-#hw-boot-bar{height:3px;width:min(12rem,60vw);margin:1.25rem auto 0;border-radius:999px;background:rgba(44,40,36,0.12);overflow:hidden}
-#hw-boot-bar>i{display:block;height:100%;width:35%;background:#c4a044;border-radius:999px;animation:hw-boot-slide 1.4s ease-in-out infinite}
-@keyframes hw-boot-slide{0%{transform:translateX(-120%)}100%{transform:translateX(320%)}}
-@media (prefers-color-scheme:dark){#hw-boot{background:#141210;color:#f5f0e8}#hw-boot-title em{color:#d4b85a}#hw-boot-bar{background:rgba(255,255,255,0.08)}#hw-boot-bar>i{background:#d4b85a}}
+#hw-boot-logo{width:5.5rem;height:5.5rem;border-radius:1.25rem;margin:0 auto 1rem;display:block;box-shadow:0 4px 24px rgba(0,0,0,0.12)}
+#hw-boot-sub{font-size:1rem;font-style:italic;opacity:0.65;margin:1rem 0 0}
+@media (prefers-color-scheme:dark){#hw-boot{background:#141210;color:#f5f0e8}}
 `;
 
 function NotFoundComponent() {
@@ -53,7 +47,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
-    dismissBootSplash();
+    document.getElementById("hw-boot")?.remove();
   }, [error]);
 
   return (
@@ -97,29 +91,32 @@ export const Route = createRootRoute({
       { name: "apple-mobile-web-app-title", content: "Human Weather" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { title: "Human Weather" },
-      { name: "description", content: "Map your internal climate — somatic field station and circadian alignment." },
+      {
+        name: "description",
+        content: "Map your internal climate — somatic field station and circadian alignment.",
+      },
       { name: "author", content: "Human Weather" },
       { property: "og:title", content: "Human Weather" },
-      { property: "og:description", content: "Map your internal climate — somatic field station and circadian alignment." },
+      {
+        property: "og:description",
+        content: "Map your internal climate — somatic field station and circadian alignment.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:title", content: "Human Weather" },
-      { name: "twitter:description", content: "Map your internal climate — somatic field station and circadian alignment." },
       {
-        property: "og:image",
-        content: "/icon-512.png",
+        name: "twitter:description",
+        content: "Map your internal climate — somatic field station and circadian alignment.",
       },
-      {
-        name: "twitter:image",
-        content: "/icon-512.png",
-      },
+      { property: "og:image", content: "/icon-512.png" },
+      { name: "twitter:image", content: "/icon-512.png" },
     ],
     links: [
       {
         rel: "stylesheet",
         href: appCss,
       },
-      { rel: "icon", href: "/favicon.ico", sizes: "any" },
+      { rel: "icon", type: "image/png", href: "/apple-touch-icon.png" },
       { rel: "icon", type: "image/png", sizes: "32x32", href: "/favicon-32x32.png" },
       { rel: "icon", type: "image/png", sizes: "16x16", href: "/favicon-16x16.png" },
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
@@ -142,14 +139,15 @@ function RootShell({ children }: { children: ReactNode }) {
       <body>
         <div id="hw-boot" aria-live="polite" aria-busy="true">
           <div id="hw-boot-inner">
-            <p id="hw-boot-eyebrow">human weather</p>
-            <h1 id="hw-boot-title">
-              Human <em>Weather</em>
-            </h1>
+            <img
+              id="hw-boot-logo"
+              src="/apple-touch-icon.png"
+              alt=""
+              width={88}
+              height={88}
+              decoding="async"
+            />
             <p id="hw-boot-sub">Opening your field station…</p>
-            <div id="hw-boot-bar" aria-hidden="true">
-              <i />
-            </div>
           </div>
         </div>
         {children}

@@ -72,24 +72,22 @@ function shellHtml({ indexScript, cssHref }) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#141210">
-<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/manifest.webmanifest">
 <title>Human Weather</title>
 <style>
 #hw-boot{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:#faf8f5;color:#2c2824;font-family:Georgia,"Times New Roman",serif}
 #hw-boot-inner{text-align:center;padding:1.5rem;max-width:20rem}
-#hw-boot-eyebrow{font-size:11px;letter-spacing:0.25em;text-transform:uppercase;opacity:0.4;margin:0 0 1rem}
-#hw-boot-title{font-size:clamp(1.75rem,6vw,2.5rem);font-weight:500;margin:0;line-height:1.15}
-#hw-boot-title em{font-style:italic;color:#8a6f2e}
+#hw-boot-logo{width:5.5rem;height:5.5rem;border-radius:1.25rem;margin:0 auto 1rem;display:block;box-shadow:0 4px 24px rgba(0,0,0,0.12)}
 #hw-boot-sub{font-size:0.95rem;font-style:italic;opacity:0.65;margin:1rem 0 0}
 #hw-boot-bar{height:3px;width:min(12rem,60vw);margin:1.25rem auto 0;border-radius:999px;background:rgba(44,40,36,0.12);overflow:hidden}
 #hw-boot-bar>i{display:block;height:100%;width:35%;background:#c4a044;border-radius:999px;animation:hw-boot-slide 1.4s ease-in-out infinite}
 @keyframes hw-boot-slide{0%{transform:translateX(-120%)}100%{transform:translateX(320%)}}
 @media (prefers-color-scheme:dark){
   #hw-boot{background:#141210;color:#f5f0e8}
-  #hw-boot-title em{color:#d4b85a}
   #hw-boot-bar{background:rgba(255,255,255,0.08)}
   #hw-boot-bar>i{background:#d4b85a}
 }
@@ -117,8 +115,7 @@ ${cssLink}
 <body>
 <div id="hw-boot" aria-live="polite" aria-busy="true">
   <div id="hw-boot-inner">
-    <p id="hw-boot-eyebrow">human weather</p>
-    <h1 id="hw-boot-title">Human <em>Weather</em></h1>
+    <img id="hw-boot-logo" src="/apple-touch-icon.png" alt="" width="88" height="88" decoding="async">
     <p id="hw-boot-sub">Opening your field station…</p>
     <div id="hw-boot-bar" aria-hidden="true"><i></i></div>
   </div>

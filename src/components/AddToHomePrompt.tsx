@@ -1,5 +1,5 @@
 import React from 'react';
-import { Smartphone, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { addToHomeInstructions, detectInstallPlatform, type InstallPlatform } from '../lib/addToHome';
 
 type Props = {
@@ -48,11 +48,18 @@ export default function AddToHomePrompt({ currentTheme, themeStyles, onDismiss }
 
         <div className="flex items-start gap-3 pr-8">
           <div
-            className={`shrink-0 p-2.5 rounded-xl border ${
-              isNight ? 'border-accent/30 bg-accent/10 text-accent' : 'border-accent/35 bg-accent/[0.08] text-[#8a6f2e]'
+            className={`shrink-0 p-1 rounded-xl border overflow-hidden ${
+              isNight ? 'border-accent/30 bg-black/20' : 'border-accent/35 bg-white shadow-sm'
             }`}
           >
-            <Smartphone className="w-5 h-5" aria-hidden />
+            <img
+              src="/apple-touch-icon.png"
+              alt=""
+              width={44}
+              height={44}
+              className="w-11 h-11 rounded-[0.65rem] block"
+              decoding="async"
+            />
           </div>
           <div>
             <span className="hw-eyebrow block mb-1">Install</span>
