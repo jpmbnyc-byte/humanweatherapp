@@ -19,6 +19,8 @@ import PrescriptionTrail from './components/PrescriptionTrail';
 import ChamberIntro from './components/ChamberIntro';
 import { dismissAddToHome, shouldOfferAddToHome } from './lib/addToHome';
 import { initHarness } from './lib/harness';
+import { unlockAudioContext } from './lib/audioEngine';
+import AmbientDrift from './components/AmbientDrift';
 
 const SunIcon = () => (
   <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-accent" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
@@ -122,6 +124,7 @@ function AppBody() {
     const prime = () => {
       warmSpeechVoicesFromGesture();
       primeSpeechEngine();
+      void unlockAudioContext();
     };
     window.addEventListener('pointerdown', prime, { once: true, passive: true });
     window.addEventListener('touchstart', prime, { once: true, passive: true });
@@ -189,6 +192,9 @@ function AppBody() {
       data-office-state={place?.officeState ?? 'none'}
     >
       <MountainBackground theme={currentTheme} />
+      {(activeTab === 'therapy' || activeTab === 'tender') && (
+        <AmbientDrift intensity={activeTab === 'therapy' ? 'medium' : 'soft'} />
+      )}
 
       {showAddToHome && (
         <AddToHomePrompt
@@ -318,7 +324,7 @@ function AppBody() {
             {activeTab === 'therapy' && (
               <div
                 key="therapy-view"
-                className="hw-view-enter flex flex-col gap-8 md:gap-10"
+                className="hw-view-enter flex flex-col gap-8 md:gap-10 hw-therapy-chamber"
               >
                 <ChamberIntro chamber="therapy" currentTheme={currentTheme} />
                 <Suspense fallback={<TabSkeleton isNight={isNight} />}>

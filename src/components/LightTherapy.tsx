@@ -115,7 +115,7 @@ export default function LightTherapy({ currentTheme }: LightTherapyProps) {
             />
 
             {/* Float Particles drift (for deep spatial experience) */}
-            <div className="absolute inset-0 z-1 pointer-events-none opacity-30">
+            <div className="hw-ambient-particles absolute inset-0 pointer-events-none opacity-30" aria-hidden>
               <div className="absolute w-1 h-1 rounded-full bg-white/40 top-1/4 left-1/3 animate-pulse" />
               <div className="absolute w-1.5 h-1.5 rounded-full bg-white/30 top-1/2 left-2/3 animate-pulse" style={{ animationDelay: '1s' }} />
               <div className="absolute w-0.5 h-0.5 rounded-full bg-white/50 top-3/4 left-1/4 animate-pulse" style={{ animationDelay: '2s' }} />
