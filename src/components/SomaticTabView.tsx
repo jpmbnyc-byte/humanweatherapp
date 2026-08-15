@@ -13,6 +13,7 @@ import CompanionPanel from './harness/CompanionPanel';
 import PatternViewPanel from './harness/PatternViewPanel';
 import { appendReading } from '../lib/harness/readings';
 import { noteWeatherObservation } from '../lib/harness/vocabulary';
+import { runWhenIdle } from '../lib/deferredWork';
 import type { WhereAreWeResult } from '../lib/whereAreWe';
 import type { WeatherState } from '../types';
 
