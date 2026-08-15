@@ -6,6 +6,7 @@
 @source "../src/data";
 @source "../src/hooks";
 @source "../src/components/*.tsx";
+@source "../src/components/harness/*.tsx";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -351,6 +352,23 @@ body {
 
   .hw-cell-pulse {
     animation: hw-cell-pulse 2.4s ease-in-out infinite;
+  }
+
+  .hw-btn-ghost {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 0.5rem 1rem;
+    border: 1px solid color-mix(in oklch, var(--accent) 35%, transparent);
+    border-radius: var(--radius-sm);
+    color: var(--accent);
+    background: transparent;
+    transition: background 160ms ease, opacity 160ms ease;
+  }
+
+  .hw-btn-ghost:hover {
+    background: color-mix(in oklch, var(--accent) 8%, transparent);
   }
 
   @media (prefers-reduced-motion: reduce) {

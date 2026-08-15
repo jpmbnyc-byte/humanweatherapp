@@ -19,6 +19,7 @@ import {
 import { isShareablePromoCode } from './promoCodes';
 import { parsePromoFromSearch, stripPromoFromSearch } from './promoShare';
 import { isPurchaseConfigured, isStripeCheckoutUrl, openPurchaseCheckout } from './purchaseConfig';
+import { tierGateSnapshot } from './harness/tierGate';
 import { recoverStripeGrant } from './entitlement.functions';
 
 type EntitlementContextValue = {
@@ -201,7 +202,15 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
       isMember: effective === 'member',
       can: (feature: EntitlementFeature) => hasFeature(effective, feature),
       canReadFascia: canReadFasciaState(effective),
-      footline: record ? trialFootline(record) : null,
+      footline: record
+        ? (() => {
+            const harness = tierGateSnapshot(record);
+            if (harness.showHarnessFootline && harness.harnessFootline) {
+              return harness.harnessFootline;
+            }
+            return trialFootline(record);
+          })()
+        : null,
       membershipExpiresLabel: record ? formatMembershipExpiry(record) : null,
       isLifetimeMember: isLifetimeMember(record),
       pendingPromoCode,
