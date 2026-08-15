@@ -3,13 +3,13 @@ import SomaticGrid from './SomaticGrid';
 import ConditionsCard from './ConditionsCard';
 import TrialFootline from './TrialFootline';
 import OfficeSequence from './OfficeSequence';
+import StationGuide from './StationGuide';
 import PurchaseSuccessBanner from './PurchaseSuccessBanner';
 import PromoSuccessBanner from './PromoSuccessBanner';
 import PurchaseVerifyErrorBanner from './PurchaseVerifyErrorBanner';
 import { useFormingOptional } from '../lib/forming/FormingContext';
 import { useEntitlement } from '../lib/EntitlementContext';
-import ReadingFlowPanel from './harness/ReadingFlowPanel';
-import CompanionPanel from './harness/CompanionPanel';
+import { StationJourneyProvider, useStationJourney } from '../lib/StationJourneyContext';
 import PatternViewPanel from './harness/PatternViewPanel';
 import { appendReading } from '../lib/harness/readings';
 import { noteWeatherObservation } from '../lib/harness/vocabulary';
@@ -50,7 +50,7 @@ function SomaticScaleWrap({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function SomaticTabView({
+function SomaticTabBody({
   currentTheme,
   activeWeather,
   themeStyles,
@@ -68,6 +68,7 @@ export default function SomaticTabView({
     promoMessage,
     dismissPromoMessage,
   } = useEntitlement();
+  const { markMapped, markBreathComplete } = useStationJourney();
   const nascimentoEnabled = can('nascimento');
   const conditionsSummary = `${activeWeather.clinicalIndex} · HRV ${activeWeather.hrv}%`;
   const [formingReady, setFormingReady] = useState(false);
@@ -79,12 +80,17 @@ export default function SomaticTabView({
 
   const handleStateChange = useCallback(
     (state: WeatherState, coords: [number, number][]) => {
+      if (coords.length > 0) markMapped();
       void appendReading({ weatherId: state.id, source: 'field_station' });
       void noteWeatherObservation(state.id);
       onStateChange(state, coords);
     },
-    [onStateChange],
+    [markMapped, onStateChange],
   );
+
+  const handleBreathComplete = useCallback(() => {
+    markBreathComplete();
+  }, [markBreathComplete]);
 
   const inner = (
     <>
@@ -116,35 +122,53 @@ export default function SomaticTabView({
               onDismiss={dismissPurchaseVerifyError}
             />
           )}
-          <CompanionPanel currentTheme={currentTheme} />
-          <ReadingFlowPanel activeWeather={activeWeather} currentTheme={currentTheme} />
-          <OfficeSequence
+
+          <StationGuide
             place={place}
+            activeWeather={activeWeather}
             currentTheme={currentTheme}
-            onNavigateTab={onNavigateTab}
           />
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start w-full min-w-0">
-            <div className="lg:col-span-5 flex flex-col items-center w-full min-w-0">
-              <SomaticGrid onStateChange={handleStateChange} currentTheme={currentTheme} />
-              <Suspense fallback={<div className="h-32 w-full mt-8 animate-pulse rounded-xl bg-accent/5" aria-hidden />}>
-                <TheFascia currentTheme={currentTheme} />
-              </Suspense>
-              <PatternViewPanel currentTheme={currentTheme} />
+          {place?.activeOffice && place.officeState === 'available' && (
+            <div className="hw-station-linked mb-8">
+              <OfficeSequence
+                place={place}
+                currentTheme={currentTheme}
+                onNavigateTab={onNavigateTab}
+              />
             </div>
+          )}
 
-            <div className="lg:col-span-7 flex flex-col gap-10 w-full min-w-0">
+          <div className="flex flex-col gap-10 lg:gap-12 w-full min-w-0">
+            <section aria-label="Somatic field mapping" className="hw-station-linked">
+              <SomaticGrid onStateChange={handleStateChange} currentTheme={currentTheme} />
+            </section>
+
+            <section aria-label="Current conditions" className="hw-station-linked">
               <ConditionsCard
                 activeWeather={activeWeather}
                 themeStyles={themeStyles}
                 isNight={isNight}
                 onNavigateTab={onNavigateTab}
               />
+            </section>
 
+            <section aria-label="Calibrated breathwork" className="hw-station-linked">
               <Suspense fallback={<div className="h-64 animate-pulse rounded-2xl bg-accent/5" aria-hidden />}>
-                <BreathworkOrb weatherState={activeWeather} currentTheme={currentTheme} />
+                <BreathworkOrb
+                  weatherState={activeWeather}
+                  currentTheme={currentTheme}
+                  onCyclesComplete={handleBreathComplete}
+                />
               </Suspense>
-            </div>
+            </section>
+
+            <section aria-label="The Fascia record" className="hw-station-linked">
+              <Suspense fallback={<div className="h-32 w-full animate-pulse rounded-xl bg-accent/5" aria-hidden />}>
+                <TheFascia currentTheme={currentTheme} />
+              </Suspense>
+              <PatternViewPanel currentTheme={currentTheme} />
+            </section>
           </div>
         </div>
       </SomaticScaleWrap>
@@ -165,5 +189,13 @@ export default function SomaticTabView({
         {inner}
       </FormingProvider>
     </Suspense>
+  );
+}
+
+export default function SomaticTabView(props: Props) {
+  return (
+    <StationJourneyProvider>
+      <SomaticTabBody {...props} />
+    </StationJourneyProvider>
   );
 }

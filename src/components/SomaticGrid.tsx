@@ -205,7 +205,7 @@ export default function SomaticGrid({ onStateChange, currentTheme }: SomaticGrid
   const activeCount = grid.flat().filter(Boolean).length;
 
   return (
-    <div className="flex flex-col items-center w-full max-w-md mx-auto" id="somatic-field-section">
+    <div className="flex flex-col items-center w-full max-w-md mx-auto" id="somatic-field">
       {/* Title & Stats */}
       <div className="w-full flex items-center justify-between mb-2">
         <div className="flex flex-col">

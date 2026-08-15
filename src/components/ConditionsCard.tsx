@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Square, Play } from 'lucide-react';
 import type { WeatherState } from '../types';
 import { getConditionCopy } from '../data/conditions';
@@ -6,6 +6,7 @@ import { prescriptionTab, routePrescription } from '../lib/prescriptionRouter';
 import { setPrescriptionFocus } from '../lib/prescriptionFocus';
 import { useSpokenProse } from '../hooks/useSpokenProse';
 import { useEntitlement } from '../lib/EntitlementContext';
+import { useStationJourneyOptional } from '../lib/StationJourneyContext';
 import PurchaseOffer from './PurchaseOffer';
 
 type Props = {
@@ -21,6 +22,14 @@ export default function ConditionsCard({
   isNight,
   onNavigateTab,
 }: Props) {
+  const journey = useStationJourneyOptional();
+  const viewedRef = useRef(false);
+
+  useEffect(() => {
+    if (viewedRef.current) return;
+    viewedRef.current = true;
+    journey?.markConditionsEngaged();
+  }, [journey]);
   const { can } = useEntitlement();
   const { speak, stop, status } = useSpokenProse();
   const isSpeaking = status === 'speaking';
@@ -41,6 +50,7 @@ export default function ConditionsCard({
 
   const handlePrescription = () => {
     if (prescription.target === 'clear') return;
+    journey?.markPrescriptionTaken();
     if (prescription.focus) setPrescriptionFocus(prescription.focus);
     const tab = prescriptionTab(prescription.target);
     if (tab) onNavigateTab(tab);

@@ -15,6 +15,8 @@ import { dismissBootSplash } from './components/BootSplashFallback';
 import MembershipButton from './components/MembershipButton';
 import AddToHomePrompt from './components/AddToHomePrompt';
 import SomaticTabView from './components/SomaticTabView';
+import PrescriptionTrail from './components/PrescriptionTrail';
+import ChamberIntro from './components/ChamberIntro';
 import { dismissAddToHome, shouldOfferAddToHome } from './lib/addToHome';
 import { initHarness } from './lib/harness';
 
@@ -294,6 +296,13 @@ function AppBody() {
 
         {/* Main views */}
         <main className="flex-1 w-full py-10 md:py-12 min-w-0" id="app-main-view">
+            <PrescriptionTrail
+              activeTab={activeTab}
+              activeWeather={activeWeather}
+              currentTheme={currentTheme}
+              onReturnStation={() => transitionToTab(THRESHOLD_TAB)}
+            />
+
             {activeTab === 'somatic' && (
               <SomaticTabView
                 currentTheme={currentTheme}
@@ -311,6 +320,7 @@ function AppBody() {
                 key="therapy-view"
                 className="hw-view-enter flex flex-col gap-8 md:gap-10"
               >
+                <ChamberIntro chamber="therapy" currentTheme={currentTheme} />
                 <Suspense fallback={<TabSkeleton isNight={isNight} />}>
                   <TabErrorBoundary isNight={isNight}>
                     <FrequencyTherapy currentTheme={currentTheme} />
@@ -326,6 +336,7 @@ function AppBody() {
                 key="rhythms-view"
                 className="hw-view-enter flex flex-col gap-8 md:gap-10"
               >
+                <ChamberIntro chamber="rhythms" currentTheme={currentTheme} />
                 <Suspense fallback={<TabSkeleton isNight={isNight} />}>
                   <TabErrorBoundary isNight={isNight}>
                     <SolarRay currentTheme={currentTheme} isActive={activeTab === 'rhythms'} />
@@ -338,8 +349,9 @@ function AppBody() {
             {activeTab === 'tender' && (
               <div
                 key="tender-view"
-                className="hw-view-enter w-full"
+                className="hw-view-enter w-full flex flex-col gap-8"
               >
+                <ChamberIntro chamber="tender" currentTheme={currentTheme} />
                 <Suspense fallback={<TabSkeleton isNight={isNight} />}>
                   <TabErrorBoundary isNight={isNight}>
                     <TheTender currentTheme={currentTheme} />

@@ -8,9 +8,10 @@ import { FORMING_CYCLE_COUNT } from '../lib/forming/types';
 interface BreathworkOrbProps {
   weatherState: WeatherState;
   currentTheme: 'day' | 'night';
+  onCyclesComplete?: () => void;
 }
 
-export default function BreathworkOrb({ weatherState, currentTheme }: BreathworkOrbProps) {
+export default function BreathworkOrb({ weatherState, currentTheme, onCyclesComplete }: BreathworkOrbProps) {
   const { inhale, holdIn, exhale, holdOut } = weatherState.breathPattern;
   const [phase, setPhase] = useState<'Inhale' | 'Hold' | 'Exhale' | 'Hold Out'>('Inhale');
   const [secondsLeft, setSecondsLeft] = useState(inhale);
@@ -48,6 +49,7 @@ export default function BreathworkOrb({ weatherState, currentTheme }: Breathwork
               exhaleCycleRef.current += 1;
               if (exhaleCycleRef.current >= FORMING_CYCLE_COUNT) {
                 setIsPlaying(false);
+                onCyclesComplete?.();
               }
             }
           }
@@ -118,6 +120,7 @@ export default function BreathworkOrb({ weatherState, currentTheme }: Breathwork
 
   return (
     <div
+      id="breath-orb"
       className={`flex flex-col items-center justify-center p-6 rounded-2xl border backdrop-blur-md w-full max-w-md mx-auto ${
       currentTheme === 'night' 
         ? 'bg-[#1e1c18]/90 border-white/[0.06]' 
