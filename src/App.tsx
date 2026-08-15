@@ -16,6 +16,7 @@ import MembershipButton from './components/MembershipButton';
 import AddToHomePrompt from './components/AddToHomePrompt';
 import SomaticTabView from './components/SomaticTabView';
 import { dismissAddToHome, shouldOfferAddToHome } from './lib/addToHome';
+import { initHarness } from './lib/harness';
 
 const SunIcon = () => (
   <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-accent" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
@@ -90,6 +91,7 @@ function AppBody() {
 
   useEffect(() => {
     dismissBootSplash();
+    void initHarness();
   }, []);
 
   useEffect(() => {

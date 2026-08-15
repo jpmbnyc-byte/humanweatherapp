@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useEffect, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import SomaticGrid from './SomaticGrid';
 import ConditionsCard from './ConditionsCard';
 import TrialFootline from './TrialFootline';
@@ -8,7 +8,11 @@ import PromoSuccessBanner from './PromoSuccessBanner';
 import PurchaseVerifyErrorBanner from './PurchaseVerifyErrorBanner';
 import { useFormingOptional } from '../lib/forming/FormingContext';
 import { useEntitlement } from '../lib/EntitlementContext';
-import { runWhenIdle } from '../lib/deferredWork';
+import ReadingFlowPanel from './harness/ReadingFlowPanel';
+import CompanionPanel from './harness/CompanionPanel';
+import PatternViewPanel from './harness/PatternViewPanel';
+import { appendReading } from '../lib/harness/readings';
+import { noteWeatherObservation } from '../lib/harness/vocabulary';
 import type { WhereAreWeResult } from '../lib/whereAreWe';
 import type { WeatherState } from '../types';
 
@@ -72,6 +76,15 @@ export default function SomaticTabView({
     runWhenIdle(() => setFormingReady(true), 1500);
   }, [nascimentoEnabled]);
 
+  const handleStateChange = useCallback(
+    (state: WeatherState, coords: [number, number][]) => {
+      void appendReading({ weatherId: state.id, source: 'field_station' });
+      void noteWeatherObservation(state.id);
+      onStateChange(state, coords);
+    },
+    [onStateChange],
+  );
+
   const inner = (
     <>
       {formingReady && (
@@ -102,6 +115,8 @@ export default function SomaticTabView({
               onDismiss={dismissPurchaseVerifyError}
             />
           )}
+          <CompanionPanel currentTheme={currentTheme} />
+          <ReadingFlowPanel activeWeather={activeWeather} currentTheme={currentTheme} />
           <OfficeSequence
             place={place}
             currentTheme={currentTheme}
@@ -110,10 +125,11 @@ export default function SomaticTabView({
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start w-full min-w-0">
             <div className="lg:col-span-5 flex flex-col items-center w-full min-w-0">
-              <SomaticGrid onStateChange={onStateChange} currentTheme={currentTheme} />
+              <SomaticGrid onStateChange={handleStateChange} currentTheme={currentTheme} />
               <Suspense fallback={<div className="h-32 w-full mt-8 animate-pulse rounded-xl bg-accent/5" aria-hidden />}>
                 <TheFascia currentTheme={currentTheme} />
               </Suspense>
+              <PatternViewPanel currentTheme={currentTheme} />
             </div>
 
             <div className="lg:col-span-7 flex flex-col gap-10 w-full min-w-0">
