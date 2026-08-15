@@ -10,6 +10,8 @@
 @source "../src/components/StationGuide.tsx";
 @source "../src/components/PrescriptionTrail.tsx";
 @source "../src/components/ChamberIntro.tsx";
+@source "../src/components/SoundImmersionOverlay.tsx";
+@source "../src/components/AmbientDrift.tsx";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -518,9 +520,85 @@ body {
     border-left: 2px solid color-mix(in oklch, var(--accent) 15%, transparent);
   }
 
+  .hw-station-linked {
+    position: relative;
+    padding-left: 0.75rem;
+    border-left: 2px solid color-mix(in oklch, var(--accent) 15%, transparent);
+  }
+
+  /* Calm / Luminé-inspired ambient layers */
+  @keyframes hw-ambient-float {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0);
+      opacity: 0.15;
+    }
+    50% {
+      transform: translate3d(8px, -18px, 0);
+      opacity: 0.45;
+    }
+  }
+
+  .hw-ambient-particle {
+    animation: hw-ambient-float ease-in-out infinite;
+    box-shadow: 0 0 12px color-mix(in oklch, var(--accent) 30%, transparent);
+  }
+
+  .hw-ambient-particles::before,
+  .hw-ambient-particles::after {
+    content: "";
+    position: absolute;
+    border-radius: 999px;
+    filter: blur(40px);
+    opacity: 0.35;
+    animation: hw-ambient-float 12s ease-in-out infinite;
+  }
+
+  .hw-ambient-particles::before {
+    width: 40%;
+    height: 30%;
+    top: 15%;
+    left: 10%;
+    background: color-mix(in oklch, var(--accent) 25%, transparent);
+  }
+
+  .hw-ambient-particles::after {
+    width: 35%;
+    height: 25%;
+    bottom: 10%;
+    right: 8%;
+    background: color-mix(in oklch, var(--chart-2) 20%, transparent);
+    animation-delay: 4s;
+  }
+
+  .hw-therapy-chamber {
+    position: relative;
+  }
+
+  .hw-therapy-panel {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hw-therapy-panel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(
+      ellipse 80% 50% at 50% 0%,
+      color-mix(in oklch, var(--accent) 6%, transparent),
+      transparent 70%
+    );
+    opacity: 0.9;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .hw-view-enter,
-    .hw-cell-pulse {
+    .hw-cell-pulse,
+    .hw-ambient-particle,
+    .hw-ambient-particles::before,
+    .hw-ambient-particles::after {
       animation: none;
     }
 
