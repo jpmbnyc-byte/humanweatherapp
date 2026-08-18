@@ -27,6 +27,17 @@ let _iosSpeechUnlocked = false;
 let _savedVoiceUriCache: string | null = null;
 let _savedVoiceNameCache: string | null = null;
 
+/** Retain active utterances; some engines may collect long speech otherwise. */
+const _activeUtterances = new Set<SpeechSynthesisUtterance>();
+
+function retainUtterance(utterance: SpeechSynthesisUtterance): void {
+  _activeUtterances.add(utterance);
+}
+
+function releaseUtterance(utterance: SpeechSynthesisUtterance): void {
+  _activeUtterances.delete(utterance);
+}
+
 function synthesis(): SpeechSynthesis | null {
   if (typeof window === 'undefined' || !window.speechSynthesis) return null;
   return window.speechSynthesis;
@@ -250,6 +261,7 @@ export function stationStop(): void {
   _speakToken += 1;
   stopIosSpeechKeepAlive();
   synthesis()?.cancel();
+  _activeUtterances.clear();
 }
 
 function startIosSpeechKeepAlive(): void {
@@ -425,10 +437,19 @@ function speakSentence(
     utterance.rate = _paceRate;
     utterance.pitch = 0.95;
     utterance.volume = 1;
-    utterance.onend = () => resolve();
-    utterance.onerror = () => resolve();
+    const finish = () => {
+      releaseUtterance(utterance);
+      resolve();
+    };
+    utterance.onend = finish;
+    utterance.onerror = finish;
+    retainUtterance(utterance);
     syn.resume();
-    syn.speak(utterance);
+    try {
+      syn.speak(utterance);
+    } catch {
+      finish();
+    }
   });
 }
 
@@ -455,16 +476,27 @@ function queueUtterance(
   utterance.rate = _paceRate;
   utterance.pitch = 1;
   utterance.volume = 1;
-  utterance.onend = onDone;
+  const finish = () => {
+    releaseUtterance(utterance);
+    onDone();
+  };
+  utterance.onend = finish;
   utterance.onerror = () => {
-    if (allowVoicelessRetry && voice) {
+    releaseUtterance(utterance);
+    if (allowVoicelessRetry && voice && token === _speakToken) {
       queueUtterance(syn, text, null, token, false, onDone);
       return;
     }
     onDone();
   };
+  retainUtterance(utterance);
   syn.resume();
-  syn.speak(utterance);
+  try {
+    syn.speak(utterance);
+  } catch {
+    releaseUtterance(utterance);
+    onDone();
+  }
 }
 
 export function stationSpeakFromUserGesture(text: string): Promise<void> {
