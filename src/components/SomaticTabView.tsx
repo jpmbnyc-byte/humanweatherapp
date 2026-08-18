@@ -81,7 +81,7 @@ function SomaticTabBody({
   } = useEntitlement();
   const { markMapped, markBreathComplete } = useStationJourney();
   const nascimentoEnabled = can("nascimento");
-  const conditionsSummary = `${activeWeather.clinicalIndex} · HRV ${activeWeather.hrv}%`;
+  const conditionsSummary = activeWeather.clinicalIndex;
   const [formingReady, setFormingReady] = useState(false);
 
   useEffect(() => {
