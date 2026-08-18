@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X } from 'lucide-react';
 
@@ -21,6 +21,26 @@ export default function SoundImmersionOverlay({
   accentColor = '#c9a96a',
   onClose,
 }: Props) {
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    closeButtonRef.current?.focus();
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onCloseRef.current();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
+
   return (
     <AnimatePresence>
       {open && (
@@ -33,6 +53,7 @@ export default function SoundImmersionOverlay({
           style={{ background: '#0a0908' }}
           id="sound-immersion-overlay"
           role="dialog"
+          aria-modal="true"
           aria-label={`${title} immersion`}
         >
           <motion.div
@@ -58,6 +79,7 @@ export default function SoundImmersionOverlay({
             </div>
             <button
               type="button"
+              ref={closeButtonRef}
               onClick={onClose}
               className="w-11 h-11 rounded-full border border-white/15 bg-white/5 text-white/80 flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer"
               aria-label="Exit immersion"
