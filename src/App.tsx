@@ -21,6 +21,7 @@ import { dismissAddToHome, shouldOfferAddToHome } from './lib/addToHome';
 import { initHarness } from './lib/harness';
 import { unlockAudioContext } from './lib/audioEngine';
 import AmbientDrift from './components/AmbientDrift';
+import PracticeInstrumentNav, { PracticeInstrument } from './components/PracticeInstrumentNav';
 
 const SunIcon = () => (
   <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-accent" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
@@ -95,6 +96,7 @@ function AppBody() {
   const [activeWeather, setActiveWeather] = useState<WeatherState>(DEFAULT_WEATHER);
   const [place, setPlace] = useState<WhereAreWeResult | null>(null);
   const [showAddToHome, setShowAddToHome] = useState(false);
+  const [practiceInstrument, setPracticeInstrument] = useState<PracticeInstrument>('circadian');
   const { geo } = useGeo();
 
   const refreshPlace = useCallback(() => {
@@ -362,26 +364,43 @@ function AppBody() {
                 place={place}
                 onStateChange={handleStateChange}
                 onNavigateTab={navigateLegacyTab}
+                showPracticeBreathwork={practiceInstrument === 'breath'}
+                practiceHeader={
+                  <PracticeInstrumentNav
+                    selected={practiceInstrument}
+                    onSelect={instrument => {
+                      stopAllAudio();
+                      setPracticeInstrument(instrument);
+                      window.requestAnimationFrame(() => {
+                        document.getElementById('practice-active-instrument')?.scrollIntoView({
+                          behavior: 'smooth',
+                          block: 'start',
+                        });
+                      });
+                    }}
+                    currentTheme={currentTheme}
+                  />
+                }
               >
-                <div className="hw-view-enter flex flex-col gap-8 md:gap-10 hw-therapy-chamber">
-                  <ChamberIntro chamber="therapy" currentTheme={currentTheme} />
-                  <Suspense fallback={<TabSkeleton isNight={isNight} />}>
-                    <TabErrorBoundary isNight={isNight}>
-                      <FrequencyTherapy currentTheme={currentTheme} />
-                      <LightTherapy currentTheme={currentTheme} />
-                      <ClassicalMusic currentTheme={currentTheme} />
-                    </TabErrorBoundary>
-                  </Suspense>
-                </div>
-                <div className="hw-view-enter flex flex-col gap-8 md:gap-10">
-                  <ChamberIntro chamber="rhythms" currentTheme={currentTheme} />
-                  <Suspense fallback={<TabSkeleton isNight={isNight} />}>
-                    <TabErrorBoundary isNight={isNight}>
-                      <SolarRay currentTheme={currentTheme} isActive />
-                      <ShinrinYoku currentTheme={currentTheme} />
-                    </TabErrorBoundary>
-                  </Suspense>
-                </div>
+                {practiceInstrument !== 'breath' ? (
+                  <div id="practice-active-instrument" className="hw-view-enter scroll-mt-6">
+                    <Suspense fallback={<TabSkeleton isNight={isNight} />}>
+                      <TabErrorBoundary isNight={isNight}>
+                        {practiceInstrument === 'tones' ? (
+                          <FrequencyTherapy currentTheme={currentTheme} />
+                        ) : practiceInstrument === 'light' ? (
+                          <LightTherapy currentTheme={currentTheme} />
+                        ) : practiceInstrument === 'classical' ? (
+                          <ClassicalMusic currentTheme={currentTheme} />
+                        ) : practiceInstrument === 'nature' ? (
+                          <ShinrinYoku currentTheme={currentTheme} />
+                        ) : (
+                          <SolarRay currentTheme={currentTheme} isActive />
+                        )}
+                      </TabErrorBoundary>
+                    </Suspense>
+                  </div>
+                ) : null}
               </SomaticTabView>
             )}
 
