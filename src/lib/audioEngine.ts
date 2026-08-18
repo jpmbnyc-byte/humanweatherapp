@@ -12,8 +12,13 @@ export async function getAudioContext(): Promise<AudioContext> {
   if (!sharedCtx || sharedCtx.state === 'closed') {
     sharedCtx = createContext();
   }
-  if (sharedCtx.state === 'suspended') {
+  // Safari can expose a non-standard "interrupted" state after calls,
+  // route changes, or backgrounding. Resume every non-running context.
+  if ((sharedCtx.state as string) !== 'running') {
     await sharedCtx.resume();
+  }
+  if ((sharedCtx.state as string) !== 'running') {
+    throw new Error(`Web Audio did not start (state: ${sharedCtx.state})`);
   }
   return sharedCtx;
 }
