@@ -295,7 +295,7 @@ function AppBody() {
 
         {/* Navigation */}
         <nav className="w-full mt-8 md:mt-10" id="app-navigation-bar">
-          <div className={`flex flex-wrap gap-1 p-1 rounded-2xl border ${themeStyles.border} ${isNight ? 'bg-black/15' : 'bg-white/50'}`}>
+          <div role="tablist" aria-label="Human Weather sections" className={`flex flex-wrap gap-1 p-1 rounded-2xl border ${themeStyles.border} ${isNight ? 'bg-black/15' : 'bg-white/50'}`}>
             {([
               ['today', 'Today'],
               ['look', 'Look'],
@@ -305,6 +305,9 @@ function AppBody() {
             ] as const).map(([id, label]) => (
               <button
                 type="button"
+                role="tab"
+                aria-selected={activeTab === id}
+                aria-controls="app-main-view"
                 key={id}
                 id={`tab-${id}-btn`}
                 onClick={() => {
