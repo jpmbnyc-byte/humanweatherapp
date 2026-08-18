@@ -1,5 +1,5 @@
 import { idbGet, idbSet } from '../idb';
-import type { Memento } from './types';
+import type { FormSeed, GesturePoint, Memento } from './types';
 import { localDateKey } from '../dailyMarks';
 
 const KEY_PREFIX = 'nascimento:';
@@ -14,10 +14,76 @@ export async function getMementoForDate(date: string): Promise<Memento | null> {
   const raw = await idbGet(mementoKey(date));
   if (!raw) return null;
   try {
-    return JSON.parse(raw) as Memento;
+    return normalizeMemento(JSON.parse(raw), date);
   } catch {
     return null;
   }
+}
+
+function finiteNumber(value: unknown, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+function normalizePoint(value: unknown): GesturePoint | null {
+  if (!value || typeof value !== 'object') return null;
+  const point = value as Partial<GesturePoint>;
+  if (typeof point.x !== 'number' || !Number.isFinite(point.x)) return null;
+  if (typeof point.y !== 'number' || !Number.isFinite(point.y)) return null;
+  return {
+    x: finiteNumber(point.x, 0.5),
+    y: finiteNumber(point.y, 0.5),
+    t: finiteNumber(point.t, 0),
+    pressure: finiteNumber(point.pressure, 0.5),
+    dwell: finiteNumber(point.dwell, 80),
+  };
+}
+
+/** Keep device-stored Daymarks renderable across seed schema changes. */
+export function normalizeMemento(value: unknown, fallbackDate = localDateKey()): Memento | null {
+  if (!value || typeof value !== 'object') return null;
+  const saved = value as Partial<Memento> & { formSeed?: Partial<FormSeed> };
+  if (!saved.formSeed || typeof saved.formSeed !== 'object') return null;
+
+  const seed = saved.formSeed;
+  const date = typeof saved.date === 'string' ? saved.date : fallbackDate;
+  const weatherName =
+    typeof saved.weatherName === 'string'
+      ? saved.weatherName
+      : typeof seed.weatherName === 'string'
+        ? seed.weatherName
+        : 'Recorded conditions';
+  const rawCentroid = Array.isArray(seed.gridCentroid) ? seed.gridCentroid : [];
+  const gridCentroid: [number, number] = [
+    finiteNumber(rawCentroid[0], 0.5),
+    finiteNumber(rawCentroid[1], 0.5),
+  ];
+  const gesturePoints = Array.isArray(seed.gesturePoints)
+    ? seed.gesturePoints.map(normalizePoint).filter((point): point is GesturePoint => point !== null)
+    : [];
+
+  const formSeed: FormSeed = {
+    gestureHash: finiteNumber(seed.gestureHash, 0),
+    weatherId: typeof seed.weatherId === 'string' ? seed.weatherId : 'vaporous_resonance_drift',
+    weatherName,
+    date: typeof seed.date === 'string' ? seed.date : date,
+    gridCentroid,
+    pathSpread: finiteNumber(seed.pathSpread, 0.1),
+    particleCount: finiteNumber(seed.particleCount, gesturePoints.length),
+    conditionsSummary: typeof seed.conditionsSummary === 'string' ? seed.conditionsSummary : '',
+    gesturePoints,
+  };
+
+  return {
+    id: typeof saved.id === 'string' ? saved.id : `${date}-restored`,
+    date,
+    index: finiteNumber(saved.index, 0),
+    weatherName,
+    formSeed,
+    conditionsSummary:
+      typeof saved.conditionsSummary === 'string'
+        ? saved.conditionsSummary
+        : formSeed.conditionsSummary,
+  };
 }
 
 async function readManifest(): Promise<string[]> {
