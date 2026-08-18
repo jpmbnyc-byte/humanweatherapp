@@ -7,7 +7,8 @@ import { registerAudioStop, stopAllAudio } from '../lib/stopAllAudio';
 import { consumePrescriptionFocus } from '../lib/prescriptionFocus';
 import { fadeOutGain } from '../lib/audioEngine';
 import { createTimedToneMedia, disposeTimedToneMedia, TimedToneMedia } from '../lib/mediaTone';
-import SoundImmersionOverlay from './SoundImmersionOverlay';
+import SoundImmersionOverlay, { ImmersionSession } from './SoundImmersionOverlay';
+import PracticeSessionSetup, { ClassSessionConfig, DEFAULT_CLASS_SESSION, PracticeMode } from './PracticeSessionSetup';
 
 interface FrequencyTherapyProps {
   currentTheme: 'day' | 'night';
@@ -19,6 +20,10 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioError, setAudioError] = useState<string | null>(null);
   const [immersionOpen, setImmersionOpen] = useState(false);
+  const [practiceMode, setPracticeMode] = useState<PracticeMode>('personal');
+  const [classConfig, setClassConfig] = useState<ClassSessionConfig>(DEFAULT_CLASS_SESSION);
+  const [session, setSession] = useState<ImmersionSession | undefined>();
+  const [isPaused, setIsPaused] = useState(false);
 
   const oscLeftRef = useRef<OscillatorNode | null>(null);
   const oscRightRef = useRef<OscillatorNode | null>(null);
@@ -96,6 +101,7 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
       const command = nextCommand();
       setAudioError(null);
       setIsPlaying(false);
+      setIsPaused(false);
       if (!keepImmersion) setImmersionOpen(false);
 
       // HTML media is the audible source on iOS. play() is invoked before any
@@ -104,11 +110,28 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
       disposeTimedToneMedia(mediaRef.current);
       mediaRef.current = null;
 
+      const sessionPlan: ImmersionSession = practiceMode === 'room'
+        ? {
+            id: Date.now(),
+            mode: 'room',
+            arrivalSeconds: classConfig.arrivalSeconds,
+            practiceSeconds: classConfig.practiceMinutes * 60,
+            closingSeconds: classConfig.closingSeconds,
+          }
+        : {
+            id: Date.now(),
+            mode: 'personal',
+            arrivalSeconds: 0,
+            practiceSeconds: durationSeconds,
+            closingSeconds: 0,
+          };
+      const sessionDuration = sessionPlan.arrivalSeconds + sessionPlan.practiceSeconds + sessionPlan.closingSeconds;
+      const audioDuration = Math.min(4200, sessionDuration + (sessionPlan.mode === 'room' ? 600 : 5));
       const carrier = 180;
       const media =
         tone.type === 'binaural'
-          ? createTimedToneMedia([carrier], [carrier + tone.hz], volume * 0.9, durationSeconds)
-          : createTimedToneMedia([tone.hz], [tone.hz], volume * 0.9, durationSeconds);
+          ? createTimedToneMedia([carrier], [carrier + tone.hz], volume * 0.9, audioDuration)
+          : createTimedToneMedia([tone.hz], [tone.hz], volume * 0.9, audioDuration);
       mediaRef.current = media;
       media.audio.addEventListener('ended', () => {
         if (mediaRef.current !== media) return;
@@ -126,6 +149,7 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
           return;
         }
         setActiveTone(tone);
+        setSession(sessionPlan);
         setIsPlaying(true);
         setImmersionOpen(true);
       } catch (error) {
@@ -138,7 +162,7 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
         setImmersionOpen(false);
       }
     },
-    [nextCommand, volume],
+    [nextCommand, volume, practiceMode, classConfig],
   );
 
   useEffect(() => {
@@ -152,7 +176,10 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
       void stopAudio();
       setActiveTone(null);
     } else {
-      void startAudio(tone);
+      const duration = practiceMode === 'room'
+        ? classConfig.arrivalSeconds + classConfig.practiceMinutes * 60 + classConfig.closingSeconds
+        : 120;
+      void startAudio(tone, duration);
     }
   };
 
@@ -233,6 +260,13 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
             <p>{audioError}</p>
           </div>
         )}
+
+        <PracticeSessionSetup
+          mode={practiceMode}
+          onModeChange={setPracticeMode}
+          config={classConfig}
+          onConfigChange={setClassConfig}
+        />
 
         <div className="flex items-start gap-2.5 p-3 rounded-lg bg-accent/5 border border-accent/10 mb-6 text-xs text-accent/90">
           <Headphones className="w-4 h-4 mt-0.5 shrink-0" />
@@ -335,6 +369,24 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
         pulseSec={5}
         accentColor="#c9a96a"
         playing={isPlaying}
+        paused={isPaused}
+        session={session}
+        onPauseToggle={() => {
+          const audio = mediaRef.current?.audio;
+          if (!audio) return;
+          if (isPaused) {
+            void audio.play();
+          } else {
+            audio.pause();
+          }
+          setIsPaused(value => !value);
+        }}
+        onSessionComplete={() => {
+          disposeTimedToneMedia(mediaRef.current);
+          mediaRef.current = null;
+          setIsPlaying(false);
+          setIsPaused(false);
+        }}
         onContinue={seconds => {
           if (activeTone) void startAudio(activeTone, seconds, true);
         }}
