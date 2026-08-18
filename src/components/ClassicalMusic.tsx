@@ -64,10 +64,12 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
         gainNodesRef.current = [];
         mainGainRef.current?.disconnect();
         mainGainRef.current = null;
-      } finally {
-        if (teardownRef.current === teardown) teardownRef.current = null;
+      } catch (error) {
+        console.warn('Ambient audio cleanup exception:', error);
       }
-    })();
+    })().finally(() => {
+      if (teardownRef.current === teardown) teardownRef.current = null;
+    });
 
     teardownRef.current = teardown;
     return teardown;
