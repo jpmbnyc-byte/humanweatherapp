@@ -119,24 +119,33 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
           const oscL = ctx.createOscillator();
           oscL.type = 'sine';
           oscL.frequency.setValueAtTime(carrier, ctx.currentTime);
-          const panL = ctx.createStereoPanner();
-          panL.pan.setValueAtTime(-1, ctx.currentTime);
-          oscL.connect(panL);
-          panL.connect(gainNode);
+          if (typeof ctx.createStereoPanner === 'function') {
+            const panL = ctx.createStereoPanner();
+            panL.pan.setValueAtTime(-1, ctx.currentTime);
+            oscL.connect(panL);
+            panL.connect(gainNode);
+            pannerLeftRef.current = panL;
+          } else {
+            // Older WebKit: keep the carrier audible, even without stereo separation.
+            oscL.connect(gainNode);
+          }
           oscL.start();
           oscLeftRef.current = oscL;
-          pannerLeftRef.current = panL;
 
           const oscR = ctx.createOscillator();
           oscR.type = 'sine';
           oscR.frequency.setValueAtTime(carrier + offset, ctx.currentTime);
-          const panR = ctx.createStereoPanner();
-          panR.pan.setValueAtTime(1, ctx.currentTime);
-          oscR.connect(panR);
-          panR.connect(gainNode);
+          if (typeof ctx.createStereoPanner === 'function') {
+            const panR = ctx.createStereoPanner();
+            panR.pan.setValueAtTime(1, ctx.currentTime);
+            oscR.connect(panR);
+            panR.connect(gainNode);
+            pannerRightRef.current = panR;
+          } else {
+            oscR.connect(gainNode);
+          }
           oscR.start();
           oscRightRef.current = oscR;
-          pannerRightRef.current = panR;
         } else {
           const osc = ctx.createOscillator();
           osc.type = 'sine';
