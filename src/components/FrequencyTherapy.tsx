@@ -5,7 +5,8 @@ import { FrequencyTone } from '../types';
 import { Headphones, Volume2, Play, Square, Info } from 'lucide-react';
 import { registerAudioStop, stopAllAudio } from '../lib/stopAllAudio';
 import { consumePrescriptionFocus } from '../lib/prescriptionFocus';
-import { fadeInGain, fadeOutGain, getAudioContext } from '../lib/audioEngine';
+import { fadeOutGain } from '../lib/audioEngine';
+import { createLoopingToneMedia, disposeLoopingToneMedia, LoopingToneMedia } from '../lib/mediaTone';
 import SoundImmersionOverlay from './SoundImmersionOverlay';
 
 interface FrequencyTherapyProps {
@@ -27,6 +28,7 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
   const ctxRef = useRef<AudioContext | null>(null);
   const commandRef = useRef(0);
   const teardownRef = useRef<Promise<void> | null>(null);
+  const mediaRef = useRef<LoopingToneMedia | null>(null);
 
   const nextCommand = useCallback(() => {
     commandRef.current += 1;
@@ -38,6 +40,8 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
 
     const teardown = (async () => {
       try {
+        disposeLoopingToneMedia(mediaRef.current);
+        mediaRef.current = null;
         const ctx = ctxRef.current;
         const gain = gainNodeRef.current;
         if (ctx && gain) {
@@ -91,88 +95,48 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
     async (tone: FrequencyTone) => {
       const command = nextCommand();
       setAudioError(null);
-
-      // Resume Web Audio before yielding to teardown. Mobile Safari only
-      // permits this while the original tap still has user activation.
-      const contextPromise = getAudioContext();
-
       setIsPlaying(false);
       setImmersionOpen(false);
-      await teardownAudio();
-      if (command !== commandRef.current) return;
+
+      // HTML media is the audible source on iOS. play() is invoked before any
+      // await so Safari associates it directly with this button tap.
       stopAllAudio({ skipHandlers: true });
+      disposeLoopingToneMedia(mediaRef.current);
+      mediaRef.current = null;
+
+      const carrier = 180;
+      const media =
+        tone.type === 'binaural'
+          ? createLoopingToneMedia([carrier], [carrier + tone.hz], volume * 0.9)
+          : createLoopingToneMedia([tone.hz], [tone.hz], volume * 0.9);
+      mediaRef.current = media;
 
       try {
-        const ctx = await contextPromise;
-        if (command !== commandRef.current) return;
-        ctxRef.current = ctx;
-
-        const gainNode = ctx.createGain();
-        gainNode.connect(ctx.destination);
-        gainNodeRef.current = gainNode;
-        fadeInGain(gainNode, ctx, volume * 0.5, 2);
-
-        if (tone.type === 'binaural') {
-          const carrier = 180;
-          const offset = tone.hz;
-
-          const oscL = ctx.createOscillator();
-          oscL.type = 'sine';
-          oscL.frequency.setValueAtTime(carrier, ctx.currentTime);
-          if (typeof ctx.createStereoPanner === 'function') {
-            const panL = ctx.createStereoPanner();
-            panL.pan.setValueAtTime(-1, ctx.currentTime);
-            oscL.connect(panL);
-            panL.connect(gainNode);
-            pannerLeftRef.current = panL;
-          } else {
-            // Older WebKit: keep the carrier audible, even without stereo separation.
-            oscL.connect(gainNode);
-          }
-          oscL.start();
-          oscLeftRef.current = oscL;
-
-          const oscR = ctx.createOscillator();
-          oscR.type = 'sine';
-          oscR.frequency.setValueAtTime(carrier + offset, ctx.currentTime);
-          if (typeof ctx.createStereoPanner === 'function') {
-            const panR = ctx.createStereoPanner();
-            panR.pan.setValueAtTime(1, ctx.currentTime);
-            oscR.connect(panR);
-            panR.connect(gainNode);
-            pannerRightRef.current = panR;
-          } else {
-            oscR.connect(gainNode);
-          }
-          oscR.start();
-          oscRightRef.current = oscR;
-        } else {
-          const osc = ctx.createOscillator();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(tone.hz, ctx.currentTime);
-          osc.connect(gainNode);
-          osc.start();
-          oscLeftRef.current = osc;
+        await media.audio.play();
+        if (command !== commandRef.current) {
+          disposeLoopingToneMedia(media);
+          if (mediaRef.current === media) mediaRef.current = null;
+          return;
         }
-
         setActiveTone(tone);
         setIsPlaying(true);
         setImmersionOpen(true);
       } catch (error) {
+        if (mediaRef.current === media) mediaRef.current = null;
+        disposeLoopingToneMedia(media);
         if (command !== commandRef.current) return;
-        console.error('Failed to initialize Web Audio API generator:', error);
-        setAudioError('Audio could not start. Tap play again after allowing sound on your device.');
+        console.error('Failed to start frequency media audio:', error);
+        setAudioError('Audio could not start. Tap Play again and confirm media sound is allowed.');
         setIsPlaying(false);
         setImmersionOpen(false);
       }
     },
-    [nextCommand, teardownAudio, volume],
+    [nextCommand, volume],
   );
 
   useEffect(() => {
-    if (gainNodeRef.current && ctxRef.current && isPlaying) {
-      const target = volume * 0.5;
-      gainNodeRef.current.gain.setTargetAtTime(target, ctxRef.current.currentTime, 0.4);
+    if (mediaRef.current && isPlaying) {
+      mediaRef.current.audio.volume = Math.max(0, Math.min(1, volume));
     }
   }, [volume, isPlaying]);
 
