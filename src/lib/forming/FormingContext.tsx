@@ -180,7 +180,19 @@ export function FormingProvider({ weather, conditionsSummary, active = true, chi
     setCoalesce(1);
 
     const memento = await createMementoFromSeed(seed);
-    setCaption(`Mark recorded · ${resolveSceneAnswer(seed.weatherId, markRenderSeed(seed)).prose}`);
+    setCaption(`Daymark recorded · ${resolveSceneAnswer(seed.weatherId, markRenderSeed(seed)).prose}`);
+
+    // Persist first: tab changes and PWA backgrounding must not interrupt the record.
+    try {
+      await saveMemento(memento);
+      setTodaySaved(true);
+      refreshMementos();
+    } catch (error) {
+      console.error('[daymark] save failed', error);
+      captureFiredRef.current = false;
+      setStage('breathing');
+      return;
+    }
 
     await runCaptureSequence(
       {
@@ -199,16 +211,13 @@ export function FormingProvider({ weather, conditionsSummary, active = true, chi
           setStillness(true);
           setMounting(false);
         },
-        onRelease: async () => {
+        onRelease: () => {
           if (session !== captureSessionRef.current) return;
-          await saveMemento(memento);
-          setTodaySaved(true);
           setStage('complete');
           setStillness(false);
           setWarmthBloom(0);
           setShowFrame(false);
           dustRef.current.clear();
-          refreshMementos();
         },
       },
       reduceMotion,
