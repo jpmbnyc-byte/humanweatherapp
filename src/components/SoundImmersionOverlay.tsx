@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X } from 'lucide-react';
+import { createPortal } from 'react-dom';
 
 type Props = {
   open: boolean;
@@ -41,7 +42,7 @@ export default function SoundImmersionOverlay({
     };
   }, [open]);
 
-  return (
+  const overlay = (
     <AnimatePresence>
       {open && (
         <motion.div
@@ -50,7 +51,23 @@ export default function SoundImmersionOverlay({
           exit={{ opacity: 0 }}
           transition={{ duration: 0.8, ease: 'easeOut' }}
           className="fixed inset-0 z-[60] flex flex-col overflow-hidden select-none"
-          style={{ background: '#0a0908' }}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            width: '100vw',
+            height: '100dvh',
+            minHeight: '-webkit-fill-available',
+            zIndex: 2147483647,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            boxSizing: 'border-box',
+            isolation: 'isolate',
+            color: '#ffffff',
+            background: '#0a0908',
+            paddingTop: 'env(safe-area-inset-top)',
+            paddingBottom: 'env(safe-area-inset-bottom)',
+          }}
           id="sound-immersion-overlay"
           role="dialog"
           aria-modal="true"
@@ -136,4 +153,7 @@ export default function SoundImmersionOverlay({
       )}
     </AnimatePresence>
   );
+
+  if (typeof document === 'undefined') return null;
+  return createPortal(overlay, document.body);
 }
