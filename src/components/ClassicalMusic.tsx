@@ -69,11 +69,16 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
   const startAmbient = useCallback(
     async (piece: ClassicalPiece) => {
       setAudioError(null);
+
+      // Resume Web Audio before yielding to fade-out cleanup. Mobile Safari
+      // only permits this while the original tap still has user activation.
+      const contextPromise = getAudioContext();
+
       await stopAmbient();
       stopAllAudio({ skipHandlers: true });
 
       try {
-        const ctx = await getAudioContext();
+        const ctx = await contextPromise;
         ctxRef.current = ctx;
 
         const mainGain = ctx.createGain();
