@@ -2,6 +2,64 @@ import React, { useId } from "react";
 
 type Props = { currentTheme: "day" | "night" };
 
+type DistalProps = {
+  ink: string;
+  transform: string;
+  opacity?: number;
+};
+
+function HumanHand({ ink, transform, opacity = 1 }: DistalProps) {
+  return (
+    <g
+      transform={transform}
+      opacity={opacity}
+      fill="none"
+      stroke={ink}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path
+        d="M0-2.4C2-3.1 3.8-3.6 5.4-3.1C6.8-2.7 7.5-1.6 7.2-.5C7 1.4 5.5 3.1 3.8 3.4C2.3 3.7 1 3 0 2.2Z"
+        fill={ink}
+        fillOpacity="0.08"
+        strokeWidth="0.72"
+      />
+      <path d="M5.6-2.8L10.1-5.3Q11-5.6 11.4-4.9Q11.7-4.2 10.8-3.7L6.8-1.8" strokeWidth="0.58" />
+      <path d="M6.5-1.7L12-3Q12.9-3.1 13.1-2.3Q13.2-1.5 12.3-1.3L7-.4" strokeWidth="0.58" />
+      <path d="M6.8-.35L12.5-.2Q13.4-.1 13.4.7Q13.3 1.5 12.4 1.5L6.8 1" strokeWidth="0.58" />
+      <path d="M6.2 1L11.1 2.4Q12 2.7 11.7 3.5Q11.4 4.2 10.5 3.9L5.3 2.3" strokeWidth="0.58" />
+      <path d="M3.7 3L6.9 5.4Q7.6 6 7 6.6Q6.4 7.2 5.7 6.5L2.5 3.7" strokeWidth="0.58" />
+      <path d="M2.2-2.7Q3.7-.2 2.5 3.1M4.3-3Q5.4-.5 4.4 3" strokeWidth="0.28" opacity="0.5" />
+    </g>
+  );
+}
+
+function HumanFoot({ ink, transform, opacity = 1 }: DistalProps) {
+  return (
+    <g
+      transform={transform}
+      opacity={opacity}
+      fill="none"
+      stroke={ink}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path
+        d="M0-1.6C.3 1.2-.2 3.4-1.5 5.2C-2.6 6.6-2 8 0 8.3L8.4 8.5C10.5 8.5 11.2 7.4 10.3 6.3C9.5 5.3 7.4 5 5.8 4.1C4.4 3.3 3.7 1.2 3.3-1.5Z"
+        fill={ink}
+        fillOpacity="0.08"
+        strokeWidth="0.75"
+      />
+      <path d="M-1.2 5.3Q1.1 6.4 3.4 5.2Q5.2 4.4 7.2 5.1" strokeWidth="0.34" opacity="0.55" />
+      <path
+        d="M8.1 5.3Q9.9 4.7 10.8 5.9M7.2 5Q8.7 4.1 9.8 5M6.2 4.7Q7.4 3.9 8.7 4.6M5.2 4.3Q6.3 3.5 7.5 4"
+        strokeWidth="0.48"
+      />
+      <path d="M8.5 7.9V6.2M7 7.9V5.7M5.5 7.9V5.2M4.1 7.9V5" strokeWidth="0.28" opacity="0.6" />
+    </g>
+  );
+}
+
 /** Original atelier-style body compass: a clothed, gender-neutral movement study. */
 export default function SomaticBodyFigure({ currentTheme }: Props) {
   const rawId = useId().replace(/:/g, "");
@@ -91,11 +149,8 @@ export default function SomaticBodyFigure({ currentTheme }: Props) {
           d="M57 29Q65 31 72 35L90 46Q92 48 90 51Q88 53 85 51L69 43Q62 40 55 36Z"
           {...contour}
         />
-        <path
-          d="M10 46L6 45L3 47L7 49L4 51L10 51M90 46L94 45L97 47L93 49L96 51L90 51"
-          {...contour}
-          strokeWidth="0.65"
-        />
+        <HumanHand ink={ink} transform="translate(10 48.5) rotate(180) scale(.72)" />
+        <HumanHand ink={ink} transform="translate(90 48.5) scale(.72)" />
 
         <path
           d="M44 29Q35 27 28 24L12 14Q9 13 8 16Q8 19 11 20L27 33Q35 37 44 37Z"
@@ -107,11 +162,8 @@ export default function SomaticBodyFigure({ currentTheme }: Props) {
           {...contour}
           opacity="0.78"
         />
-        <path
-          d="M12 14L9 10L6 9L8 13L4 12L8 16M88 14L91 10L94 9L92 13L96 12L92 16"
-          {...contour}
-          strokeWidth="0.65"
-        />
+        <HumanHand ink={ink} transform="translate(11 17) rotate(215) scale(.65)" opacity={0.82} />
+        <HumanHand ink={ink} transform="translate(89 17) rotate(-35) scale(.65)" opacity={0.82} />
 
         <path
           d="M46 59Q43 67 42 76Q41 84 40 92L37 95Q41 97 46 94L48 78L50 64Z"
@@ -136,6 +188,11 @@ export default function SomaticBodyFigure({ currentTheme }: Props) {
           opacity="0.78"
         />
         <path d="M31 73Q35 77 39 80M61 80Q65 77 69 73" {...contour} strokeWidth="0.55" />
+
+        <HumanFoot ink={ink} transform="translate(41 91) rotate(8) scale(.62)" />
+        <HumanFoot ink={ink} transform="translate(59 91) rotate(172) scale(.62)" />
+        <HumanFoot ink={ink} transform="translate(19 87) rotate(42) scale(.58)" opacity={0.82} />
+        <HumanFoot ink={ink} transform="translate(81 87) rotate(138) scale(.58)" opacity={0.82} />
       </g>
 
       <g filter={`url(#${sketchId})`} opacity="0.2" transform="translate(0.45 -0.25)">
