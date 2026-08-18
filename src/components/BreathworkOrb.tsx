@@ -126,7 +126,6 @@ export default function BreathworkOrb({ weatherState, currentTheme, onCyclesComp
         ? 'bg-[#1e1c18]/90 border-white/[0.06]' 
         : 'bg-white/90 border-stone-200/60 shadow-sm shadow-stone-900/5'
     } ${forming?.stillness ? 'opacity-0 pointer-events-none' : ''}`}
-         id="breathwork-guide-orb-container"
          style={{ transform: forming?.scalePunch && forming.scalePunch < 1 ? `scale(${forming.scalePunch})` : undefined }}
     >
       
