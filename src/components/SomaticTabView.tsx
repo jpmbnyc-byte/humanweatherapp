@@ -25,6 +25,7 @@ const FormingProvider = lazy(() =>
 );
 
 type AppTab = 'somatic' | 'therapy' | 'rhythms' | 'tender';
+export type StationSection = 'today' | 'look' | 'practice' | 'history';
 
 type Props = {
   currentTheme: 'day' | 'night';
@@ -34,6 +35,8 @@ type Props = {
   place: WhereAreWeResult | null;
   onStateChange: (state: WeatherState, coords: [number, number][]) => void;
   onNavigateTab: (tab: AppTab) => void;
+  section: StationSection;
+  children?: React.ReactNode;
 };
 
 function SomaticScaleWrap({ children }: { children: React.ReactNode }) {
@@ -58,6 +61,8 @@ function SomaticTabBody({
   place,
   onStateChange,
   onNavigateTab,
+  section,
+  children,
 }: Props) {
   const {
     can,
@@ -101,7 +106,7 @@ function SomaticTabBody({
       )}
       <SomaticScaleWrap>
         <div className="hw-view-enter flex flex-col overflow-x-hidden w-full min-w-0">
-          <TrialFootline currentTheme={currentTheme} />
+          {section === 'today' && <TrialFootline currentTheme={currentTheme} />}
           {purchaseJustCompleted && (
             <PurchaseSuccessBanner
               currentTheme={currentTheme}
@@ -123,13 +128,15 @@ function SomaticTabBody({
             />
           )}
 
-          <StationGuide
-            place={place}
-            activeWeather={activeWeather}
-            currentTheme={currentTheme}
-          />
+          {section === 'today' && (
+            <StationGuide
+              place={place}
+              activeWeather={activeWeather}
+              currentTheme={currentTheme}
+            />
+          )}
 
-          {place?.activeOffice && place.officeState === 'available' && (
+          {section === 'today' && place?.activeOffice && place.officeState === 'available' && (
             <div className="hw-station-linked mb-8">
               <OfficeSequence
                 place={place}
@@ -140,35 +147,45 @@ function SomaticTabBody({
           )}
 
           <div className="flex flex-col gap-10 lg:gap-12 w-full min-w-0">
-            <section aria-label="Somatic field mapping" className="hw-station-linked">
-              <SomaticGrid onStateChange={handleStateChange} currentTheme={currentTheme} />
-            </section>
+            {section === 'look' && (
+              <section aria-label="Somatic field mapping" className="hw-station-linked">
+                <SomaticGrid onStateChange={handleStateChange} currentTheme={currentTheme} />
+              </section>
+            )}
 
-            <section aria-label="Current conditions" className="hw-station-linked">
-              <ConditionsCard
-                activeWeather={activeWeather}
-                themeStyles={themeStyles}
-                isNight={isNight}
-                onNavigateTab={onNavigateTab}
-              />
-            </section>
-
-            <section aria-label="Calibrated breathwork" className="hw-station-linked">
-              <Suspense fallback={<div className="h-64 animate-pulse rounded-2xl bg-accent/5" aria-hidden />}>
-                <BreathworkOrb
-                  weatherState={activeWeather}
-                  currentTheme={currentTheme}
-                  onCyclesComplete={handleBreathComplete}
+            {(section === 'today' || section === 'look') && (
+              <section aria-label="Current conditions" className="hw-station-linked">
+                <ConditionsCard
+                  activeWeather={activeWeather}
+                  themeStyles={themeStyles}
+                  isNight={isNight}
+                  onNavigateTab={onNavigateTab}
                 />
-              </Suspense>
-            </section>
+              </section>
+            )}
 
-            <section aria-label="The Fascia record" className="hw-station-linked">
-              <Suspense fallback={<div className="h-32 w-full animate-pulse rounded-xl bg-accent/5" aria-hidden />}>
-                <TheFascia currentTheme={currentTheme} />
-              </Suspense>
-              <PatternViewPanel currentTheme={currentTheme} />
-            </section>
+            {section === 'practice' && (
+              <section aria-label="Calibrated breathwork" className="hw-station-linked">
+                <Suspense fallback={<div className="h-64 animate-pulse rounded-2xl bg-accent/5" aria-hidden />}>
+                  <BreathworkOrb
+                    weatherState={activeWeather}
+                    currentTheme={currentTheme}
+                    onCyclesComplete={handleBreathComplete}
+                  />
+                </Suspense>
+              </section>
+            )}
+
+            {section === 'history' && (
+              <section aria-label="The Fascia record" className="hw-station-linked">
+                <Suspense fallback={<div className="h-32 w-full animate-pulse rounded-xl bg-accent/5" aria-hidden />}>
+                  <TheFascia currentTheme={currentTheme} />
+                </Suspense>
+                <PatternViewPanel currentTheme={currentTheme} />
+              </section>
+            )}
+
+            {children}
           </div>
         </div>
       </SomaticScaleWrap>

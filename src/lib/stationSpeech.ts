@@ -244,7 +244,7 @@ async function selectStationVoice(): Promise<SpeechSynthesisVoice | null> {
 }
 
 let _speakToken = 0;
-let _iosResumeInterval: ReturnType<typeof setInterval> | null = null;
+let _iosResumeInterval: number | null = null;
 
 export function stationStop(): void {
   _speakToken += 1;

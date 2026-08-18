@@ -10,7 +10,7 @@ import {
   type ReadingFlowState,
 } from '../../lib/harness/readingFlow';
 import { emitChannelSignal } from '../../lib/harness/channels';
-import type { WeatherState } from '../types';
+import type { WeatherState } from '../../types';
 
 type Props = {
   activeWeather: WeatherState;
