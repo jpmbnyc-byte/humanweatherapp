@@ -4,6 +4,7 @@ import ConditionsCard from './ConditionsCard';
 import TrialFootline from './TrialFootline';
 import OfficeSequence from './OfficeSequence';
 import StationGuide from './StationGuide';
+import SolarCircadianField from './SolarCircadianField';
 import PurchaseSuccessBanner from './PurchaseSuccessBanner';
 import PromoSuccessBanner from './PromoSuccessBanner';
 import PurchaseVerifyErrorBanner from './PurchaseVerifyErrorBanner';
@@ -134,6 +135,10 @@ function SomaticTabBody({
               activeWeather={activeWeather}
               currentTheme={currentTheme}
             />
+          )}
+
+          {section === 'today' && place?.marks && (
+            <SolarCircadianField marks={place.marks} currentTheme={currentTheme} />
           )}
 
           {section === 'today' && place?.activeOffice && place.officeState === 'available' && (
