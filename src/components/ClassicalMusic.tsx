@@ -4,7 +4,8 @@ import { CLASSICAL_PIECES } from '../data';
 import { ClassicalPiece } from '../types';
 import { Play, Square, Volume2, Info } from 'lucide-react';
 import { registerAudioStop, stopAllAudio } from '../lib/stopAllAudio';
-import { fadeInGain, fadeOutGain, getAudioContext } from '../lib/audioEngine';
+import { fadeOutGain } from '../lib/audioEngine';
+import { createLoopingToneMedia, disposeLoopingToneMedia, LoopingToneMedia } from '../lib/mediaTone';
 import SoundImmersionOverlay from './SoundImmersionOverlay';
 
 interface ClassicalMusicProps {
@@ -25,6 +26,7 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
   const lfoIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const commandRef = useRef(0);
   const teardownRef = useRef<Promise<void> | null>(null);
+  const mediaRef = useRef<LoopingToneMedia | null>(null);
 
   const nextCommand = useCallback(() => {
     commandRef.current += 1;
@@ -36,6 +38,8 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
 
     const teardown = (async () => {
       try {
+        disposeLoopingToneMedia(mediaRef.current);
+        mediaRef.current = null;
         const ctx = ctxRef.current;
         const gain = mainGainRef.current;
         if (ctx && gain) {
@@ -88,80 +92,54 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
     async (piece: ClassicalPiece) => {
       const command = nextCommand();
       setAudioError(null);
-
-      // Resume Web Audio before yielding to fade-out cleanup. Mobile Safari
-      // only permits this while the original tap still has user activation.
-      const contextPromise = getAudioContext();
-
       setIsPlaying(false);
       setImmersionOpen(false);
-      await teardownAmbient();
-      if (command !== commandRef.current) return;
+
       stopAllAudio({ skipHandlers: true });
+      disposeLoopingToneMedia(mediaRef.current);
+      mediaRef.current = null;
+
+      const f0 = piece.ambientFrequency;
+      let chordRatios = [1.0, 1.2, 1.5, 2.0];
+      if (piece.id === 'moonlight_sonata') {
+        chordRatios = [1.0, 1.18, 1.5, 2.0];
+      } else if (piece.id === 'gymnopedie_1') {
+        chordRatios = [1.0, 1.25, 1.5, 1.87];
+      } else if (piece.id === 'spiegel_im_spiegel') {
+        chordRatios = [1.0, 1.5, 2.0, 3.0];
+      }
+
+      const frequencies = chordRatios.map(ratio => f0 * ratio);
+      const media = createLoopingToneMedia(frequencies, frequencies, volume * 0.85);
+      mediaRef.current = media;
 
       try {
-        const ctx = await contextPromise;
-        if (command !== commandRef.current) return;
-        ctxRef.current = ctx;
-
-        const mainGain = ctx.createGain();
-        mainGain.connect(ctx.destination);
-        mainGainRef.current = mainGain;
-        fadeInGain(mainGain, ctx, volume * 0.4, 2.2);
-
-        const f0 = piece.ambientFrequency;
-        let chordRatios = [1.0, 1.2, 1.5, 2.0];
-        if (piece.id === 'moonlight_sonata') {
-          chordRatios = [1.0, 1.18, 1.5, 2.0];
-        } else if (piece.id === 'gymnopedie_1') {
-          chordRatios = [1.0, 1.25, 1.5, 1.87];
-        } else if (piece.id === 'spiegel_im_spiegel') {
-          chordRatios = [1.0, 1.5, 2.0, 3.0];
+        // Keep play() in the original gesture task for Safari and installed PWAs.
+        await media.audio.play();
+        if (command !== commandRef.current) {
+          disposeLoopingToneMedia(media);
+          if (mediaRef.current === media) mediaRef.current = null;
+          return;
         }
-
-        chordRatios.forEach((ratio, index) => {
-          const osc = ctx.createOscillator();
-          osc.type = index % 2 === 0 ? 'sine' : 'triangle';
-          osc.frequency.setValueAtTime(f0 * ratio, ctx.currentTime);
-          const oscGain = ctx.createGain();
-          const initialVol = (0.2 - index * 0.04) * (index === 0 ? 1.2 : 0.8);
-          oscGain.gain.setValueAtTime(initialVol, ctx.currentTime);
-          osc.connect(oscGain);
-          oscGain.connect(mainGain);
-          osc.start();
-          oscillatorsRef.current.push(osc);
-          gainNodesRef.current.push(oscGain);
-        });
-
-        let tick = 0;
-        lfoIntervalRef.current = setInterval(() => {
-          if (!mainGainRef.current || !ctxRef.current) return;
-          tick += 0.5;
-          gainNodesRef.current.forEach((gainNode, index) => {
-            const phaseOffset = index * 1.5;
-            const targetVolume =
-              (0.15 - index * 0.03) * (0.6 + 0.4 * Math.sin(tick * 0.2 + phaseOffset));
-            gainNode.gain.setTargetAtTime(targetVolume, ctxRef.current!.currentTime, 1.2);
-          });
-        }, 500);
-
         setActivePiece(piece);
         setIsPlaying(true);
         setImmersionOpen(true);
       } catch (error) {
+        if (mediaRef.current === media) mediaRef.current = null;
+        disposeLoopingToneMedia(media);
         if (command !== commandRef.current) return;
-        console.error('Failed to initialize classical ambient generator:', error);
-        setAudioError('Ambient audio could not start. Tap Listen again.');
+        console.error('Failed to start classical media audio:', error);
+        setAudioError('Ambient audio could not start. Tap Listen again and confirm media sound is allowed.');
         setIsPlaying(false);
         setImmersionOpen(false);
       }
     },
-    [nextCommand, teardownAmbient, volume],
+    [nextCommand, volume],
   );
 
   useEffect(() => {
-    if (mainGainRef.current && ctxRef.current && isPlaying) {
-      mainGainRef.current.gain.setTargetAtTime(volume * 0.4, ctxRef.current.currentTime, 0.4);
+    if (mediaRef.current && isPlaying) {
+      mediaRef.current.audio.volume = Math.max(0, Math.min(1, volume));
     }
   }, [volume, isPlaying]);
 
