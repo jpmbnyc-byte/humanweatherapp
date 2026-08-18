@@ -126,12 +126,12 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
             closingSeconds: 0,
           };
       const sessionDuration = sessionPlan.arrivalSeconds + sessionPlan.practiceSeconds + sessionPlan.closingSeconds;
-      const audioDuration = Math.min(4200, sessionDuration + (sessionPlan.mode === 'room' ? 600 : 0));
+      const audioDuration = Math.min(4200, sessionDuration + (sessionPlan.mode === 'room' ? 600 : 5));
       const carrier = 180;
       const media =
         tone.type === 'binaural'
           ? createTimedToneMedia([carrier], [carrier + tone.hz], volume * 0.9, audioDuration)
-          : createTimedToneMedia([tone.hz], [tone.hz], volume * 0.9, durationSeconds);
+          : createTimedToneMedia([tone.hz], [tone.hz], volume * 0.9, audioDuration);
       mediaRef.current = media;
       media.audio.addEventListener('ended', () => {
         if (mediaRef.current !== media) return;
