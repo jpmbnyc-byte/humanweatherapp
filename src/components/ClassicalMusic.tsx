@@ -131,7 +131,7 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
             closingSeconds: 0,
           };
       const sessionDuration = sessionPlan.arrivalSeconds + sessionPlan.practiceSeconds + sessionPlan.closingSeconds;
-      const audioDuration = Math.min(4200, sessionDuration + (sessionPlan.mode === 'room' ? 600 : 0));
+      const audioDuration = Math.min(4200, sessionDuration + (sessionPlan.mode === 'room' ? 600 : 5));
             const frequencies = chordRatios.map(ratio => f0 * ratio);
       const media = createTimedToneMedia(frequencies, frequencies, volume * 0.85, audioDuration);
       mediaRef.current = media;
