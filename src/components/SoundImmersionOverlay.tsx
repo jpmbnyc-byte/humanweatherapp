@@ -11,6 +11,8 @@ type Props = {
   pulseSec?: number;
   accentColor?: string;
   onClose: () => void;
+  playing?: boolean;
+  onContinue?: (seconds: number) => void;
 };
 
 export default function SoundImmersionOverlay({
@@ -21,6 +23,8 @@ export default function SoundImmersionOverlay({
   pulseSec = 5,
   accentColor = '#c9a96a',
   onClose,
+  playing = true,
+  onContinue,
 }: Props) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const onCloseRef = useRef(onClose);
@@ -139,15 +143,50 @@ export default function SoundImmersionOverlay({
               ))}
             </div>
 
-            {detail && (
-              <p className="font-serif text-sm md:text-base text-white/60 text-center max-w-md leading-relaxed italic">
-                {detail}
-              </p>
-            )}
+            <AnimatePresence mode="wait">
+              {!playing && onContinue ? (
+                <motion.div
+                  key="continue"
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="flex flex-col items-center"
+                >
+                  <p className="font-serif text-lg text-white/85 mb-4">Would you like to stay?</p>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {[
+                      { label: '30 sec', seconds: 30 },
+                      { label: '60 sec', seconds: 60 },
+                      { label: '2 min', seconds: 120 },
+                      { label: '5 min', seconds: 300 },
+                    ].map(option => (
+                      <motion.button
+                        key={option.seconds}
+                        type="button"
+                        whileTap={{ scale: 0.96 }}
+                        onClick={() => onContinue(option.seconds)}
+                        className="px-4 py-2.5 rounded-full border border-white/20 bg-white/[0.06] text-white/85 font-mono text-[10px] uppercase tracking-[0.12em] hover:bg-white/10 transition-colors cursor-pointer"
+                      >
+                        {option.label}
+                      </motion.button>
+                    ))}
+                  </div>
+                </motion.div>
+              ) : detail ? (
+                <motion.p
+                  key="detail"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="font-serif text-sm md:text-base text-white/60 text-center max-w-md leading-relaxed italic"
+                >
+                  {detail}
+                </motion.p>
+              ) : null}
+            </AnimatePresence>
           </div>
 
           <div className="relative z-10 px-6 pb-6 text-center font-mono text-[9px] uppercase tracking-[0.14em] text-white/30">
-            Let the tone arrive — no effort required
+            {playing ? 'Let the tone arrive — no effort required' : 'Choose a little more time, or close when complete'}
           </div>
         </motion.div>
       )}
