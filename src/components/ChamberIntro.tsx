@@ -16,7 +16,7 @@ const CHAMBERS: Record<
     designation: 'MOD/02 · CIRCADIAN',
     title: 'Circadian Rhythms',
     intro:
-      'Solar protocols and forest bathing — the body clock kept by real light and canopy air. Arrive here when the Meridian or Conditions call for outward rhythm.',
+      'The sun is the circadian center. Solar practice and forest bathing help you meet the local light–dark cycle, while the body—not the clock—reveals your response.',
   },
   tender: {
     designation: 'MOD/03 · THE TENDER',
