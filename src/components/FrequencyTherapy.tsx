@@ -5,7 +5,7 @@ import { FrequencyTone } from '../types';
 import { Headphones, Volume2, Play, Square, Info } from 'lucide-react';
 import { registerAudioStop, stopAllAudio } from '../lib/stopAllAudio';
 import { consumePrescriptionFocus } from '../lib/prescriptionFocus';
-import { fadeInGain, fadeOutGain, getAudioContext, unlockAudioContext } from '../lib/audioEngine';
+import { fadeInGain, fadeOutGain, getAudioContext } from '../lib/audioEngine';
 import SoundImmersionOverlay from './SoundImmersionOverlay';
 
 interface FrequencyTherapyProps {
@@ -94,7 +94,7 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
 
       // Resume Web Audio before yielding to teardown. Mobile Safari only
       // permits this while the original tap still has user activation.
-      const contextPromise = unlockAudioContext().then(() => getAudioContext());
+      const contextPromise = getAudioContext();
 
       setIsPlaying(false);
       setImmersionOpen(false);
