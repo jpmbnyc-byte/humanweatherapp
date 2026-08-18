@@ -53,7 +53,7 @@ const OFFICES: Record<Office, OfficeDef> = {
       {
         id: 'vault-breath',
         title: 'Three breath cycles',
-        body: 'Follow the orb through three full cycles. Dust coalesces on the exhale and your daily field sketch forms.',
+        body: 'Follow the orb through three full cycles. Your body map gathers into today\u2019s Daymark and saves to History.',
         hint: 'Complete three cycles in the breath orb below.',
       },
       {
@@ -115,7 +115,7 @@ const OFFICES: Record<Office, OfficeDef> = {
       {
         id: 'marrow-compare',
         title: 'Day comparison',
-        body: 'Compare morning Conditions to now. Marked days hold your field sketches when the ritual ran; otherwise hold the comparison in one sentence.',
+        body: 'Compare morning Conditions to now. History keeps each Daymark as a visual trace of the body map and breath.',
       },
       {
         id: 'marrow-wind',
