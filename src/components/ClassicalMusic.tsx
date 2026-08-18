@@ -23,62 +23,83 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
   const mainGainRef = useRef<GainNode | null>(null);
   const ctxRef = useRef<AudioContext | null>(null);
   const lfoIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const stoppingRef = useRef(false);
+  const commandRef = useRef(0);
+  const teardownRef = useRef<Promise<void> | null>(null);
+
+  const nextCommand = useCallback(() => {
+    commandRef.current += 1;
+    return commandRef.current;
+  }, []);
+
+  const teardownAmbient = useCallback(() => {
+    if (teardownRef.current) return teardownRef.current;
+
+    const teardown = (async () => {
+      try {
+        const ctx = ctxRef.current;
+        const gain = mainGainRef.current;
+        if (ctx && gain) {
+          await fadeOutGain(gain, ctx, 0.6);
+        }
+        if (lfoIntervalRef.current) {
+          clearInterval(lfoIntervalRef.current);
+          lfoIntervalRef.current = null;
+        }
+        oscillatorsRef.current.forEach(osc => {
+          try {
+            osc.stop();
+            osc.disconnect();
+          } catch {
+            /* already stopped */
+          }
+        });
+        oscillatorsRef.current = [];
+        gainNodesRef.current.forEach(gainNode => {
+          try {
+            gainNode.disconnect();
+          } catch {
+            /* noop */
+          }
+        });
+        gainNodesRef.current = [];
+        mainGainRef.current?.disconnect();
+        mainGainRef.current = null;
+      } finally {
+        if (teardownRef.current === teardown) teardownRef.current = null;
+      }
+    })();
+
+    teardownRef.current = teardown;
+    return teardown;
+  }, []);
 
   const stopAmbient = useCallback(async () => {
-    if (stoppingRef.current) return;
-    stoppingRef.current = true;
-    try {
-      const ctx = ctxRef.current;
-      const gain = mainGainRef.current;
-      if (ctx && gain) {
-        await fadeOutGain(gain, ctx, 0.6);
-      }
-      if (lfoIntervalRef.current) {
-        clearInterval(lfoIntervalRef.current);
-        lfoIntervalRef.current = null;
-      }
-      oscillatorsRef.current.forEach(osc => {
-        try {
-          osc.stop();
-          osc.disconnect();
-        } catch {
-          /* already stopped */
-        }
-      });
-      oscillatorsRef.current = [];
-      gainNodesRef.current.forEach(g => {
-        try {
-          g.disconnect();
-        } catch {
-          /* noop */
-        }
-      });
-      gainNodesRef.current = [];
-      mainGainRef.current?.disconnect();
-      mainGainRef.current = null;
-    } finally {
-      setIsPlaying(false);
-      setImmersionOpen(false);
-      stoppingRef.current = false;
-    }
-  }, []);
+    nextCommand();
+    setIsPlaying(false);
+    setImmersionOpen(false);
+    await teardownAmbient();
+  }, [nextCommand, teardownAmbient]);
 
   useEffect(() => registerAudioStop(() => void stopAmbient()), [stopAmbient]);
 
   const startAmbient = useCallback(
     async (piece: ClassicalPiece) => {
+      const command = nextCommand();
       setAudioError(null);
 
       // Resume Web Audio before yielding to fade-out cleanup. Mobile Safari
       // only permits this while the original tap still has user activation.
       const contextPromise = getAudioContext();
 
-      await stopAmbient();
+      setIsPlaying(false);
+      setImmersionOpen(false);
+      await teardownAmbient();
+      if (command !== commandRef.current) return;
       stopAllAudio({ skipHandlers: true });
 
       try {
         const ctx = await contextPromise;
+        if (command !== commandRef.current) return;
         ctxRef.current = ctx;
 
         const mainGain = ctx.createGain();
@@ -126,13 +147,14 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
         setIsPlaying(true);
         setImmersionOpen(true);
       } catch (error) {
+        if (command !== commandRef.current) return;
         console.error('Failed to initialize classical ambient generator:', error);
         setAudioError('Ambient audio could not start. Tap Listen again.');
         setIsPlaying(false);
         setImmersionOpen(false);
       }
     },
-    [volume],
+    [nextCommand, teardownAmbient, volume],
   );
 
   useEffect(() => {
@@ -152,9 +174,10 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
 
   useEffect(() => {
     return () => {
-      void stopAmbient();
+      nextCommand();
+      void teardownAmbient();
     };
-  }, [stopAmbient]);
+  }, [nextCommand, teardownAmbient]);
 
   return (
     <>
