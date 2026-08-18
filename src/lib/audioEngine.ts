@@ -76,7 +76,7 @@ export async function getAudioContext(): Promise<AudioContext> {
 export async function unlockAudioContext(): Promise<void> {
   // Start the HTML media bridge synchronously before the first await so the
   // browser still associates play() with the user's tap.
-  const mediaSessionPromise = primeIosMediaSession();
+  void primeIosMediaSession();
 
   if (!unlockPromise) {
     unlockPromise = (async () => {
@@ -93,7 +93,7 @@ export async function unlockAudioContext(): Promise<void> {
 
   const activeUnlock = unlockPromise;
   try {
-    await Promise.all([activeUnlock, mediaSessionPromise]);
+    await activeUnlock;
   } finally {
     if (unlockPromise === activeUnlock) unlockPromise = null;
   }
