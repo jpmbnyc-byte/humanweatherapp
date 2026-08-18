@@ -5,7 +5,7 @@ import { ClassicalPiece } from '../types';
 import { Play, Square, Volume2, Info } from 'lucide-react';
 import { registerAudioStop, stopAllAudio } from '../lib/stopAllAudio';
 import { fadeOutGain } from '../lib/audioEngine';
-import { createLoopingToneMedia, disposeLoopingToneMedia, LoopingToneMedia } from '../lib/mediaTone';
+import { createTimedToneMedia, disposeTimedToneMedia, TimedToneMedia } from '../lib/mediaTone';
 import SoundImmersionOverlay from './SoundImmersionOverlay';
 
 interface ClassicalMusicProps {
@@ -26,7 +26,7 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
   const lfoIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const commandRef = useRef(0);
   const teardownRef = useRef<Promise<void> | null>(null);
-  const mediaRef = useRef<LoopingToneMedia | null>(null);
+  const mediaRef = useRef<TimedToneMedia | null>(null);
 
   const nextCommand = useCallback(() => {
     commandRef.current += 1;
@@ -38,7 +38,7 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
 
     const teardown = (async () => {
       try {
-        disposeLoopingToneMedia(mediaRef.current);
+        disposeTimedToneMedia(mediaRef.current);
         mediaRef.current = null;
         const ctx = ctxRef.current;
         const gain = mainGainRef.current;
@@ -89,14 +89,14 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
   useEffect(() => registerAudioStop(() => void stopAmbient()), [stopAmbient]);
 
   const startAmbient = useCallback(
-    async (piece: ClassicalPiece) => {
+    async (piece: ClassicalPiece, durationSeconds = 30, keepImmersion = false) => {
       const command = nextCommand();
       setAudioError(null);
       setIsPlaying(false);
-      setImmersionOpen(false);
+      if (!keepImmersion) setImmersionOpen(false);
 
       stopAllAudio({ skipHandlers: true });
-      disposeLoopingToneMedia(mediaRef.current);
+      disposeTimedToneMedia(mediaRef.current);
       mediaRef.current = null;
 
       const f0 = piece.ambientFrequency;
@@ -110,14 +110,21 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
       }
 
       const frequencies = chordRatios.map(ratio => f0 * ratio);
-      const media = createLoopingToneMedia(frequencies, frequencies, volume * 0.85);
+      const media = createTimedToneMedia(frequencies, frequencies, volume * 0.85, durationSeconds);
       mediaRef.current = media;
+      media.audio.addEventListener('ended', () => {
+        if (mediaRef.current !== media) return;
+        disposeTimedToneMedia(media);
+        mediaRef.current = null;
+        setIsPlaying(false);
+        setImmersionOpen(true);
+      }, { once: true });
 
       try {
         // Keep play() in the original gesture task for Safari and installed PWAs.
         await media.audio.play();
         if (command !== commandRef.current) {
-          disposeLoopingToneMedia(media);
+          disposeTimedToneMedia(media);
           if (mediaRef.current === media) mediaRef.current = null;
           return;
         }
@@ -126,7 +133,7 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
         setImmersionOpen(true);
       } catch (error) {
         if (mediaRef.current === media) mediaRef.current = null;
-        disposeLoopingToneMedia(media);
+        disposeTimedToneMedia(media);
         if (command !== commandRef.current) return;
         console.error('Failed to start classical media audio:', error);
         setAudioError('Ambient audio could not start. Tap Listen again and confirm media sound is allowed.');
@@ -299,12 +306,16 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
       </div>
 
       <SoundImmersionOverlay
-        open={immersionOpen && isPlaying && !!activePiece}
+        open={immersionOpen && !!activePiece}
         title={activePiece?.title ?? 'Classical ambient'}
         subtitle={activePiece?.composer}
         detail={activePiece?.description}
         pulseSec={6}
         accentColor="#a89060"
+        playing={isPlaying}
+        onContinue={seconds => {
+          if (activePiece) void startAmbient(activePiece, seconds, true);
+        }}
         onClose={() => {
           void stopAmbient();
           setActivePiece(null);

@@ -6,7 +6,7 @@ import { Headphones, Volume2, Play, Square, Info } from 'lucide-react';
 import { registerAudioStop, stopAllAudio } from '../lib/stopAllAudio';
 import { consumePrescriptionFocus } from '../lib/prescriptionFocus';
 import { fadeOutGain } from '../lib/audioEngine';
-import { createLoopingToneMedia, disposeLoopingToneMedia, LoopingToneMedia } from '../lib/mediaTone';
+import { createTimedToneMedia, disposeTimedToneMedia, TimedToneMedia } from '../lib/mediaTone';
 import SoundImmersionOverlay from './SoundImmersionOverlay';
 
 interface FrequencyTherapyProps {
@@ -28,7 +28,7 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
   const ctxRef = useRef<AudioContext | null>(null);
   const commandRef = useRef(0);
   const teardownRef = useRef<Promise<void> | null>(null);
-  const mediaRef = useRef<LoopingToneMedia | null>(null);
+  const mediaRef = useRef<TimedToneMedia | null>(null);
 
   const nextCommand = useCallback(() => {
     commandRef.current += 1;
@@ -40,7 +40,7 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
 
     const teardown = (async () => {
       try {
-        disposeLoopingToneMedia(mediaRef.current);
+        disposeTimedToneMedia(mediaRef.current);
         mediaRef.current = null;
         const ctx = ctxRef.current;
         const gain = gainNodeRef.current;
@@ -92,29 +92,36 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
   useEffect(() => registerAudioStop(() => void stopAudio()), [stopAudio]);
 
   const startAudio = useCallback(
-    async (tone: FrequencyTone) => {
+    async (tone: FrequencyTone, durationSeconds = 30, keepImmersion = false) => {
       const command = nextCommand();
       setAudioError(null);
       setIsPlaying(false);
-      setImmersionOpen(false);
+      if (!keepImmersion) setImmersionOpen(false);
 
       // HTML media is the audible source on iOS. play() is invoked before any
       // await so Safari associates it directly with this button tap.
       stopAllAudio({ skipHandlers: true });
-      disposeLoopingToneMedia(mediaRef.current);
+      disposeTimedToneMedia(mediaRef.current);
       mediaRef.current = null;
 
       const carrier = 180;
       const media =
         tone.type === 'binaural'
-          ? createLoopingToneMedia([carrier], [carrier + tone.hz], volume * 0.9)
-          : createLoopingToneMedia([tone.hz], [tone.hz], volume * 0.9);
+          ? createTimedToneMedia([carrier], [carrier + tone.hz], volume * 0.9, durationSeconds)
+          : createTimedToneMedia([tone.hz], [tone.hz], volume * 0.9, durationSeconds);
       mediaRef.current = media;
+      media.audio.addEventListener('ended', () => {
+        if (mediaRef.current !== media) return;
+        disposeTimedToneMedia(media);
+        mediaRef.current = null;
+        setIsPlaying(false);
+        setImmersionOpen(true);
+      }, { once: true });
 
       try {
         await media.audio.play();
         if (command !== commandRef.current) {
-          disposeLoopingToneMedia(media);
+          disposeTimedToneMedia(media);
           if (mediaRef.current === media) mediaRef.current = null;
           return;
         }
@@ -123,7 +130,7 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
         setImmersionOpen(true);
       } catch (error) {
         if (mediaRef.current === media) mediaRef.current = null;
-        disposeLoopingToneMedia(media);
+        disposeTimedToneMedia(media);
         if (command !== commandRef.current) return;
         console.error('Failed to start frequency media audio:', error);
         setAudioError('Audio could not start. Tap Play again and confirm media sound is allowed.');
@@ -321,12 +328,16 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
       </div>
 
       <SoundImmersionOverlay
-        open={immersionOpen && isPlaying && !!activeTone}
+        open={immersionOpen && !!activeTone}
         title={activeTone?.name ?? 'Frequency'}
         subtitle={activeTone?.subtitle}
         detail={activeTone?.description}
         pulseSec={5}
         accentColor="#c9a96a"
+        playing={isPlaying}
+        onContinue={seconds => {
+          if (activeTone) void startAudio(activeTone, seconds, true);
+        }}
         onClose={handleExitImmersion}
       />
     </>
