@@ -7,6 +7,7 @@ import { getChannelPrefs, setChannelPrefs } from "../lib/harness/channels";
 import FormingDustLayer from "./FormingDustLayer";
 import SketchLivePreview from "./SketchLivePreview";
 import SomaticBodyFigure from "./SomaticBodyFigure";
+import { countSomaticZones, SOMATIC_ZONE_BANDS } from "../lib/somaticZones";
 
 interface SomaticGridProps {
   onStateChange: (state: WeatherState, activeCoordinates: [number, number][]) => void;
@@ -97,8 +98,10 @@ export default function SomaticGrid({ onStateChange, currentTheme }: SomaticGrid
 
     const coherenceRatio = neighborsCount / count; // 0 to 1
 
-    const headCells = activeCoords.filter(([r]) => r <= 2).length;
-    const headRatio = headCells / count;
+    const zoneCounts = countSomaticZones(activeCoords);
+    const headRatio = zoneCounts.head / count;
+    const upperBodyRatio = (zoneCounts.head + zoneCounts.chest) / count;
+    const pelvisRatio = zoneCounts.pelvis / count;
     const rows = activeCoords.map(([r]) => r);
     const rowSpread = rows.length > 0 ? Math.max(...rows) - Math.min(...rows) : 0;
 
@@ -111,7 +114,7 @@ export default function SomaticGrid({ onStateChange, currentTheme }: SomaticGrid
     } else if (
       count >= 4 &&
       count <= 18 &&
-      avgRow >= 1.2 &&
+      upperBodyRatio >= 0.55 &&
       avgRow <= 3.8 &&
       coherenceRatio >= 0.2 &&
       coherenceRatio < 0.55
@@ -125,11 +128,11 @@ export default function SomaticGrid({ onStateChange, currentTheme }: SomaticGrid
     } else if (coherenceRatio < 0.4 && count >= 3) {
       // Fragmented, scattered
       detectedStateId = "scattered_atmospheric_drift";
-    } else if (avgRow <= 2.5 && count >= 3) {
-      // High center of gravity (Chest / Head)
+    } else if (upperBodyRatio >= 0.65 && count >= 3) {
+      // Marks gather in the explicit Head + Chest bands.
       detectedStateId = "sympathetic_heat_dome";
-    } else if (avgRow >= 4.8 && count >= 3) {
-      // Low center of gravity (Pelvis / Lower)
+    } else if (pelvisRatio >= 0.55 && count >= 3) {
+      // Marks gather in the explicit Pelvis band.
       detectedStateId = "dewpoint_restorative_slumber";
     } else if (coherenceRatio >= 0.7 && count >= 5) {
       // Coherent cluster
@@ -325,13 +328,14 @@ export default function SomaticGrid({ onStateChange, currentTheme }: SomaticGrid
       {/* Interactive 8x8 Grid */}
       <div className="w-full grid grid-cols-[auto_1fr] gap-3 md:gap-4 items-stretch">
         <div
-          className="flex flex-col justify-between py-4 font-mono text-[9px] md:text-[10px] uppercase tracking-[0.14em] opacity-45 text-right"
+          className="grid grid-rows-4 py-3 md:py-4 font-mono text-[9px] md:text-[10px] uppercase tracking-[0.14em] opacity-55 text-right"
           aria-hidden
         >
-          <span>Head</span>
-          <span>Chest</span>
-          <span>Core</span>
-          <span>Pelvis</span>
+          {SOMATIC_ZONE_BANDS.map((zone) => (
+            <span key={zone.id} className="flex items-center justify-end">
+              {zone.label}
+            </span>
+          ))}
         </div>
         <div
           ref={gridRef}
