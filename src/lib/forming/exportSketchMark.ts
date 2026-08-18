@@ -11,7 +11,7 @@ const EXPORT_HEIGHT = 2250;
 export type SketchSaveResult = 'shared' | 'downloaded' | 'opened' | 'failed';
 
 export function sketchMarkFilename(seed: FormSeed): string {
-  return `human-weather-mark-${seed.date}.png`;
+  return `human-weather-daymark-${seed.date}.png`;
 }
 
 export function renderSketchMarkBlob(
@@ -48,8 +48,8 @@ export async function saveSketchMarkToDevice(seed: FormSeed): Promise<SketchSave
     try {
       await navigator.share({
         files: [file],
-        title: 'Field sketch',
-        text: 'Human Weather field sketch',
+        title: 'Human Weather Daymark',
+        text: 'My Human Weather Daymark',
       });
       return 'shared';
     } catch (err) {
