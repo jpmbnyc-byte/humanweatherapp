@@ -4,7 +4,7 @@ import { CLASSICAL_PIECES } from '../data';
 import { ClassicalPiece } from '../types';
 import { Play, Square, Volume2, Info } from 'lucide-react';
 import { registerAudioStop, stopAllAudio } from '../lib/stopAllAudio';
-import { fadeInGain, fadeOutGain, getAudioContext } from '../lib/audioEngine';
+import { fadeInGain, fadeOutGain, getAudioContext, unlockAudioContext } from '../lib/audioEngine';
 import SoundImmersionOverlay from './SoundImmersionOverlay';
 
 interface ClassicalMusicProps {
@@ -91,7 +91,7 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
 
       // Resume Web Audio before yielding to fade-out cleanup. Mobile Safari
       // only permits this while the original tap still has user activation.
-      const contextPromise = getAudioContext();
+      const contextPromise = unlockAudioContext().then(() => getAudioContext());
 
       setIsPlaying(false);
       setImmersionOpen(false);
