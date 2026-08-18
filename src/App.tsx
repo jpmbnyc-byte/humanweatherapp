@@ -65,8 +65,22 @@ const getThemeForNow = (): 'day' | 'night' => {
 };
 
 /** Threshold — home section returned to after backgrounding. */
-const THRESHOLD_TAB = 'somatic' as const;
-type AppTab = 'somatic' | 'therapy' | 'rhythms' | 'tender';
+const THRESHOLD_TAB = 'today' as const;
+type LegacyTab = 'somatic' | 'therapy' | 'rhythms' | 'tender';
+type AppTab = 'today' | 'look' | 'practice' | 'history' | 'tender';
+
+/** Legacy tab ids (prescriptions, offices, conditions) → locked IA sections. */
+function sectionForLegacyTab(tab: LegacyTab): AppTab {
+  switch (tab) {
+    case 'somatic':
+      return 'look';
+    case 'therapy':
+    case 'rhythms':
+      return 'practice';
+    default:
+      return 'tender';
+  }
+}
 
 async function resolvePlace(coords?: { lat: number; lon: number }): Promise<WhereAreWeResult> {
   const { whereAreWe } = await import('./lib/whereAreWe');
@@ -92,6 +106,13 @@ function AppBody() {
     stopAllAudio();
     setActiveTab(id);
   }, []);
+
+  const navigateLegacyTab = useCallback(
+    (tab: LegacyTab) => {
+      transitionToTab(sectionForLegacyTab(tab));
+    },
+    [transitionToTab],
+  );
 
   useEffect(() => {
     dismissBootSplash();
@@ -192,8 +213,8 @@ function AppBody() {
       data-office-state={place?.officeState ?? 'none'}
     >
       <MountainBackground theme={currentTheme} />
-      {(activeTab === 'therapy' || activeTab === 'tender') && (
-        <AmbientDrift intensity={activeTab === 'therapy' ? 'medium' : 'soft'} />
+      {(activeTab === 'practice' || activeTab === 'tender') && (
+        <AmbientDrift intensity={activeTab === 'practice' ? 'medium' : 'soft'} />
       )}
 
       {showAddToHome && (
@@ -276,10 +297,11 @@ function AppBody() {
         <nav className="w-full mt-8 md:mt-10" id="app-navigation-bar">
           <div className={`flex flex-wrap gap-1 p-1 rounded-2xl border ${themeStyles.border} ${isNight ? 'bg-black/15' : 'bg-white/50'}`}>
             {([
-              ['somatic', 'Field Station'],
-              ['therapy', 'Aura & Tones'],
-              ['rhythms', 'Circadian'],
-              ['tender', 'The Tender'],
+              ['today', 'Today'],
+              ['look', 'Look'],
+              ['practice', 'Practice'],
+              ['history', 'History'],
+              ['tender', 'Tender'],
             ] as const).map(([id, label]) => (
               <button
                 type="button"
@@ -287,10 +309,13 @@ function AppBody() {
                 id={`tab-${id}-btn`}
                 onClick={() => {
                   if (id === 'tender') void import('./components/TheTender');
-                  else if (id !== activeTab && id !== 'somatic') prefetchTabWhenIdle(id);
+                  else if (id === 'practice' && id !== activeTab) {
+                    prefetchTabWhenIdle('therapy');
+                    prefetchTabWhenIdle('rhythms');
+                  }
                   transitionToTab(id);
                 }}
-                className={`hw-pressable flex-1 min-w-[calc(50%-4px)] sm:min-w-0 px-5 py-3.5 rounded-xl text-sm font-sans font-medium tracking-wide border transition-colors cursor-pointer ${
+                className={`hw-pressable flex-1 min-w-[calc(33.333%-6px)] sm:min-w-0 px-4 py-3.5 rounded-xl text-sm font-sans font-medium tracking-wide border transition-colors cursor-pointer ${
                   activeTab === id ? themeStyles.tabActive : themeStyles.tabInactive
                 }`}
               >
@@ -303,53 +328,58 @@ function AppBody() {
         {/* Main views */}
         <main className="flex-1 w-full py-10 md:py-12 min-w-0" id="app-main-view">
             <PrescriptionTrail
-              activeTab={activeTab}
+              activeTab={activeTab === 'practice' ? 'therapy' : activeTab === 'tender' ? 'tender' : 'somatic'}
               activeWeather={activeWeather}
               currentTheme={currentTheme}
               onReturnStation={() => transitionToTab(THRESHOLD_TAB)}
             />
 
-            {activeTab === 'somatic' && (
+            {(activeTab === 'today' || activeTab === 'look' || activeTab === 'history') && (
               <SomaticTabView
+                key={`station-${activeTab}`}
+                section={activeTab}
                 currentTheme={currentTheme}
                 activeWeather={activeWeather}
                 themeStyles={themeStyles}
                 isNight={isNight}
                 place={place}
                 onStateChange={handleStateChange}
-                onNavigateTab={transitionToTab}
+                onNavigateTab={navigateLegacyTab}
               />
             )}
 
-            {activeTab === 'therapy' && (
-              <div
-                key="therapy-view"
-                className="hw-view-enter flex flex-col gap-8 md:gap-10 hw-therapy-chamber"
+            {activeTab === 'practice' && (
+              <SomaticTabView
+                key="station-practice"
+                section="practice"
+                currentTheme={currentTheme}
+                activeWeather={activeWeather}
+                themeStyles={themeStyles}
+                isNight={isNight}
+                place={place}
+                onStateChange={handleStateChange}
+                onNavigateTab={navigateLegacyTab}
               >
-                <ChamberIntro chamber="therapy" currentTheme={currentTheme} />
-                <Suspense fallback={<TabSkeleton isNight={isNight} />}>
-                  <TabErrorBoundary isNight={isNight}>
-                    <FrequencyTherapy currentTheme={currentTheme} />
-                    <LightTherapy currentTheme={currentTheme} />
-                    <ClassicalMusic currentTheme={currentTheme} />
-                  </TabErrorBoundary>
-                </Suspense>
-              </div>
-            )}
-
-            {activeTab === 'rhythms' && (
-              <div
-                key="rhythms-view"
-                className="hw-view-enter flex flex-col gap-8 md:gap-10"
-              >
-                <ChamberIntro chamber="rhythms" currentTheme={currentTheme} />
-                <Suspense fallback={<TabSkeleton isNight={isNight} />}>
-                  <TabErrorBoundary isNight={isNight}>
-                    <SolarRay currentTheme={currentTheme} isActive={activeTab === 'rhythms'} />
-                    <ShinrinYoku currentTheme={currentTheme} />
-                  </TabErrorBoundary>
-                </Suspense>
-              </div>
+                <div className="hw-view-enter flex flex-col gap-8 md:gap-10 hw-therapy-chamber">
+                  <ChamberIntro chamber="therapy" currentTheme={currentTheme} />
+                  <Suspense fallback={<TabSkeleton isNight={isNight} />}>
+                    <TabErrorBoundary isNight={isNight}>
+                      <FrequencyTherapy currentTheme={currentTheme} />
+                      <LightTherapy currentTheme={currentTheme} />
+                      <ClassicalMusic currentTheme={currentTheme} />
+                    </TabErrorBoundary>
+                  </Suspense>
+                </div>
+                <div className="hw-view-enter flex flex-col gap-8 md:gap-10">
+                  <ChamberIntro chamber="rhythms" currentTheme={currentTheme} />
+                  <Suspense fallback={<TabSkeleton isNight={isNight} />}>
+                    <TabErrorBoundary isNight={isNight}>
+                      <SolarRay currentTheme={currentTheme} isActive />
+                      <ShinrinYoku currentTheme={currentTheme} />
+                    </TabErrorBoundary>
+                  </Suspense>
+                </div>
+              </SomaticTabView>
             )}
 
             {activeTab === 'tender' && (
