@@ -2,55 +2,6 @@
 
 let sharedCtx: AudioContext | null = null;
 let unlockPromise: Promise<AudioContext> | null = null;
-let iosHtmlAudio: HTMLAudioElement | null = null;
-
-function isIosWebKit(): boolean {
-  if (typeof navigator === 'undefined' || typeof window === 'undefined') return false;
-  const hasWebKitContext = 'webkitAudioContext' in window;
-  return navigator.maxTouchPoints > 0 && hasWebKitContext;
-}
-
-/** Seven-sample silent WAV used to open iOS's media playback audio session. */
-function createSilentWav(sampleRate: number): string {
-  const buffer = new ArrayBuffer(10);
-  const view = new DataView(buffer);
-  view.setUint32(0, sampleRate, true);
-  view.setUint32(4, sampleRate, true);
-  view.setUint16(8, 1, true);
-  const bytes = String.fromCharCode(...new Uint8Array(buffer));
-  const missing = window.btoa(bytes).slice(0, 13);
-  return `data:audio/wav;base64,UklGRisAAABXQVZFZm10IBAAAAABAAEA${missing}AgAZGF0YQcAAACAgICAgICAAAA=`;
-}
-
-/**
- * HTML media opens iOS's playback audio session, which Web Audio alone cannot
- * do while the Ring/Silent switch is enabled. Must run during a user gesture.
- */
-async function primeIosMediaSession(): Promise<void> {
-  if (!isIosWebKit()) return;
-
-  if (!iosHtmlAudio) {
-    const audio = document.createElement('audio');
-    audio.setAttribute('playsinline', '');
-    audio.setAttribute('x-webkit-airplay', 'deny');
-    audio.preload = 'auto';
-    audio.loop = true;
-    audio.src = createSilentWav(sharedCtx?.sampleRate ?? 44100);
-    audio.load();
-    iosHtmlAudio = audio;
-  }
-
-  if (!iosHtmlAudio.paused) return;
-
-  try {
-    await iosHtmlAudio.play();
-  } catch {
-    iosHtmlAudio.pause();
-    iosHtmlAudio.removeAttribute('src');
-    iosHtmlAudio.load();
-    iosHtmlAudio = null;
-  }
-}
 
 function createContext(): AudioContext {
   const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
@@ -74,28 +25,24 @@ export async function getAudioContext(): Promise<AudioContext> {
 
 /** Play a silent buffer so iOS/Safari keeps the audio graph alive after first tap. */
 export async function unlockAudioContext(): Promise<void> {
-  // Start the HTML media bridge synchronously before the first await so the
-  // browser still associates play() with the user's tap.
-  void primeIosMediaSession();
-
-  if (!unlockPromise) {
-    unlockPromise = (async () => {
-      const ctx = await getAudioContext();
-      const buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
-      const source = ctx.createBufferSource();
-      source.buffer = buffer;
-      source.connect(ctx.destination);
-      source.start(0);
-      source.stop(ctx.currentTime + 0.05);
-      return ctx;
-    })();
+  if (unlockPromise) {
+    await unlockPromise;
+    return;
   }
-
-  const activeUnlock = unlockPromise;
+  unlockPromise = (async () => {
+    const ctx = await getAudioContext();
+    const buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(ctx.destination);
+    source.start(0);
+    source.stop(ctx.currentTime + 0.05);
+    return ctx;
+  })();
   try {
-    await activeUnlock;
+    await unlockPromise;
   } finally {
-    if (unlockPromise === activeUnlock) unlockPromise = null;
+    unlockPromise = null;
   }
 }
 
@@ -134,10 +81,4 @@ export async function closeSharedAudioContext(): Promise<void> {
     /* best-effort */
   }
   sharedCtx = null;
-  if (iosHtmlAudio) {
-    iosHtmlAudio.pause();
-    iosHtmlAudio.removeAttribute('src');
-    iosHtmlAudio.load();
-    iosHtmlAudio = null;
-  }
 }
