@@ -99,7 +99,7 @@ export default function StationGuide({ place, activeWeather, currentTheme }: Pro
             )}
             {!officeMeta && (
               <p className={`hw-caption mt-2 max-w-prose ${isNight ? 'text-white/55' : 'text-stone-600'}`}>
-                One instrument, one loop — map the body, name the Conditions, breathe, then follow what the sky prescribes.
+                The sun establishes the field. Map the body, name the Conditions, breathe, then follow what the moment invites.
               </p>
             )}
           </div>
