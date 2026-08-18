@@ -50,10 +50,10 @@ export default function SaveSketchButton({ seed, isNight, compact = false }: Pro
             ? 'border-white/15 bg-white/5 text-white/75 hover:bg-white/10 hover:text-white'
             : 'border-stone-300/80 bg-white text-stone-700 hover:border-accent/40 hover:text-[#2c2824]'
         }`}
-        aria-label="Save field sketch to device as PNG"
+        aria-label="Save Daymark to device as PNG"
       >
         <Download className={compact ? 'w-3.5 h-3.5' : 'w-4 h-4'} aria-hidden />
-        {busy ? 'Saving…' : 'Save field sketch'}
+        {busy ? 'Saving…' : 'Save Daymark'}
       </button>
       {feedback && (
         <p

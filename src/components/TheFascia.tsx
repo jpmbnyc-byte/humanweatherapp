@@ -53,9 +53,9 @@ export default function TheFascia({ currentTheme }: Props) {
     return (
       <div className="w-full mt-8 pt-6 border-t border-accent/10 flex flex-col gap-4" id="marked-days">
         <div>
-          <span className="hw-eyebrow block mb-1">Marked days</span>
+          <span className="hw-eyebrow block mb-1">Daymarks</span>
           <p className={`font-sans text-sm ${isNight ? 'text-white/50' : 'text-stone-600'}`}>
-            Daily internal climate marks open with membership.
+            Your daily body-map sketches open with membership.
           </p>
         </div>
         <PurchaseOffer currentTheme={currentTheme} variant="compact" />
@@ -66,9 +66,9 @@ export default function TheFascia({ currentTheme }: Props) {
   if (count === 0) {
     return (
       <div className="w-full mt-8 pt-6 border-t border-accent/10" id="marked-days">
-        <span className="hw-eyebrow block mb-1">Marked days</span>
+        <span className="hw-eyebrow block mb-1">Daymarks</span>
         <p className={`font-sans text-sm italic ${isNight ? 'text-white/45' : 'text-stone-500'}`}>
-          {readOnly ? 'No saved marks on this device yet.' : 'Unmarked days leave no trace.'}
+          {readOnly ? 'No Daymarks saved on this device yet.' : 'Map, breathe, and your first Daymark will appear here.'}
         </p>
       </div>
     );
@@ -88,15 +88,15 @@ export default function TheFascia({ currentTheme }: Props) {
           aria-expanded={open}
         >
           <div className="min-w-0 flex-1">
-            <span className="hw-eyebrow block mb-1">Marked days</span>
+            <span className="hw-eyebrow block mb-1">Daymarks</span>
             <p className={`font-serif text-lg leading-snug ${isNight ? 'text-white/90' : 'text-[#2c2824]'}`}>
-              {count} mark{count === 1 ? '' : 's'} on this device
+              {count} Daymark{count === 1 ? '' : 's'} on this device
             </p>
             <p className={`font-sans text-sm mt-1 ${isNight ? 'text-white/55' : 'text-stone-600'}`}>
               {readOnly
-                ? 'Your saved marks — read-only while access is lapsed'
-                : 'Your internal climate, kept as notebook sketches'}
-              {!open && historyMarks.length > 0 ? ' · tap for earlier marks' : ''}
+                ? 'Your saved Daymarks — read-only while access is lapsed'
+                : 'A daily sketch shaped by your body map and breath'}
+              {!open && historyMarks.length > 0 ? ' · tap for earlier days' : ''}
             </p>
           </div>
           <ChevronDown
@@ -113,7 +113,7 @@ export default function TheFascia({ currentTheme }: Props) {
                 isNight ? 'text-white/35' : 'text-stone-500'
               }`}
             >
-              {todayMark.date === todayKey ? 'Today\u2019s mark' : 'Latest mark'}
+              {todayMark.date === todayKey ? 'Today\u2019s Daymark' : 'Latest Daymark'}
             </p>
             <MarkTile memento={todayMark} isNight={isNight} highlight readOnly={readOnly} />
           </div>
@@ -122,7 +122,7 @@ export default function TheFascia({ currentTheme }: Props) {
         {open && historyMarks.length > 0 && (
           <div className={`mt-5 pt-4 border-t ${isNight ? 'border-white/10' : 'border-stone-300/60'}`}>
             <p className={`font-sans text-xs mb-4 ${isNight ? 'text-white/45' : 'text-stone-500'}`}>
-              Earlier marks — last {Math.min(30, count)} on this device
+              Earlier Daymarks — last {Math.min(30, count)} on this device
             </p>
             <ul className="flex flex-col gap-5 pl-3 border-l border-accent/25 max-h-[min(420px,50vh)] overflow-y-auto pr-1" role="list">
               {historyMarks.map(m => (
@@ -199,7 +199,7 @@ function MarkTile({
           {formatMarkDateLabel(memento.date)}
         </span>
         <span className={`font-sans text-sm ${isNight ? 'text-white/60' : 'text-stone-600'}`}>
-          {resolved.caption} · {memento.weatherName} · {drawOptions.coherence}%
+          {resolved.caption} · {memento.weatherName}
         </span>
         <p
           className={`font-serif text-sm italic leading-relaxed mt-1.5 ${

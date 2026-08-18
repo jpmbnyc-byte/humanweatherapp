@@ -63,7 +63,7 @@ export default function ConditionsCard({
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
         <span className="font-mono text-xs uppercase tracking-widest opacity-50">
-          Current conditions: {activeWeather.title} · coherence {activeWeather.hrv}%
+          Current conditions: {activeWeather.title}
         </span>
         <button
           type="button"

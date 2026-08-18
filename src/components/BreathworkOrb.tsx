@@ -237,7 +237,7 @@ export default function BreathworkOrb({ weatherState, currentTheme, onCyclesComp
         </div>
 
         {/* Respiration Pattern Info Bar */}
-        <div className="w-full border-t border-accent/10 mt-6 pt-4 flex justify-around text-center">
+        <div className="w-full border-t border-accent/10 mt-6 pt-4 grid grid-cols-3 text-center">
           <div>
             <div className="hw-stat-value">{inhale}s</div>
             <div className="hw-stat-label">Inhale</div>
@@ -249,10 +249,6 @@ export default function BreathworkOrb({ weatherState, currentTheme, onCyclesComp
           <div>
             <div className="hw-stat-value">{weatherState.respiratoryRatio}</div>
             <div className="hw-stat-label">Ratio</div>
-          </div>
-          <div>
-            <div className="hw-stat-value">{weatherState.hrv}%</div>
-            <div className="hw-stat-label">Coherence</div>
           </div>
         </div>
       </div>

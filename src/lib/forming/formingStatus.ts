@@ -5,7 +5,7 @@ export function getFormingStatusMessage(
   opts?: { hasTouch?: boolean; todaySaved?: boolean },
 ): string {
   if (opts?.todaySaved) {
-    return 'Today\u2019s mark is kept on this device.';
+    return 'Today\u2019s Daymark is kept on this device.';
   }
 
   switch (stage) {
@@ -14,15 +14,15 @@ export function getFormingStatusMessage(
     case 'gathering':
       return 'Reading your touch on the field\u2026';
     case 'breathing':
-      return 'Coalescing your climate mark\u2026';
+      return 'Forming today\u2019s Daymark\u2026';
     case 'capturing':
       return 'The field answers your climate\u2026';
     case 'mounting':
-      return 'Recording your mark\u2026';
+      return 'Mounting your Daymark\u2026';
     case 'stillness':
-      return 'Mark held \u2014 saving to this device\u2026';
+      return 'Daymark held on this device.';
     case 'complete':
-      return 'Mark kept \u2014 see Marked days below';
+      return 'Daymark kept \u2014 find it in History';
     default:
       return '';
   }
