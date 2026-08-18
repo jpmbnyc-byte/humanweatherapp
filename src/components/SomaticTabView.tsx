@@ -1,35 +1,36 @@
-import React, { Suspense, lazy, useCallback, useEffect, useState } from 'react';
-import SomaticGrid from './SomaticGrid';
-import ConditionsCard from './ConditionsCard';
-import TrialFootline from './TrialFootline';
-import OfficeSequence from './OfficeSequence';
-import StationGuide from './StationGuide';
-import SolarCircadianField from './SolarCircadianField';
-import PurchaseSuccessBanner from './PurchaseSuccessBanner';
-import PromoSuccessBanner from './PromoSuccessBanner';
-import PurchaseVerifyErrorBanner from './PurchaseVerifyErrorBanner';
-import { useFormingOptional } from '../lib/forming/FormingContext';
-import { useEntitlement } from '../lib/EntitlementContext';
-import { StationJourneyProvider, useStationJourney } from '../lib/StationJourneyContext';
-import PatternViewPanel from './harness/PatternViewPanel';
-import { appendReading } from '../lib/harness/readings';
-import { noteWeatherObservation } from '../lib/harness/vocabulary';
-import { runWhenIdle } from '../lib/deferredWork';
-import type { WhereAreWeResult } from '../lib/whereAreWe';
-import type { WeatherState } from '../types';
+import React, { Suspense, lazy, useCallback, useEffect, useState } from "react";
+import SomaticGrid from "./SomaticGrid";
+import ConditionsCard from "./ConditionsCard";
+import TrialFootline from "./TrialFootline";
+import OfficeSequence from "./OfficeSequence";
+import StationGuide from "./StationGuide";
+import SolarCircadianField from "./SolarCircadianField";
+import PurchaseSuccessBanner from "./PurchaseSuccessBanner";
+import PromoSuccessBanner from "./PromoSuccessBanner";
+import PurchaseVerifyErrorBanner from "./PurchaseVerifyErrorBanner";
+import { useFormingOptional } from "../lib/forming/FormingContext";
+import { useEntitlement } from "../lib/EntitlementContext";
+import { StationJourneyProvider, useStationJourney } from "../lib/StationJourneyContext";
+import PatternViewPanel from "./harness/PatternViewPanel";
+import { appendReading } from "../lib/harness/readings";
+import { noteWeatherObservation } from "../lib/harness/vocabulary";
+import { runWhenIdle } from "../lib/deferredWork";
+import type { WhereAreWeResult } from "../lib/whereAreWe";
+import type { WeatherState } from "../types";
+import EnvironmentalMeetingPlace from "./EnvironmentalMeetingPlace";
 
-const BreathworkOrb = lazy(() => import('./BreathworkOrb'));
-const TheFascia = lazy(() => import('./TheFascia'));
-const FormingCaptureOverlay = lazy(() => import('./FormingCaptureOverlay'));
+const BreathworkOrb = lazy(() => import("./BreathworkOrb"));
+const TheFascia = lazy(() => import("./TheFascia"));
+const FormingCaptureOverlay = lazy(() => import("./FormingCaptureOverlay"));
 const FormingProvider = lazy(() =>
-  import('../lib/forming/FormingContext').then(m => ({ default: m.FormingProvider })),
+  import("../lib/forming/FormingContext").then((m) => ({ default: m.FormingProvider })),
 );
 
-type AppTab = 'somatic' | 'therapy' | 'rhythms' | 'tender';
-export type StationSection = 'today' | 'look' | 'practice' | 'history';
+type AppTab = "somatic" | "therapy" | "rhythms" | "tender";
+export type StationSection = "today" | "look" | "practice" | "history";
 
 type Props = {
-  currentTheme: 'day' | 'night';
+  currentTheme: "day" | "night";
   activeWeather: WeatherState;
   themeStyles: { border: string; cardBg: string };
   isNight: boolean;
@@ -48,7 +49,7 @@ function SomaticScaleWrap({ children }: { children: React.ReactNode }) {
     <div
       style={{
         transform: forming && forming.scalePunch < 1 ? `scale(${forming.scalePunch})` : undefined,
-        transition: forming?.reduceMotion ? 'none' : 'transform 140ms ease-out',
+        transition: forming?.reduceMotion ? "none" : "transform 140ms ease-out",
       }}
     >
       {children}
@@ -79,7 +80,7 @@ function SomaticTabBody({
     dismissPromoMessage,
   } = useEntitlement();
   const { markMapped, markBreathComplete } = useStationJourney();
-  const nascimentoEnabled = can('nascimento');
+  const nascimentoEnabled = can("nascimento");
   const conditionsSummary = `${activeWeather.clinicalIndex} · HRV ${activeWeather.hrv}%`;
   const [formingReady, setFormingReady] = useState(false);
 
@@ -91,7 +92,7 @@ function SomaticTabBody({
   const handleStateChange = useCallback(
     (state: WeatherState, coords: [number, number][]) => {
       if (coords.length > 0) markMapped();
-      void appendReading({ weatherId: state.id, source: 'field_station' });
+      void appendReading({ weatherId: state.id, source: "field_station" });
       void noteWeatherObservation(state.id);
       onStateChange(state, coords);
     },
@@ -111,12 +112,9 @@ function SomaticTabBody({
       )}
       <SomaticScaleWrap>
         <div className="hw-view-enter flex flex-col overflow-x-hidden w-full min-w-0">
-          {section === 'today' && <TrialFootline currentTheme={currentTheme} />}
+          {section === "today" && <TrialFootline currentTheme={currentTheme} />}
           {purchaseJustCompleted && (
-            <PurchaseSuccessBanner
-              currentTheme={currentTheme}
-              onDismiss={dismissPurchaseSuccess}
-            />
+            <PurchaseSuccessBanner currentTheme={currentTheme} onDismiss={dismissPurchaseSuccess} />
           )}
           {promoMessage && (
             <PromoSuccessBanner
@@ -133,19 +131,28 @@ function SomaticTabBody({
             />
           )}
 
-          {section === 'today' && (
-            <StationGuide
-              place={place}
-              activeWeather={activeWeather}
-              currentTheme={currentTheme}
-            />
+          {section === "today" && (
+            <>
+              <EnvironmentalMeetingPlace
+                place={place}
+                activeWeather={activeWeather}
+                currentTheme={currentTheme}
+                onOpenLook={() => onNavigateTab("somatic")}
+                onOpenPractice={() => onNavigateTab("rhythms")}
+              />
+              <StationGuide
+                place={place}
+                activeWeather={activeWeather}
+                currentTheme={currentTheme}
+              />
+            </>
           )}
 
-          {section === 'today' && place?.marks && (
+          {section === "today" && place?.marks && (
             <SolarCircadianField marks={place.marks} currentTheme={currentTheme} />
           )}
 
-          {section === 'today' && place?.activeOffice && place.officeState === 'available' && (
+          {section === "today" && place?.activeOffice && place.officeState === "available" && (
             <div className="hw-station-linked mb-8">
               <OfficeSequence
                 place={place}
@@ -155,16 +162,16 @@ function SomaticTabBody({
             </div>
           )}
 
-          {section === 'practice' ? practiceHeader : null}
+          {section === "practice" ? practiceHeader : null}
 
           <div className="flex flex-col gap-10 lg:gap-12 w-full min-w-0">
-            {section === 'look' && (
+            {section === "look" && (
               <section aria-label="Somatic field mapping" className="hw-station-linked">
                 <SomaticGrid onStateChange={handleStateChange} currentTheme={currentTheme} />
               </section>
             )}
 
-            {(section === 'today' || section === 'look') && (
+            {(section === "today" || section === "look") && (
               <section aria-label="Current conditions" className="hw-station-linked">
                 <ConditionsCard
                   activeWeather={activeWeather}
@@ -175,9 +182,17 @@ function SomaticTabBody({
               </section>
             )}
 
-            {section === 'practice' && showPracticeBreathwork && (
-              <section id="practice-active-instrument" aria-label="Calibrated breathwork" className="hw-station-linked scroll-mt-6">
-                <Suspense fallback={<div className="h-64 animate-pulse rounded-2xl bg-accent/5" aria-hidden />}>
+            {section === "practice" && showPracticeBreathwork && (
+              <section
+                id="practice-active-instrument"
+                aria-label="Calibrated breathwork"
+                className="hw-station-linked scroll-mt-6"
+              >
+                <Suspense
+                  fallback={
+                    <div className="h-64 animate-pulse rounded-2xl bg-accent/5" aria-hidden />
+                  }
+                >
                   <BreathworkOrb
                     weatherState={activeWeather}
                     currentTheme={currentTheme}
@@ -187,9 +202,13 @@ function SomaticTabBody({
               </section>
             )}
 
-            {section === 'history' && (
+            {section === "history" && (
               <section aria-label="The Fascia record" className="hw-station-linked">
-                <Suspense fallback={<div className="h-32 w-full animate-pulse rounded-xl bg-accent/5" aria-hidden />}>
+                <Suspense
+                  fallback={
+                    <div className="h-32 w-full animate-pulse rounded-xl bg-accent/5" aria-hidden />
+                  }
+                >
                   <TheFascia currentTheme={currentTheme} />
                 </Suspense>
                 <PatternViewPanel currentTheme={currentTheme} />
@@ -209,11 +228,7 @@ function SomaticTabBody({
 
   return (
     <Suspense fallback={inner}>
-      <FormingProvider
-        weather={activeWeather}
-        conditionsSummary={conditionsSummary}
-        active
-      >
+      <FormingProvider weather={activeWeather} conditionsSummary={conditionsSummary} active>
         {inner}
       </FormingProvider>
     </Suspense>
