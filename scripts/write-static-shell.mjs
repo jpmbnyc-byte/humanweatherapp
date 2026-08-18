@@ -158,6 +158,13 @@ async function patchHeaders() {
 }
 
 async function main() {
+  // Host-native Nitro presets emit provider-specific bundles. The custom
+  // static shell is only for node-server / Cloudflare-style outputs.
+  if (process.env.VERCEL === '1' || process.env.NETLIFY === 'true') {
+    console.log('[write-static-shell] Skipped for host-native Nitro output');
+    return;
+  }
+
   await resolveOutputPaths();
   const manifestPath = await findManifestFile();
   const manifestSource = await readFile(manifestPath, 'utf8');
