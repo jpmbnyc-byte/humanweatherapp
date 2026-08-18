@@ -25,60 +25,81 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
   const pannerRightRef = useRef<StereoPannerNode | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
   const ctxRef = useRef<AudioContext | null>(null);
-  const stoppingRef = useRef(false);
+  const commandRef = useRef(0);
+  const teardownRef = useRef<Promise<void> | null>(null);
+
+  const nextCommand = useCallback(() => {
+    commandRef.current += 1;
+    return commandRef.current;
+  }, []);
+
+  const teardownAudio = useCallback(() => {
+    if (teardownRef.current) return teardownRef.current;
+
+    const teardown = (async () => {
+      try {
+        const ctx = ctxRef.current;
+        const gain = gainNodeRef.current;
+        if (ctx && gain) {
+          await fadeOutGain(gain, ctx, 0.5);
+        }
+        if (oscLeftRef.current) {
+          try {
+            oscLeftRef.current.stop();
+            oscLeftRef.current.disconnect();
+          } catch {
+            /* already stopped */
+          }
+          oscLeftRef.current = null;
+        }
+        if (oscRightRef.current) {
+          try {
+            oscRightRef.current.stop();
+            oscRightRef.current.disconnect();
+          } catch {
+            /* already stopped */
+          }
+          oscRightRef.current = null;
+        }
+        pannerLeftRef.current?.disconnect();
+        pannerRightRef.current?.disconnect();
+        gainNodeRef.current?.disconnect();
+        pannerLeftRef.current = null;
+        pannerRightRef.current = null;
+        gainNodeRef.current = null;
+      } catch (e) {
+        console.warn('Audio cleanup exception:', e);
+      }
+    })().finally(() => {
+      if (teardownRef.current === teardown) teardownRef.current = null;
+    });
+
+    teardownRef.current = teardown;
+    return teardown;
+  }, []);
 
   const stopAudio = useCallback(async () => {
-    if (stoppingRef.current) return;
-    stoppingRef.current = true;
-    try {
-      const ctx = ctxRef.current;
-      const gain = gainNodeRef.current;
-      if (ctx && gain) {
-        await fadeOutGain(gain, ctx, 0.5);
-      }
-      if (oscLeftRef.current) {
-        try {
-          oscLeftRef.current.stop();
-          oscLeftRef.current.disconnect();
-        } catch {
-          /* already stopped */
-        }
-        oscLeftRef.current = null;
-      }
-      if (oscRightRef.current) {
-        try {
-          oscRightRef.current.stop();
-          oscRightRef.current.disconnect();
-        } catch {
-          /* already stopped */
-        }
-        oscRightRef.current = null;
-      }
-      pannerLeftRef.current?.disconnect();
-      pannerRightRef.current?.disconnect();
-      gainNodeRef.current?.disconnect();
-      pannerLeftRef.current = null;
-      pannerRightRef.current = null;
-      gainNodeRef.current = null;
-    } catch (e) {
-      console.warn('Audio cleanup exception:', e);
-    } finally {
-      setIsPlaying(false);
-      setImmersionOpen(false);
-      stoppingRef.current = false;
-    }
-  }, []);
+    nextCommand();
+    setIsPlaying(false);
+    setImmersionOpen(false);
+    await teardownAudio();
+  }, [nextCommand, teardownAudio]);
 
   useEffect(() => registerAudioStop(() => void stopAudio()), [stopAudio]);
 
   const startAudio = useCallback(
     async (tone: FrequencyTone) => {
+      const command = nextCommand();
       setAudioError(null);
-      await stopAudio();
+      setIsPlaying(false);
+      setImmersionOpen(false);
+      await teardownAudio();
+      if (command !== commandRef.current) return;
       stopAllAudio({ skipHandlers: true });
 
       try {
         const ctx = await getAudioContext();
+        if (command !== commandRef.current) return;
         ctxRef.current = ctx;
 
         const gainNode = ctx.createGain();
@@ -124,13 +145,14 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
         setIsPlaying(true);
         setImmersionOpen(true);
       } catch (error) {
+        if (command !== commandRef.current) return;
         console.error('Failed to initialize Web Audio API generator:', error);
         setAudioError('Audio could not start. Tap play again after allowing sound on your device.');
         setIsPlaying(false);
         setImmersionOpen(false);
       }
     },
-    [volume],
+    [nextCommand, teardownAudio, volume],
   );
 
   useEffect(() => {
@@ -162,9 +184,10 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
 
   useEffect(() => {
     return () => {
-      void stopAudio();
+      nextCommand();
+      void teardownAudio();
     };
-  }, [stopAudio]);
+  }, [nextCommand, teardownAudio]);
 
   const handleExitImmersion = () => {
     void stopAudio();
@@ -201,6 +224,7 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
               onChange={e => setVolume(parseFloat(e.target.value))}
               className="w-24 h-1 bg-accent/15 rounded-lg appearance-none cursor-pointer accent-accent focus:outline-none"
               id="freq-volume-slider"
+              aria-label="Sound therapy volume"
             />
             {isPlaying && (
               <button
@@ -237,7 +261,8 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
           {FREQUENCY_TONES.map(tone => {
             const isActive = activeTone?.id === tone.id && isPlaying;
             return (
-              <motion.div
+              <motion.button
+                type="button"
                 key={tone.id}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -252,6 +277,8 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
                 }`}
                 onClick={() => handleToneClick(tone)}
                 id={`freq-card-${tone.id}`}
+                aria-pressed={isActive}
+                aria-label={`${isActive ? 'Stop' : 'Play'} ${tone.name}, ${tone.hz} hertz`}
               >
                 <div>
                   <div className="flex justify-between items-start mb-2">
@@ -309,7 +336,7 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
                     ))}
                   </div>
                 )}
-              </motion.div>
+              </motion.button>
             );
           })}
         </div>
