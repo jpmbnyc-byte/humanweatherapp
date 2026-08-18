@@ -39,6 +39,7 @@ type Props = {
   section: StationSection;
   children?: React.ReactNode;
   showPracticeBreathwork?: boolean;
+  practiceHeader?: React.ReactNode;
 };
 
 function SomaticScaleWrap({ children }: { children: React.ReactNode }) {
@@ -66,6 +67,7 @@ function SomaticTabBody({
   section,
   children,
   showPracticeBreathwork = true,
+  practiceHeader,
 }: Props) {
   const {
     can,
@@ -152,6 +154,8 @@ function SomaticTabBody({
               />
             </div>
           )}
+
+          {section === 'practice' ? practiceHeader : null}
 
           <div className="flex flex-col gap-10 lg:gap-12 w-full min-w-0">
             {section === 'look' && (
