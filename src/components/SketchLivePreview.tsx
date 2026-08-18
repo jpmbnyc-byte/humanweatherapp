@@ -79,7 +79,7 @@ export default function SketchLivePreview({ currentTheme }: Props) {
           isNight ? 'text-white/35' : 'text-stone-500'
         }`}
       >
-        Field sketch
+        Daymark
       </p>
       {statusMessage && (
         <p
@@ -98,7 +98,7 @@ export default function SketchLivePreview({ currentTheme }: Props) {
           }`}
           style={{ aspectRatio: '4 / 5', maxHeight: 220 }}
         >
-          <canvas ref={canvasRef} className="w-full h-full block" aria-label="Live field sketch from grid input" />
+          <canvas ref={canvasRef} className="w-full h-full block" aria-label="Live Daymark forming from your body map" />
         </div>
       )}
     </div>
