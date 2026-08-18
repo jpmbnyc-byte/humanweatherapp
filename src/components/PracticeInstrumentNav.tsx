@@ -89,7 +89,7 @@ export default function PracticeInstrumentNav({ selected, onSelect, currentTheme
 
       <div
         className="mt-3 flex gap-2 overflow-x-auto pb-2 snap-x snap-mandatory"
-        role="list"
+        role="group"
         aria-label="Other Practice instruments"
       >
         {INSTRUMENTS.map(instrument => {
@@ -99,7 +99,6 @@ export default function PracticeInstrumentNav({ selected, onSelect, currentTheme
             <button
               key={instrument.id}
               type="button"
-              role="listitem"
               aria-pressed={active}
               onClick={() => onSelect(instrument.id)}
               className={`snap-start shrink-0 min-w-[132px] md:min-w-[148px] border px-4 py-3.5 text-left transition-colors cursor-pointer ${
