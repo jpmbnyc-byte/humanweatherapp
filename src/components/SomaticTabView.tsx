@@ -38,6 +38,8 @@ type Props = {
   onNavigateTab: (tab: AppTab) => void;
   section: StationSection;
   children?: React.ReactNode;
+  showPracticeBreathwork?: boolean;
+  practiceHeader?: React.ReactNode;
 };
 
 function SomaticScaleWrap({ children }: { children: React.ReactNode }) {
@@ -64,6 +66,8 @@ function SomaticTabBody({
   onNavigateTab,
   section,
   children,
+  showPracticeBreathwork = true,
+  practiceHeader,
 }: Props) {
   const {
     can,
@@ -151,6 +155,8 @@ function SomaticTabBody({
             </div>
           )}
 
+          {section === 'practice' ? practiceHeader : null}
+
           <div className="flex flex-col gap-10 lg:gap-12 w-full min-w-0">
             {section === 'look' && (
               <section aria-label="Somatic field mapping" className="hw-station-linked">
@@ -169,8 +175,8 @@ function SomaticTabBody({
               </section>
             )}
 
-            {section === 'practice' && (
-              <section aria-label="Calibrated breathwork" className="hw-station-linked">
+            {section === 'practice' && showPracticeBreathwork && (
+              <section id="practice-active-instrument" aria-label="Calibrated breathwork" className="hw-station-linked scroll-mt-6">
                 <Suspense fallback={<div className="h-64 animate-pulse rounded-2xl bg-accent/5" aria-hidden />}>
                   <BreathworkOrb
                     weatherState={activeWeather}
