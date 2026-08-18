@@ -127,8 +127,12 @@ export default function SoundImmersionOverlay({
   }, [open]);
 
   const addTime = (seconds: number) => {
-    setAddedSeconds(value => Math.min(600, value + seconds));
-    setRemaining(value => value + seconds);
+    setAddedSeconds(value => {
+      const next = Math.min(600, value + seconds);
+      const delta = next - value;
+      if (delta > 0) setRemaining(current => current + delta);
+      return next;
+    });
   };
 
   const overlay = (
