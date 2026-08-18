@@ -6,7 +6,8 @@ import { Play, Square, Volume2, Info } from 'lucide-react';
 import { registerAudioStop, stopAllAudio } from '../lib/stopAllAudio';
 import { fadeOutGain } from '../lib/audioEngine';
 import { createTimedToneMedia, disposeTimedToneMedia, TimedToneMedia } from '../lib/mediaTone';
-import SoundImmersionOverlay from './SoundImmersionOverlay';
+import SoundImmersionOverlay, { ImmersionSession } from './SoundImmersionOverlay';
+import PracticeSessionSetup, { ClassSessionConfig, DEFAULT_CLASS_SESSION, PracticeMode } from './PracticeSessionSetup';
 
 interface ClassicalMusicProps {
   currentTheme: 'day' | 'night';
@@ -18,6 +19,10 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
   const [volume, setVolume] = useState(0.3);
   const [audioError, setAudioError] = useState<string | null>(null);
   const [immersionOpen, setImmersionOpen] = useState(false);
+  const [practiceMode, setPracticeMode] = useState<PracticeMode>('personal');
+  const [classConfig, setClassConfig] = useState<ClassSessionConfig>(DEFAULT_CLASS_SESSION);
+  const [session, setSession] = useState<ImmersionSession | undefined>();
+  const [isPaused, setIsPaused] = useState(false);
 
   const oscillatorsRef = useRef<OscillatorNode[]>([]);
   const gainNodesRef = useRef<GainNode[]>([]);
@@ -93,6 +98,7 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
       const command = nextCommand();
       setAudioError(null);
       setIsPlaying(false);
+      setIsPaused(false);
       if (!keepImmersion) setImmersionOpen(false);
 
       stopAllAudio({ skipHandlers: true });
@@ -109,8 +115,25 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
         chordRatios = [1.0, 1.5, 2.0, 3.0];
       }
 
-      const frequencies = chordRatios.map(ratio => f0 * ratio);
-      const media = createTimedToneMedia(frequencies, frequencies, volume * 0.85, durationSeconds);
+      const sessionPlan: ImmersionSession = practiceMode === 'room'
+        ? {
+            id: Date.now(),
+            mode: 'room',
+            arrivalSeconds: classConfig.arrivalSeconds,
+            practiceSeconds: classConfig.practiceMinutes * 60,
+            closingSeconds: classConfig.closingSeconds,
+          }
+        : {
+            id: Date.now(),
+            mode: 'personal',
+            arrivalSeconds: 0,
+            practiceSeconds: durationSeconds,
+            closingSeconds: 0,
+          };
+      const sessionDuration = sessionPlan.arrivalSeconds + sessionPlan.practiceSeconds + sessionPlan.closingSeconds;
+      const audioDuration = Math.min(4200, sessionDuration + (sessionPlan.mode === 'room' ? 600 : 0));
+            const frequencies = chordRatios.map(ratio => f0 * ratio);
+      const media = createTimedToneMedia(frequencies, frequencies, volume * 0.85, audioDuration);
       mediaRef.current = media;
       media.audio.addEventListener('ended', () => {
         if (mediaRef.current !== media) return;
@@ -129,6 +152,7 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
           return;
         }
         setActivePiece(piece);
+        setSession(sessionPlan);
         setIsPlaying(true);
         setImmersionOpen(true);
       } catch (error) {
@@ -141,7 +165,7 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
         setImmersionOpen(false);
       }
     },
-    [nextCommand, volume],
+    [nextCommand, volume, practiceMode, classConfig],
   );
 
   useEffect(() => {
@@ -155,7 +179,10 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
       void stopAmbient();
       setActivePiece(null);
     } else {
-      void startAmbient(piece);
+      const duration = practiceMode === 'room'
+        ? classConfig.arrivalSeconds + classConfig.practiceMinutes * 60 + classConfig.closingSeconds
+        : 120;
+      void startAmbient(piece, duration);
     }
   };
 
@@ -225,6 +252,13 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
             <p>{audioError}</p>
           </div>
         )}
+
+        <PracticeSessionSetup
+          mode={practiceMode}
+          onModeChange={setPracticeMode}
+          config={classConfig}
+          onConfigChange={setClassConfig}
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {CLASSICAL_PIECES.map(piece => {
@@ -313,6 +347,24 @@ export default function ClassicalMusic({ currentTheme }: ClassicalMusicProps) {
         pulseSec={6}
         accentColor="#a89060"
         playing={isPlaying}
+        paused={isPaused}
+        session={session}
+        onPauseToggle={() => {
+          const audio = mediaRef.current?.audio;
+          if (!audio) return;
+          if (isPaused) {
+            void audio.play();
+          } else {
+            audio.pause();
+          }
+          setIsPaused(value => !value);
+        }}
+        onSessionComplete={() => {
+          disposeTimedToneMedia(mediaRef.current);
+          mediaRef.current = null;
+          setIsPlaying(false);
+          setIsPaused(false);
+        }}
         onContinue={seconds => {
           if (activePiece) void startAmbient(activePiece, seconds, true);
         }}
