@@ -6,6 +6,7 @@ import { useFormingOptional } from "../lib/forming/FormingContext";
 import { getChannelPrefs, setChannelPrefs } from "../lib/harness/channels";
 import FormingDustLayer from "./FormingDustLayer";
 import SketchLivePreview from "./SketchLivePreview";
+import SomaticBodyFigure from "./SomaticBodyFigure";
 
 interface SomaticGridProps {
   onStateChange: (state: WeatherState, activeCoordinates: [number, number][]) => void;
@@ -288,7 +289,8 @@ export default function SomaticGrid({ onStateChange, currentTheme }: SomaticGrid
         </p>
         <p className="font-sans text-sm md:text-base leading-relaxed opacity-65 mt-3">
           The top of the field follows the head and chest. The lower field follows the belly, core,
-          and pelvis. Your marks help shape the breathing rhythm offered next.
+          and pelvis. The figure is a body compass: mark both where you feel sensation and where
+          movement feels available. Your marks help shape the breathing rhythm offered next.
         </p>
 
         <div className="flex items-center justify-between gap-4 border-t border-current/10 mt-5 pt-4">
@@ -348,6 +350,7 @@ export default function SomaticGrid({ onStateChange, currentTheme }: SomaticGrid
                 : "0 18px 45px -18px rgba(103, 78, 36, 0.18)",
           }}
         >
+          <SomaticBodyFigure currentTheme={currentTheme} />
           <FormingDustLayer />
           {grid.map((row, rIdx) =>
             row.map((active, cIdx) => {
@@ -359,7 +362,7 @@ export default function SomaticGrid({ onStateChange, currentTheme }: SomaticGrid
                   onMouseDown={(e) => handleMouseDown(rIdx, cIdx, e)}
                   onMouseEnter={() => handleMouseEnterCell(rIdx, cIdx)}
                   onTouchStart={(e) => handleTouchStart(rIdx, cIdx, e)}
-                  className="relative aspect-square rounded-md cursor-crosshair select-none overflow-hidden transition-all duration-300"
+                  className="relative z-10 aspect-square rounded-md cursor-crosshair select-none overflow-hidden transition-all duration-300"
                   style={{
                     touchAction: "pan-y",
                     backgroundColor: active
@@ -367,8 +370,8 @@ export default function SomaticGrid({ onStateChange, currentTheme }: SomaticGrid
                         ? "#d4b05a"
                         : "#b8956b"
                       : currentTheme === "night"
-                        ? "rgba(255,255,255,0.02)"
-                        : "rgba(196, 160, 68, 0.05)",
+                        ? "rgba(255,255,255,0.012)"
+                        : "rgba(196, 160, 68, 0.028)",
                     border: active
                       ? currentTheme === "night"
                         ? "1px solid #d4b05a"
