@@ -1,21 +1,22 @@
 /**
- * Builds a short looping stereo WAV and starts it through an HTMLAudioElement.
- * iOS routes media elements through its music playback session, unlike Web Audio
- * oscillators which can be silenced by the Ring/Silent switch in Safari/PWAs.
+ * Builds one continuous stereo WAV for a fixed session and plays it through an
+ * HTMLAudioElement. There is no media loop boundary, so iOS cannot insert a gap
+ * or click between repeated buffers.
  */
-export interface LoopingToneMedia {
+export interface TimedToneMedia {
   audio: HTMLAudioElement;
   objectUrl: string;
 }
 
-export function createLoopingToneMedia(
+export function createTimedToneMedia(
   leftFrequencies: number[],
   rightFrequencies: number[],
   volume: number,
-): LoopingToneMedia {
-  const sampleRate = 22050;
-  const durationSeconds = 4;
-  const frameCount = sampleRate * durationSeconds;
+  durationSeconds: number,
+): TimedToneMedia {
+  const sampleRate = 8000;
+  const safeDuration = Math.max(1, Math.min(300, Math.round(durationSeconds)));
+  const frameCount = sampleRate * safeDuration;
   const channelCount = 2;
   const bytesPerSample = 2;
   const dataSize = frameCount * channelCount * bytesPerSample;
@@ -40,14 +41,6 @@ export function createLoopingToneMedia(
   writeText(36, 'data');
   view.setUint32(40, dataSize, true);
 
-  // Quantize each frequency to a whole number of cycles in this buffer.
-  // The maximum pitch adjustment is 0.125 Hz, but the first and last sample
-  // phases now meet exactly, so the media element has a truly seamless loop.
-  const lockToLoop = (frequency: number) =>
-    Math.round(frequency * durationSeconds) / durationSeconds;
-  const lockedLeft = leftFrequencies.map(lockToLoop);
-  const lockedRight = rightFrequencies.map(lockToLoop);
-
   const renderChannel = (frequencies: number[], time: number) => {
     if (frequencies.length === 0) return 0;
     return frequencies.reduce((sum, frequency, index) => {
@@ -60,8 +53,8 @@ export function createLoopingToneMedia(
   let offset = 44;
   for (let frame = 0; frame < frameCount; frame += 1) {
     const time = frame / sampleRate;
-    const left = Math.max(-1, Math.min(1, renderChannel(lockedLeft, time) * level));
-    const right = Math.max(-1, Math.min(1, renderChannel(lockedRight, time) * level));
+    const left = Math.max(-1, Math.min(1, renderChannel(leftFrequencies, time) * level));
+    const right = Math.max(-1, Math.min(1, renderChannel(rightFrequencies, time) * level));
     view.setInt16(offset, Math.round(left * 32767), true);
     view.setInt16(offset + 2, Math.round(right * 32767), true);
     offset += 4;
@@ -69,13 +62,13 @@ export function createLoopingToneMedia(
 
   const objectUrl = URL.createObjectURL(new Blob([buffer], { type: 'audio/wav' }));
   const audio = new Audio(objectUrl);
-  audio.loop = true;
+  audio.loop = false;
   audio.preload = 'auto';
   audio.setAttribute('playsinline', '');
   return { audio, objectUrl };
 }
 
-export function disposeLoopingToneMedia(media: LoopingToneMedia | null): void {
+export function disposeTimedToneMedia(media: TimedToneMedia | null): void {
   if (!media) return;
   media.audio.pause();
   media.audio.removeAttribute('src');
