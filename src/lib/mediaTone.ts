@@ -40,6 +40,14 @@ export function createLoopingToneMedia(
   writeText(36, 'data');
   view.setUint32(40, dataSize, true);
 
+  // Quantize each frequency to a whole number of cycles in this buffer.
+  // The maximum pitch adjustment is 0.125 Hz, but the first and last sample
+  // phases now meet exactly, so the media element has a truly seamless loop.
+  const lockToLoop = (frequency: number) =>
+    Math.round(frequency * durationSeconds) / durationSeconds;
+  const lockedLeft = leftFrequencies.map(lockToLoop);
+  const lockedRight = rightFrequencies.map(lockToLoop);
+
   const renderChannel = (frequencies: number[], time: number) => {
     if (frequencies.length === 0) return 0;
     return frequencies.reduce((sum, frequency, index) => {
@@ -49,13 +57,11 @@ export function createLoopingToneMedia(
   };
 
   const level = Math.max(0.04, Math.min(volume, 1)) * 0.72;
-  const edgeFrames = Math.round(sampleRate * 0.025);
   let offset = 44;
   for (let frame = 0; frame < frameCount; frame += 1) {
     const time = frame / sampleRate;
-    const edgeEnvelope = Math.min(1, frame / edgeFrames, (frameCount - 1 - frame) / edgeFrames);
-    const left = Math.max(-1, Math.min(1, renderChannel(leftFrequencies, time) * level * edgeEnvelope));
-    const right = Math.max(-1, Math.min(1, renderChannel(rightFrequencies, time) * level * edgeEnvelope));
+    const left = Math.max(-1, Math.min(1, renderChannel(lockedLeft, time) * level));
+    const right = Math.max(-1, Math.min(1, renderChannel(lockedRight, time) * level));
     view.setInt16(offset, Math.round(left * 32767), true);
     view.setInt16(offset + 2, Math.round(right * 32767), true);
     offset += 4;
