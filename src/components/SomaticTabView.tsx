@@ -176,7 +176,7 @@ function SomaticTabBody({
             )}
 
             {section === 'practice' && showPracticeBreathwork && (
-              <section aria-label="Calibrated breathwork" className="hw-station-linked">
+              <section id="practice-active-instrument" aria-label="Calibrated breathwork" className="hw-station-linked scroll-mt-6">
                 <Suspense fallback={<div className="h-64 animate-pulse rounded-2xl bg-accent/5" aria-hidden />}>
                   <BreathworkOrb
                     weatherState={activeWeather}
