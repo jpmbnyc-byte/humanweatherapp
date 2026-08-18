@@ -91,6 +91,11 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
     async (tone: FrequencyTone) => {
       const command = nextCommand();
       setAudioError(null);
+
+      // Resume Web Audio before yielding to teardown. Mobile Safari only
+      // permits this while the original tap still has user activation.
+      const contextPromise = getAudioContext();
+
       setIsPlaying(false);
       setImmersionOpen(false);
       await teardownAudio();
@@ -98,7 +103,7 @@ export default function FrequencyTherapy({ currentTheme }: FrequencyTherapyProps
       stopAllAudio({ skipHandlers: true });
 
       try {
-        const ctx = await getAudioContext();
+        const ctx = await contextPromise;
         if (command !== commandRef.current) return;
         ctxRef.current = ctx;
 
