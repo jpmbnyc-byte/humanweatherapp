@@ -181,10 +181,19 @@ function drawGestureToAnswer(
   pixelScale: number,
   detailBoost: number,
 ): void {
-  if (samples.length < 2) return;
+  if (samples.length === 0) return;
   ctx.save();
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
+  if (samples.length === 1) {
+    const sample = samples[0];
+    ctx.fillStyle = `rgba(${ink[0]}, ${ink[1]}, ${ink[2]}, ${boostAlpha(0.26 * coalesce, detailBoost)})`;
+    ctx.beginPath();
+    ctx.arc(sample.x, sample.y, Math.max(1.8, sample.w * 1.4) * pixelScale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    return;
+  }
   for (let pass = 0; pass < 3; pass++) {
     ctx.strokeStyle = `rgba(${ink[0]}, ${ink[1]}, ${ink[2]}, ${boostAlpha((0.04 + pass * 0.02) * coalesce, detailBoost)})`;
     ctx.beginPath();
