@@ -22,7 +22,7 @@ const CHAMBERS: Record<
     designation: 'MOD/03 · THE TENDER',
     title: 'The Tender',
     intro:
-      'Spoken word and familiar voice — for spiritual fog, restlessness, or when the field asks for language rather than measurement.',
+      'A private room for words the body is carrying. Write without an audience, keep only what serves you, or receive language in a familiar voice.',
   },
 };
 
