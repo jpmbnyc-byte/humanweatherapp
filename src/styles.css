@@ -179,22 +179,8 @@ html {
 
 html,
 body {
-  width: 100%;
-  min-width: 100%;
-  min-height: 100%;
-  overflow-x: hidden;
   overscroll-behavior-y: none;
   -webkit-overflow-scrolling: touch;
-}
-
-html[data-hw-theme="night"],
-html[data-hw-theme="night"] body {
-  background-color: #100f0d;
-}
-
-html[data-hw-theme="day"],
-html[data-hw-theme="day"] body {
-  background-color: #f7f3eb;
 }
 
 @keyframes spin-slow {
@@ -619,14 +605,11 @@ html[data-hw-theme="day"] body {
     --hw-flow-pressure: 44s;
     --hw-circulation-opacity: 0.72;
     position: fixed;
-    /* Overscan the layout viewport so iOS pinch-zoom never exposes a layer edge. */
-    inset: -50vh -50vw;
+    inset: 0;
     z-index: 0;
     overflow: hidden;
     pointer-events: none;
-    contain: paint;
-    transform: translateZ(0);
-    transform-origin: center;
+    contain: strict;
     opacity: var(--hw-circulation-opacity);
     transition: opacity 700ms ease;
   }
