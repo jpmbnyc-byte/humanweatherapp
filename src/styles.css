@@ -11,7 +11,7 @@
 @source "../src/components/PrescriptionTrail.tsx";
 @source "../src/components/ChamberIntro.tsx";
 @source "../src/components/SoundImmersionOverlay.tsx";
-@source "../src/components/AmbientDrift.tsx";
+@source "../src/components/CirculationWeatherBackground.tsx";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -571,6 +571,168 @@ body {
     animation-delay: 4s;
   }
 
+  /* Cardiovascular weather — oxygenated forward flow, cool return, plasma light. */
+  @keyframes hw-liquid-orbit-warm {
+    0%, 100% { transform: translate3d(-7%, -4%, 0) rotate(-8deg) scale(1); border-radius: 46% 54% 62% 38% / 44% 38% 62% 56%; }
+    50% { transform: translate3d(18%, 12%, 0) rotate(14deg) scale(1.12); border-radius: 61% 39% 42% 58% / 36% 59% 41% 64%; }
+  }
+
+  @keyframes hw-liquid-orbit-cool {
+    0%, 100% { transform: translate3d(8%, 7%, 0) rotate(10deg) scale(1.08); border-radius: 39% 61% 45% 55% / 63% 41% 59% 37%; }
+    50% { transform: translate3d(-16%, -10%, 0) rotate(-16deg) scale(0.94); border-radius: 58% 42% 63% 37% / 42% 61% 39% 58%; }
+  }
+
+  @keyframes hw-liquid-plasma-breathe {
+    0%, 100% { transform: translate3d(-50%, -50%, 0) scale(0.82); opacity: 0.34; }
+    50% { transform: translate3d(-46%, -54%, 0) scale(1.18); opacity: 0.72; }
+  }
+
+  @keyframes hw-circulation-flow {
+    to { stroke-dashoffset: -160; }
+  }
+
+  @keyframes hw-pressure-drift {
+    0%, 100% { transform: translate3d(-18px, 4px, 0); opacity: 0.28; }
+    50% { transform: translate3d(22px, -8px, 0); opacity: 0.5; }
+  }
+
+  .hw-circulation-weather {
+    --hw-flow-warm: 34s;
+    --hw-flow-cool: 39s;
+    --hw-flow-plasma: 22s;
+    --hw-flow-channel-speed: 18s;
+    --hw-flow-sweep: 28s;
+    --hw-flow-pressure: 44s;
+    --hw-circulation-opacity: 0.72;
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+    contain: strict;
+    opacity: var(--hw-circulation-opacity);
+    transition: opacity 700ms ease;
+  }
+
+  .hw-circulation-alive {
+    --hw-flow-warm: 24s;
+    --hw-flow-cool: 29s;
+    --hw-flow-plasma: 17s;
+    --hw-flow-channel-speed: 13s;
+    --hw-flow-sweep: 20s;
+    --hw-flow-pressure: 34s;
+    --hw-circulation-opacity: 0.96;
+  }
+
+  .hw-liquid-mass {
+    position: absolute;
+    width: min(92vmax, 1100px);
+    height: min(92vmax, 1100px);
+    filter: blur(72px) saturate(135%);
+    will-change: transform, border-radius;
+    opacity: 0.42;
+  }
+
+  .hw-liquid-oxygen {
+    top: -42vmax;
+    left: -38vmax;
+    background:
+      radial-gradient(circle at 64% 64%, rgba(255, 42, 91, 0.9) 0 12%, rgba(255, 77, 61, 0.56) 30%, transparent 66%),
+      radial-gradient(circle at 38% 44%, rgba(255, 151, 64, 0.48), transparent 54%);
+    animation: hw-liquid-orbit-warm var(--hw-flow-warm) cubic-bezier(.55, .08, .42, .94) infinite;
+  }
+
+  .hw-liquid-return {
+    right: -42vmax;
+    bottom: -40vmax;
+    background:
+      radial-gradient(circle at 35% 34%, rgba(33, 193, 255, 0.72) 0 10%, rgba(56, 69, 255, 0.7) 32%, transparent 67%),
+      radial-gradient(circle at 63% 56%, rgba(101, 40, 215, 0.55), transparent 52%);
+    animation: hw-liquid-orbit-cool var(--hw-flow-cool) cubic-bezier(.47, .05, .53, .96) infinite;
+  }
+
+  .hw-liquid-plasma {
+    width: min(54vmax, 720px);
+    height: min(54vmax, 720px);
+    top: 54%;
+    left: 50%;
+    background: radial-gradient(circle, rgba(255, 190, 45, 0.52) 0 9%, rgba(255, 122, 66, 0.22) 32%, transparent 68%);
+    filter: blur(58px) saturate(145%);
+    animation: hw-liquid-plasma-breathe var(--hw-flow-plasma) ease-in-out infinite;
+  }
+
+  .hw-circulation-night .hw-liquid-mass {
+    mix-blend-mode: screen;
+  }
+
+  .hw-circulation-day .hw-liquid-mass {
+    mix-blend-mode: multiply;
+    opacity: 0.2;
+  }
+
+  .hw-circulation-channels {
+    position: absolute;
+    inset: -4%;
+    width: 108%;
+    height: 108%;
+    overflow: visible;
+    opacity: 0.66;
+  }
+
+  .hw-flow-channel-base,
+  .hw-flow-channel,
+  .hw-plasma-sweep {
+    fill: none;
+    vector-effect: non-scaling-stroke;
+    stroke-linecap: round;
+  }
+
+  .hw-flow-channel-base {
+    stroke: rgba(255, 255, 255, 0.035);
+    stroke-width: 1.4;
+  }
+
+  .hw-flow-channel {
+    stroke-width: 3.2;
+    stroke-dasharray: 2 22 14 58;
+    animation: hw-circulation-flow var(--hw-flow-channel-speed) linear infinite;
+  }
+
+  .hw-flow-channel-cool {
+    animation-direction: reverse;
+  }
+
+  .hw-plasma-sweep {
+    stroke-width: 2;
+    stroke-dasharray: 90 250;
+    animation: hw-circulation-flow var(--hw-flow-sweep) linear infinite reverse;
+  }
+
+  .hw-pressure-fronts {
+    stroke: rgba(232, 220, 196, 0.12);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+    animation: hw-pressure-drift var(--hw-flow-pressure) ease-in-out infinite;
+  }
+
+  .hw-circulation-day .hw-pressure-fronts {
+    stroke: rgba(80, 62, 44, 0.1);
+  }
+
+  .hw-circulation-veil {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 72% 68% at 50% 43%, transparent 0 36%, color-mix(in oklch, var(--background) 24%, transparent) 78%),
+      linear-gradient(to bottom, color-mix(in oklch, var(--background) 12%, transparent), transparent 24%, transparent 78%, color-mix(in oklch, var(--background) 28%, transparent));
+  }
+
+  @media (max-width: 640px) {
+    .hw-liquid-mass { filter: blur(52px) saturate(128%); }
+    .hw-liquid-plasma { filter: blur(44px) saturate(135%); }
+    .hw-circulation-channels { opacity: 0.58; }
+  }
+
   .hw-therapy-chamber {
     position: relative;
   }
@@ -598,8 +760,16 @@ body {
     .hw-cell-pulse,
     .hw-ambient-particle,
     .hw-ambient-particles::before,
-    .hw-ambient-particles::after {
+    .hw-ambient-particles::after,
+    .hw-liquid-mass,
+    .hw-flow-channel,
+    .hw-plasma-sweep,
+    .hw-pressure-fronts {
       animation: none;
+    }
+
+    .hw-circulation-weather {
+      opacity: 0.58;
     }
 
     .hw-pressable:active {
