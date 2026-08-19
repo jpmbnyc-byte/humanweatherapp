@@ -9,7 +9,8 @@ import { stopAllAudio } from './lib/stopAllAudio';
 import type { WhereAreWeResult } from './lib/whereAreWe';
 import { runWhenIdle, runAfterFirstPaint } from './lib/deferredWork';
 import { primeSpeechEngine, warmSpeechVoicesFromGesture, hydrateSavedVoiceCache } from './lib/stationSpeech';
-import { EntitlementProvider } from './lib/EntitlementContext';
+import { EntitlementProvider, useEntitlement } from './lib/EntitlementContext';
+import { FormingProvider } from './lib/forming/FormingContext';
 import { GeoProvider, useGeo } from './lib/GeoContext';
 import { dismissBootSplash } from './components/BootSplashFallback';
 import MembershipButton from './components/MembershipButton';
@@ -68,6 +69,28 @@ const getThemeForNow = (): 'day' | 'night' => {
 const THRESHOLD_TAB = 'today' as const;
 type LegacyTab = 'somatic' | 'therapy' | 'rhythms' | 'tender';
 type AppTab = 'today' | 'look' | 'practice' | 'history' | 'tender';
+
+function PersistentDaymarkScope({
+  weather,
+  children,
+}: {
+  weather: WeatherState;
+  children: React.ReactNode;
+}) {
+  const { can } = useEntitlement();
+
+  if (!can('nascimento')) return <>{children}</>;
+
+  return (
+    <FormingProvider
+      weather={weather}
+      conditionsSummary={weather.clinicalIndex}
+      active
+    >
+      {children}
+    </FormingProvider>
+  );
+}
 
 /** Legacy tab ids (prescriptions, offices, conditions) → locked IA sections. */
 function sectionForLegacyTab(tab: LegacyTab): AppTab {
@@ -331,6 +354,7 @@ function AppBody() {
 
         {/* Main views */}
         <main className="flex-1 w-full py-10 md:py-12 min-w-0" id="app-main-view">
+          <PersistentDaymarkScope weather={activeWeather}>
             <PrescriptionTrail
               activeTab={activeTab === 'practice' ? 'therapy' : activeTab === 'tender' ? 'tender' : 'somatic'}
               activeWeather={activeWeather}
@@ -416,6 +440,7 @@ function AppBody() {
                 </Suspense>
               </div>
             )}
+          </PersistentDaymarkScope>
         </main>
 
         {/* Footer */}
