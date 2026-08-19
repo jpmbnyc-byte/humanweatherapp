@@ -33,6 +33,7 @@ type Props = {
   place: WhereAreWeResult | null;
   onStateChange: (state: WeatherState, coords: [number, number][]) => void;
   onNavigateTab: (tab: AppTab) => void;
+  onContinueToBreath?: () => void;
   section: StationSection;
   children?: React.ReactNode;
   showPracticeBreathwork?: boolean;
@@ -61,6 +62,7 @@ function SomaticTabBody({
   place,
   onStateChange,
   onNavigateTab,
+  onContinueToBreath,
   section,
   children,
   showPracticeBreathwork = true,
@@ -156,7 +158,11 @@ function SomaticTabBody({
           <div className="flex flex-col gap-10 lg:gap-12 w-full min-w-0">
             {section === "look" && (
               <section aria-label="Somatic field mapping" className="hw-station-linked">
-                <SomaticGrid onStateChange={handleStateChange} currentTheme={currentTheme} />
+                <SomaticGrid
+                  onStateChange={handleStateChange}
+                  currentTheme={currentTheme}
+                  onContinueToBreath={onContinueToBreath}
+                />
               </section>
             )}
 
