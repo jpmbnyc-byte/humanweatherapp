@@ -138,6 +138,17 @@ function AppBody() {
     [transitionToTab],
   );
 
+  const continueDaymarkWithBreath = useCallback(() => {
+    setPracticeInstrument('breath');
+    transitionToTab('practice');
+    window.requestAnimationFrame(() => {
+      document.getElementById('practice-active-instrument')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    });
+  }, [transitionToTab]);
+
   useEffect(() => {
     dismissBootSplash();
     void initHarness();
@@ -373,6 +384,7 @@ function AppBody() {
                 place={place}
                 onStateChange={handleStateChange}
                 onNavigateTab={navigateLegacyTab}
+                onContinueToBreath={continueDaymarkWithBreath}
               />
             )}
 
