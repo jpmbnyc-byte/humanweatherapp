@@ -233,6 +233,13 @@ function AppBody() {
     return () => clearInterval(id);
   }, [manualOverride]);
 
+  useEffect(() => {
+    document.documentElement.dataset.hwTheme = currentTheme;
+    return () => {
+      delete document.documentElement.dataset.hwTheme;
+    };
+  }, [currentTheme]);
+
   const handleStateChange = useCallback((state: WeatherState, _coords: [number, number][]) => {
     setActiveWeather(state);
   }, []);
