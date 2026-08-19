@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useCallback, useEffect, useState } from "react";
+import React, { Suspense, lazy, useCallback } from "react";
 import SomaticGrid from "./SomaticGrid";
 import ConditionsCard from "./ConditionsCard";
 import TrialFootline from "./TrialFootline";
@@ -14,7 +14,6 @@ import { StationJourneyProvider, useStationJourney } from "../lib/StationJourney
 import PatternViewPanel from "./harness/PatternViewPanel";
 import { appendReading } from "../lib/harness/readings";
 import { noteWeatherObservation } from "../lib/harness/vocabulary";
-import { runWhenIdle } from "../lib/deferredWork";
 import type { WhereAreWeResult } from "../lib/whereAreWe";
 import type { WeatherState } from "../types";
 import EnvironmentalMeetingPlace from "./EnvironmentalMeetingPlace";
@@ -22,9 +21,6 @@ import EnvironmentalMeetingPlace from "./EnvironmentalMeetingPlace";
 const BreathworkOrb = lazy(() => import("./BreathworkOrb"));
 const TheFascia = lazy(() => import("./TheFascia"));
 const FormingCaptureOverlay = lazy(() => import("./FormingCaptureOverlay"));
-const FormingProvider = lazy(() =>
-  import("../lib/forming/FormingContext").then((m) => ({ default: m.FormingProvider })),
-);
 
 type AppTab = "somatic" | "therapy" | "rhythms" | "tender";
 export type StationSection = "today" | "look" | "practice" | "history";
@@ -81,13 +77,6 @@ function SomaticTabBody({
   } = useEntitlement();
   const { markMapped, markBreathComplete } = useStationJourney();
   const nascimentoEnabled = can("nascimento");
-  const conditionsSummary = activeWeather.clinicalIndex;
-  const [formingReady, setFormingReady] = useState(false);
-
-  useEffect(() => {
-    if (!nascimentoEnabled) return;
-    runWhenIdle(() => setFormingReady(true), 1500);
-  }, [nascimentoEnabled]);
 
   const handleStateChange = useCallback(
     (state: WeatherState, coords: [number, number][]) => {
@@ -105,7 +94,7 @@ function SomaticTabBody({
 
   const inner = (
     <>
-      {formingReady && (
+      {nascimentoEnabled && (
         <Suspense fallback={null}>
           <FormingCaptureOverlay currentTheme={currentTheme} />
         </Suspense>
@@ -222,17 +211,7 @@ function SomaticTabBody({
     </>
   );
 
-  if (!nascimentoEnabled || !formingReady) {
-    return inner;
-  }
-
-  return (
-    <Suspense fallback={inner}>
-      <FormingProvider weather={activeWeather} conditionsSummary={conditionsSummary} active>
-        {inner}
-      </FormingProvider>
-    </Suspense>
-  );
+  return inner;
 }
 
 export default function SomaticTabView(props: Props) {
