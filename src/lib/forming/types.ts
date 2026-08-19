@@ -39,4 +39,5 @@ export type FormingStage =
   | 'complete';
 
 export const FORMING_CYCLE_COUNT = 3;
-export const MIN_DUST_FOR_FORMING = 8;
+/** One honestly noticed place is enough to begin a Daymark. */
+export const MIN_DUST_FOR_FORMING = 1;

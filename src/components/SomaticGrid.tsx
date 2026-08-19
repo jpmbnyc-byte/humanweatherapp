@@ -12,9 +12,14 @@ import { countSomaticZones, SOMATIC_ZONE_BANDS } from "../lib/somaticZones";
 interface SomaticGridProps {
   onStateChange: (state: WeatherState, activeCoordinates: [number, number][]) => void;
   currentTheme: "day" | "night";
+  onContinueToBreath?: () => void;
 }
 
-export default function SomaticGrid({ onStateChange, currentTheme }: SomaticGridProps) {
+export default function SomaticGrid({
+  onStateChange,
+  currentTheme,
+  onContinueToBreath,
+}: SomaticGridProps) {
   const [grid, setGrid] = useState<boolean[][]>(
     Array(8)
       .fill(null)
@@ -221,6 +226,12 @@ export default function SomaticGrid({ onStateChange, currentTheme }: SomaticGrid
   };
 
   const loadPathway = (pathway: Pathway) => {
+    if (forming && !["capturing", "mounting", "stillness"].includes(forming.stage)) {
+      forming.abortForming();
+      pathway.cells.forEach(([r, c], index) => {
+        forming.registerTouch((c + 0.5) / 8, (r + 0.5) / 8, 40 + index * 6);
+      });
+    }
     const nextGrid = Array(8)
       .fill(null)
       .map(() => Array(8).fill(false));
@@ -404,7 +415,10 @@ export default function SomaticGrid({ onStateChange, currentTheme }: SomaticGrid
         </div>
       </div>
 
-      <SketchLivePreview currentTheme={currentTheme} />
+      <SketchLivePreview
+        currentTheme={currentTheme}
+        onContinueToBreath={onContinueToBreath}
+      />
 
       {/* Guide Pathways Entry points */}
       <div className="w-full mt-6">

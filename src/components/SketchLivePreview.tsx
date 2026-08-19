@@ -3,13 +3,15 @@ import { useFormingOptional } from '../lib/forming/FormingContext';
 import { drawSketchMarkToCanvas, parseCoherenceFromSummary } from '../lib/forming/sketchMark';
 import { getFormingStatusMessage } from '../lib/forming/formingStatus';
 import { FORMING_CYCLE_COUNT } from '../lib/forming/types';
+import { ArrowRight } from 'lucide-react';
 
 type Props = {
   currentTheme: 'day' | 'night';
+  onContinueToBreath?: () => void;
 };
 
 /** Live notebook page — pencil follows grid input in real time. */
-export default function SketchLivePreview({ currentTheme }: Props) {
+export default function SketchLivePreview({ currentTheme, onContinueToBreath }: Props) {
   const forming = useFormingOptional();
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -32,8 +34,7 @@ export default function SketchLivePreview({ currentTheme }: Props) {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    let raf = 0;
-    const tick = () => {
+    const draw = () => {
       const seed = forming.displaySeed!;
       const sortedLen = seed.gesturePoints.length;
       const pathProgress =
@@ -47,17 +48,23 @@ export default function SketchLivePreview({ currentTheme }: Props) {
             ? forming.cycleIndex + (forming.breathPhase === 'Exhale' ? 1 : 0)
             : 0;
 
+      const previewCoalesce =
+        forming.stage === 'gathering' ? Math.max(0.42, forming.coalesce) : forming.coalesce;
+
       drawSketchMarkToCanvas(canvas, seed, {
-        coalesce: forming.coalesce,
+        coalesce: previewCoalesce,
         coherence: parseCoherenceFromSummary(seed.conditionsSummary),
         breathCycles: Math.min(FORMING_CYCLE_COUNT, breathCycles),
         pathProgress,
+        detailBoost: forming.stage === 'gathering' ? 3 : 1.25,
       });
-      raf = requestAnimationFrame(tick);
     };
 
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    draw();
+    if (typeof ResizeObserver === 'undefined') return;
+    const resizeObserver = new ResizeObserver(draw);
+    resizeObserver.observe(canvas);
+    return () => resizeObserver.disconnect();
   }, [
     activeStage,
     forming?.displaySeed,
@@ -90,6 +97,22 @@ export default function SketchLivePreview({ currentTheme }: Props) {
         >
           {statusMessage}
         </p>
+      )}
+      {forming?.canForm && forming.stage === 'gathering' && onContinueToBreath && (
+        <button
+          type="button"
+          onClick={onContinueToBreath}
+          className={`hw-pressable mb-3 inline-flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left font-sans text-sm font-medium transition-colors ${
+            isNight
+              ? 'border-accent/35 bg-accent/10 text-accent'
+              : 'border-accent/40 bg-accent/[0.08] text-[#6f5727]'
+          }`}
+        >
+          <span>
+            Touch recorded. Continue with three breaths to form your Daymark.
+          </span>
+          <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
+        </button>
       )}
       {activeStage && (
         <div
