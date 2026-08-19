@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Volume2, Play, Square, Music, Headphones, Sliders, Check, RefreshCw, Bookmark, BookOpen, ExternalLink, Copy, TextSelect, ChevronDown } from 'lucide-react';
+import { Play, Square, Headphones, Sliders, Check, RefreshCw, Bookmark, BookOpen, ExternalLink, Copy, TextSelect, ChevronDown } from 'lucide-react';
 import { PRESETS, HUMAN_WEATHER_PRESS_URL } from '../data/presets';
 import { getThemeStyles } from '../lib/theme';
 import { loadTenderSlots, saveTenderSlot, persistTenderSlots, type TenderSlot } from '../lib/tenderSlots';
@@ -58,7 +58,6 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const [inputText, setInputText] = useState(() => loadTenderSlots()[0]?.text ?? '');
   const [saveAck, setSaveAck] = useState(false);
   const [lastSlotId, setLastSlotId] = useState('slot-1');
-  const [soundEnv, setSoundEnv] = useState<'rain' | 'forest' | 'ocean' | 'hearth' | 'crickets' | 'silence'>('silence');
   const { speak: speakProse, stop: stopProse, status: proseStatus } = useSpokenProse();
   const isProseSpeaking = proseStatus === 'speaking';
   const [roster, setRoster] = useState<RosterEntry[]>([]);
@@ -66,7 +65,6 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const [currentTier, setCurrentTier] = useState<'PREMIUM' | 'ENHANCED' | 'STANDARD' | 'FAMILIAR'>('STANDARD');
   const [currentVoiceFamiliar, setCurrentVoiceFamiliar] = useState(false);
   const [pace, setPace] = useState<PaceOption>('standard');
-  const [ambientVolume, setAmbientVolume] = useState(0.4);
   const [inlineVoiceOpen, setInlineVoiceOpen] = useState(false);
   const [showFamiliarGreeting, setShowFamiliarGreeting] = useState(false);
   const [familiarGreetingFading, setFamiliarGreetingFading] = useState(false);
@@ -77,9 +75,6 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
 
   const nativeReadAloudGuide = getNativeReadAloudGuide();
 
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const noiseSourceRef = useRef<AudioBufferSourceNode | null>(null);
-  const envGainNodeRef = useRef<GainNode | null>(null);
   const suppressTenderStopRef = useRef(false);
   const proseRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -88,7 +83,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const isSlotMode = source.type === 'slot';
 
   const selectSlot = (slotId: string) => {
-    stopReading(true);
+    stopReading();
     let nextSlots = slots;
     if (source.type === 'slot') {
       nextSlots = slots.map(s =>
@@ -122,7 +117,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     const preset = PRESETS.find(p => p.id === source.presetId);
     const target = slots.find(s => s.id === slotId);
     if (!preset || !target) return;
-    stopReading(true);
+    stopReading();
     setSource({ type: 'slot', slotId });
     setLastSlotId(slotId);
     setSlotLabel(target.label);
@@ -177,107 +172,16 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
       cancelled = true;
       syn.removeEventListener('voiceschanged', onVoicesChanged);
       stopProse();
-      stopSoundEnvironment();
-      if (audioCtxRef.current) audioCtxRef.current.close().catch(() => {});
     };
   }, [syncVoiceHeader, stopProse]);
-
-  useEffect(() => {
-    if (envGainNodeRef.current && audioCtxRef.current) {
-      const ctx = audioCtxRef.current;
-      const target = getAmbientVolumeTarget();
-      try {
-        envGainNodeRef.current.gain.setValueAtTime(envGainNodeRef.current.gain.value, ctx.currentTime);
-        envGainNodeRef.current.gain.linearRampToValueAtTime(target, ctx.currentTime + 0.4);
-      } catch {
-        envGainNodeRef.current.gain.setValueAtTime(target, ctx.currentTime);
-      }
-    }
-  }, [ambientVolume, soundEnv, isProseSpeaking]);
-
-  useEffect(() => {
-    if (isIosPlatform()) {
-      stopSoundEnvironment();
-      return;
-    }
-    if (soundEnv !== 'silence') startSoundEnvironment(soundEnv);
-    else stopSoundEnvironment();
-  }, [soundEnv]);
-
-  const getAmbientVolumeTarget = () => {
-    if (soundEnv === 'silence') return 0;
-    if (isProseSpeaking) return ambientVolume * 0.15;
-    return ambientVolume * 0.45;
-  };
-
-  const stopSoundEnvironment = () => {
-    if (noiseSourceRef.current) {
-      try { noiseSourceRef.current.stop(); noiseSourceRef.current.disconnect(); } catch { /* noop */ }
-      noiseSourceRef.current = null;
-    }
-    if (envGainNodeRef.current) {
-      try { envGainNodeRef.current.disconnect(); } catch { /* noop */ }
-      envGainNodeRef.current = null;
-    }
-  };
-
-  const startSoundEnvironment = (env: typeof soundEnv) => {
-    stopSoundEnvironment();
-    if (env === 'silence') return;
-    try {
-      if (!audioCtxRef.current) {
-        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-      }
-      const ctx = audioCtxRef.current;
-      if (ctx.state === 'suspended') ctx.resume();
-      const envGain = ctx.createGain();
-      envGain.gain.setValueAtTime(0, ctx.currentTime);
-      envGain.gain.linearRampToValueAtTime(getAmbientVolumeTarget(), ctx.currentTime + 1);
-      envGain.connect(ctx.destination);
-      envGainNodeRef.current = envGain;
-
-      const bufferSize = 2 * ctx.sampleRate;
-      const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-      const output = noiseBuffer.getChannelData(0);
-      let lastOut = 0;
-      for (let i = 0; i < bufferSize; i++) {
-        const white = Math.random() * 2 - 1;
-        output[i] = (lastOut + 0.02 * white) / 1.02;
-        lastOut = output[i];
-        output[i] *= 3.5;
-      }
-      const noiseSource = ctx.createBufferSource();
-      noiseSource.buffer = noiseBuffer;
-      noiseSource.loop = true;
-      noiseSourceRef.current = noiseSource;
-      const lowpass = ctx.createBiquadFilter();
-      lowpass.type = 'lowpass';
-      lowpass.frequency.setValueAtTime(env === 'rain' ? 750 : 400, ctx.currentTime);
-      noiseSource.connect(lowpass);
-      lowpass.connect(envGain);
-      noiseSource.start();
-    } catch {
-      /* ambient optional */
-    }
-  };
-
-  const stopReading = (stopAmbient = true) => {
+  const stopReading = () => {
     stopProse();
-    if (stopAmbient) stopSoundEnvironment();
   };
 
   useEffect(() => {
     return registerAudioStop(() => {
       if (suppressTenderStopRef.current) return;
       stopProse();
-      if (noiseSourceRef.current) {
-        try { noiseSourceRef.current.stop(); noiseSourceRef.current.disconnect(); } catch { /* noop */ }
-        noiseSourceRef.current = null;
-      }
-      if (envGainNodeRef.current) {
-        try { envGainNodeRef.current.disconnect(); } catch { /* noop */ }
-        envGainNodeRef.current = null;
-      }
     });
   }, [stopProse]);
 
@@ -317,7 +221,6 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     suppressTenderStopRef.current = true;
     stopAllAudio({ skipSpeechCancel: true });
     suppressTenderStopRef.current = false;
-    if (!isIosPlatform() && soundEnv !== 'silence') startSoundEnvironment(soundEnv);
     void speakProse(textSrc, preferredVoiceName(), { rate: PACE_VALUES[pace] });
   };
 
@@ -351,7 +254,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   };
 
   const handlePaceChange = (next: PaceOption) => {
-    if (isProseSpeaking) stopReading(false);
+    if (isProseSpeaking) stopReading();
     setPace(next);
     void setPaceRate(PACE_VALUES[next]);
   };
@@ -381,7 +284,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   };
 
   const handlePresetSelect = (preset: typeof PRESETS[0]) => {
-    stopReading(true);
+    stopReading();
     if (source.type === 'slot') {
       const next = slots.map(s =>
         s.id === source.slotId ? { ...s, label: slotLabel.trim() || s.label, text: inputText } : s,
@@ -657,7 +560,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
                       }`}
                       placeholder="Write or paste your own reflection, prayer, letter, or reminder here…"
                       value={inputText}
-                      onChange={e => { stopReading(true); setInputText(e.target.value); }}
+                      onChange={e => { stopReading(); setInputText(e.target.value); }}
                     />
                   </label>
                   <div className="flex flex-wrap items-center gap-2">
@@ -942,38 +845,6 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
 
           </div>
 
-          <div className={`p-4 rounded-xl border ${styles.innerBg}`}>
-            <div className="flex items-center gap-2 mb-3">
-              <Music className={`w-4 h-4 ${styles.accentText}`} />
-              <span className={`hw-eyebrow ${styles.mutedText}`}>Backdrop</span>
-            </div>
-            <select
-              id="tender-backdrop-select"
-              value={soundEnv}
-              onChange={e => setSoundEnv(e.target.value as typeof soundEnv)}
-              className={`w-full px-3 py-2 border text-sm rounded-full font-sans cursor-pointer mb-2 ${
-                isNight ? 'bg-black/60 border-white/10 text-[#d4b05a]' : 'bg-white border-stone-300'
-              }`}
-            >
-              <option value="silence">Silence</option>
-              <option value="rain">Rain</option>
-              <option value="forest">Forest</option>
-              <option value="ocean">Ocean</option>
-              <option value="hearth">Hearth</option>
-              <option value="crickets">Crickets</option>
-            </select>
-            {soundEnv !== 'silence' && (
-              <div className="flex items-center gap-2">
-                <Volume2 className={`w-4 h-4 ${styles.accentText}`} />
-                <input
-                  type="range" min="0" max="1" step="0.05" value={ambientVolume}
-                  onChange={e => setAmbientVolume(parseFloat(e.target.value))}
-                  className="flex-1 h-1 accent-[#d4b05a] cursor-pointer"
-                  id="tender-backdrop-volume"
-                />
-              </div>
-            )}
-          </div>
         </div>
       </div>
 
