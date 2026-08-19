@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Volume2, Play, Square, Music, Headphones, Sliders, Check, RefreshCw, Bookmark, BookOpen, ExternalLink, Copy, TextSelect } from 'lucide-react';
+import { Volume2, Play, Square, Music, Headphones, Sliders, Check, RefreshCw, Bookmark, BookOpen, ExternalLink, Copy, TextSelect, ChevronDown } from 'lucide-react';
 import { PRESETS, HUMAN_WEATHER_PRESS_URL } from '../data/presets';
 import { getThemeStyles } from '../lib/theme';
 import { loadTenderSlots, saveTenderSlot, persistTenderSlots, type TenderSlot } from '../lib/tenderSlots';
@@ -41,6 +41,7 @@ import {
   copyProseForReadAloud,
   getNativeReadAloudGuide,
 } from '../lib/nativeReadAloudGuide';
+import TenderWritingRitual from './TenderWritingRitual';
 
 interface TheTenderProps {
   currentTheme: 'day' | 'night';
@@ -72,6 +73,7 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
   const [refreshing, setRefreshing] = useState(false);
   const [savedVoice, setSavedVoice] = useState<SavedVoiceMeta>({ uri: null, name: null });
   const [liveSpeechCopyAck, setLiveSpeechCopyAck] = useState(false);
+  const [receiveOpen, setReceiveOpen] = useState(false);
 
   const nativeReadAloudGuide = getNativeReadAloudGuide();
 
@@ -319,6 +321,16 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
     void speakProse(textSrc, preferredVoiceName(), { rate: PACE_VALUES[pace] });
   };
 
+  const handleRitualHear = (text: string) => {
+    const spokenText = text.trim();
+    if (!spokenText) return;
+    if (showFamiliarGreeting) dismissFamiliarGreeting();
+    suppressTenderStopRef.current = true;
+    stopAllAudio({ skipSpeechCancel: true });
+    suppressTenderStopRef.current = false;
+    void speakProse(spokenText, preferredVoiceName(), { rate: PACE_VALUES[pace] });
+  };
+
   const handleRefreshVoices = () => {
     if (refreshing) return;
     setRefreshing(true);
@@ -465,13 +477,40 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
 
       <div className="relative z-10 flex flex-col sm:flex-row sm:items-start justify-between border-b pb-4 mb-5 border-accent/10 gap-3">
         <div className="text-left max-w-prose">
-          <span className="hw-eyebrow block">Guided narration</span>
+          <span className="hw-eyebrow block">A private room for language</span>
           <h2 className={`hw-display mt-1 ${styles.titleText}`}>The Tender</h2>
           <p className={`hw-section-intro italic mt-2 ${styles.mutedText}`}>
-            Write your own words in one of four personal slots — save your message, then press Listen to hear it read aloud.
+            Arrive, write without an audience, and decide what—if anything—should remain.
           </p>
         </div>
       </div>
+
+      <TenderWritingRitual
+        currentTheme={currentTheme}
+        isSpeaking={isProseSpeaking}
+        onHear={handleRitualHear}
+        onStop={stopProse}
+      />
+
+      <button
+        type="button"
+        onClick={() => setReceiveOpen(open => !open)}
+        aria-expanded={receiveOpen}
+        aria-controls="tender-receive-words"
+        className={`relative z-10 w-full mt-5 rounded-xl border px-5 py-4 flex items-center justify-between gap-4 text-left cursor-pointer transition-colors ${
+          isNight
+            ? 'border-white/10 bg-white/[0.025] hover:border-accent/30'
+            : 'border-stone-200 bg-white/60 hover:border-[#b8956b]/45'
+        }`}
+      >
+        <span>
+          <span className="hw-eyebrow block mb-1">Receive words</span>
+          <span className={`font-serif text-lg ${styles.titleText}`}>Library, familiar voice, and atmosphere</span>
+        </span>
+        <ChevronDown className={`w-5 h-5 shrink-0 transition-transform ${receiveOpen ? 'rotate-180' : ''}`} aria-hidden />
+      </button>
+
+      <div id="tender-receive-words" className={receiveOpen ? 'contents' : 'hidden'}>
 
       <div className="relative z-10 mb-5 space-y-4">
         <div>
@@ -936,6 +975,8 @@ export default function TheTender({ currentTheme }: TheTenderProps) {
             )}
           </div>
         </div>
+      </div>
+
       </div>
 
       <div className="relative z-10 mt-8 pt-6 border-t border-accent/10" id="tender-press-card">
