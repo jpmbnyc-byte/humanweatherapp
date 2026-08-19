@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
-import MountainBackground from './components/MountainBackground';
+import CirculationWeatherBackground from './components/CirculationWeatherBackground';
 import TabSkeleton from './components/TabSkeleton';
 import TabErrorBoundary from './components/TabErrorBoundary';
 import { DEFAULT_WEATHER } from './data/defaultWeather';
@@ -20,7 +20,6 @@ import ChamberIntro from './components/ChamberIntro';
 import { dismissAddToHome, shouldOfferAddToHome } from './lib/addToHome';
 import { initHarness } from './lib/harness';
 import { unlockAudioContext } from './lib/audioEngine';
-import AmbientDrift from './components/AmbientDrift';
 import PracticeInstrumentNav, { PracticeInstrument } from './components/PracticeInstrumentNav';
 
 const SunIcon = () => (
@@ -214,10 +213,10 @@ function AppBody() {
       data-active-office={place?.activeOffice ?? 'none'}
       data-office-state={place?.officeState ?? 'none'}
     >
-      <MountainBackground theme={currentTheme} />
-      {(activeTab === 'practice' || activeTab === 'tender') && (
-        <AmbientDrift intensity={activeTab === 'practice' ? 'medium' : 'soft'} />
-      )}
+      <CirculationWeatherBackground
+        theme={currentTheme}
+        intensity={activeTab === 'practice' || activeTab === 'tender' ? 'alive' : 'quiet'}
+      />
 
       {showAddToHome && (
         <AddToHomePrompt
