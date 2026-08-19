@@ -12,7 +12,7 @@ export function getFormingStatusMessage(
     case 'idle':
       return opts?.hasTouch ? 'Reading your touch on the field\u2026' : '';
     case 'gathering':
-      return 'Reading your touch on the field\u2026';
+      return 'Your touch is recorded.';
     case 'breathing':
       return 'Forming today\u2019s Daymark\u2026';
     case 'capturing':
