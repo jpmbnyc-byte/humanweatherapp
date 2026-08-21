@@ -41,7 +41,7 @@ const LightTherapy = lazy(() => import('./components/LightTherapy'));
 const ClassicalMusic = lazy(() => import('./components/ClassicalMusic'));
 const SolarRay = lazy(() => import('./components/SolarRay'));
 const ShinrinYoku = lazy(() => import('./components/ShinrinYoku'));
-const TheTender = lazy(() => import('./components/TheTender'));
+const TenderStudio = lazy(() => import('./components/TenderStudio'));
 
 /** Prefetch tab chunks after navigation — never on initial paint. */
 function prefetchTabWhenIdle(tab: 'therapy' | 'rhythms' | 'tender') {
@@ -54,7 +54,7 @@ function prefetchTabWhenIdle(tab: 'therapy' | 'rhythms' | 'tender') {
       void import('./components/SolarRay');
       void import('./components/ShinrinYoku');
     } else {
-      void import('./components/TheTender');
+      void import('./components/TenderStudio');
     }
   };
   runWhenIdle(run, 4000);
@@ -447,7 +447,7 @@ function AppBody() {
                 <ChamberIntro chamber="tender" currentTheme={currentTheme} />
                 <Suspense fallback={<TabSkeleton isNight={isNight} />}>
                   <TabErrorBoundary isNight={isNight}>
-                    <TheTender currentTheme={currentTheme} />
+                    <TenderStudio currentTheme={currentTheme} />
                   </TabErrorBoundary>
                 </Suspense>
               </div>
