@@ -3,7 +3,7 @@ export const MEMBERSHIP_FEATURES = [
   'Diurnal Spine — Vault, Meridian, and Marrow offices',
   'Il Nascimento — daily forming ritual and mementos',
   'Full Fascia — your observation log',
-  'Prescriptions — routed Shinrin, breath, Aura, and Tender',
+  'Tender Studio — guided voice, visual framing, and branded exports',
 ] as const;
 
 export const PURCHASE_SUCCESS_QUERY = 'purchase';
