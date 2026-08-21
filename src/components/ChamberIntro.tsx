@@ -19,10 +19,10 @@ const CHAMBERS: Record<
       'The sun is the circadian center. Solar practice and forest bathing help you meet the local light–dark cycle, while the body—not the clock—reveals your response.',
   },
   tender: {
-    designation: 'MOD/03 · THE TENDER',
-    title: 'The Tender',
+    designation: 'MOD/03 · TENDER STUDIO',
+    title: 'Tender Studio',
     intro:
-      'A private room for words the body is carrying. Write without an audience, keep only what serves you, or receive language in a familiar voice.',
+      'A private production room for words the body is carrying. Shape a passage through voice and image, then leave with a finished file you can share on your own terms.',
   },
 };
 
