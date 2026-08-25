@@ -43,6 +43,7 @@ const ClassicalMusic = lazy(() => import('./components/ClassicalMusic'));
 const SolarRay = lazy(() => import('./components/SolarRay'));
 const ShinrinYoku = lazy(() => import('./components/ShinrinYoku'));
 const TheTender = lazy(() => import('./components/TheTender'));
+const BibleReader = lazy(() => import('./components/BibleReader'));
 
 /** Prefetch tab chunks after navigation — never on initial paint. */
 function prefetchTabWhenIdle(tab: 'therapy' | 'rhythms' | 'tender') {
@@ -120,6 +121,7 @@ function AppBody() {
   const [place, setPlace] = useState<WhereAreWeResult | null>(null);
   const [showAddToHome, setShowAddToHome] = useState(false);
   const [practiceInstrument, setPracticeInstrument] = useState<PracticeInstrument>('circadian');
+  const [bibleOpen, setBibleOpen] = useState(false);
   const { geo } = useGeo();
 
   const refreshPlace = useCallback(() => {
@@ -150,15 +152,7 @@ function AppBody() {
     });
   }, [transitionToTab]);
 
-  const openLiturgicalDay = useCallback(() => {
-    transitionToTab('today');
-    window.requestAnimationFrame(() => {
-      document.getElementById('liturgical-day')?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-      });
-    });
-  }, [transitionToTab]);
+  const openBible = useCallback(() => setBibleOpen(true), []);
 
   useEffect(() => {
     dismissBootSplash();
@@ -271,6 +265,16 @@ function AppBody() {
         />
       )}
 
+      {bibleOpen && (
+        <Suspense fallback={<TabSkeleton isNight={isNight} />}>
+          <BibleReader
+            open
+            currentTheme={currentTheme}
+            onClose={() => setBibleOpen(false)}
+          />
+        </Suspense>
+      )}
+
       <div className="relative z-10 flex flex-col flex-1 w-full max-w-5xl mx-auto px-6 md:px-10 lg:px-12">
 
         {/* Header */}
@@ -374,7 +378,7 @@ function AppBody() {
           </div>
         </nav>
 
-        <LiturgicalHoursRail currentTheme={currentTheme} onOpen={openLiturgicalDay} />
+        <LiturgicalHoursRail currentTheme={currentTheme} onOpen={openBible} />
 
         {/* Main views */}
         <main className="flex-1 w-full py-10 md:py-12 min-w-0" id="app-main-view">
@@ -398,6 +402,7 @@ function AppBody() {
                 onStateChange={handleStateChange}
                 onNavigateTab={navigateLegacyTab}
                 onContinueToBreath={continueDaymarkWithBreath}
+                onOpenBible={openBible}
               />
             )}
 
@@ -412,6 +417,7 @@ function AppBody() {
                 place={place}
                 onStateChange={handleStateChange}
                 onNavigateTab={navigateLegacyTab}
+                onOpenBible={openBible}
                 showPracticeBreathwork={practiceInstrument === 'breath'}
                 practiceHeader={
                   <PracticeInstrumentNav
