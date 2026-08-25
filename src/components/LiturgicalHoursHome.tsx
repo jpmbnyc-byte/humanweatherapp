@@ -92,20 +92,16 @@ export function LiturgicalHoursRail({
   );
 }
 
-export default function LiturgicalHoursHome({ currentTheme }: { currentTheme: Theme }) {
+export default function LiturgicalHoursHome({
+  currentTheme,
+  onOpenBible,
+}: {
+  currentTheme: Theme;
+  onOpenBible: () => void;
+}) {
   const { now, activeHour } = useLiturgicalNow();
   const [expanded, setExpanded] = useState(false);
   const isNight = currentTheme === "night";
-
-  const openHours = () => {
-    setExpanded(true);
-    window.requestAnimationFrame(() => {
-      document.getElementById("liturgical-hours-list")?.scrollIntoView({
-        behavior: "smooth",
-        block: "nearest",
-      });
-    });
-  };
 
   return (
     <section
@@ -146,8 +142,7 @@ export default function LiturgicalHoursHome({ currentTheme }: { currentTheme: Th
           <button
             type="button"
             className="hw-btn-ghost"
-            onClick={openHours}
-            aria-controls="liturgical-hours-list"
+            onClick={onOpenBible}
           >
             Open {activeHour.commonName}
           </button>

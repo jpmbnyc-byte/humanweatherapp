@@ -35,6 +35,7 @@ type Props = {
   onStateChange: (state: WeatherState, coords: [number, number][]) => void;
   onNavigateTab: (tab: AppTab) => void;
   onContinueToBreath?: () => void;
+  onOpenBible?: () => void;
   section: StationSection;
   children?: React.ReactNode;
   showPracticeBreathwork?: boolean;
@@ -64,6 +65,7 @@ function SomaticTabBody({
   onStateChange,
   onNavigateTab,
   onContinueToBreath,
+  onOpenBible,
   section,
   children,
   showPracticeBreathwork = true,
@@ -125,7 +127,10 @@ function SomaticTabBody({
 
           {section === "today" && (
             <>
-              <LiturgicalHoursHome currentTheme={currentTheme} />
+              <LiturgicalHoursHome
+                currentTheme={currentTheme}
+                onOpenBible={onOpenBible ?? (() => undefined)}
+              />
               <EnvironmentalMeetingPlace
                 place={place}
                 activeWeather={activeWeather}
