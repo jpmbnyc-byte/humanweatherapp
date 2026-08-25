@@ -22,6 +22,7 @@ import { dismissAddToHome, shouldOfferAddToHome } from './lib/addToHome';
 import { initHarness } from './lib/harness';
 import { unlockAudioContext } from './lib/audioEngine';
 import PracticeInstrumentNav, { PracticeInstrument } from './components/PracticeInstrumentNav';
+import { LiturgicalHoursRail } from './components/LiturgicalHoursHome';
 
 const SunIcon = () => (
   <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-accent" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
@@ -143,6 +144,16 @@ function AppBody() {
     transitionToTab('practice');
     window.requestAnimationFrame(() => {
       document.getElementById('practice-active-instrument')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    });
+  }, [transitionToTab]);
+
+  const openLiturgicalDay = useCallback(() => {
+    transitionToTab('today');
+    window.requestAnimationFrame(() => {
+      document.getElementById('liturgical-day')?.scrollIntoView({
         behavior: 'smooth',
         block: 'start',
       });
@@ -362,6 +373,8 @@ function AppBody() {
             ))}
           </div>
         </nav>
+
+        <LiturgicalHoursRail currentTheme={currentTheme} onOpen={openLiturgicalDay} />
 
         {/* Main views */}
         <main className="flex-1 w-full py-10 md:py-12 min-w-0" id="app-main-view">

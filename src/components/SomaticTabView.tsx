@@ -17,6 +17,7 @@ import { noteWeatherObservation } from "../lib/harness/vocabulary";
 import type { WhereAreWeResult } from "../lib/whereAreWe";
 import type { WeatherState } from "../types";
 import EnvironmentalMeetingPlace from "./EnvironmentalMeetingPlace";
+import LiturgicalHoursHome from "./LiturgicalHoursHome";
 
 const BreathworkOrb = lazy(() => import("./BreathworkOrb"));
 const TheFascia = lazy(() => import("./TheFascia"));
@@ -124,6 +125,7 @@ function SomaticTabBody({
 
           {section === "today" && (
             <>
+              <LiturgicalHoursHome currentTheme={currentTheme} />
               <EnvironmentalMeetingPlace
                 place={place}
                 activeWeather={activeWeather}
