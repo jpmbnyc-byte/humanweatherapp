@@ -97,6 +97,16 @@ export default function LiturgicalHoursHome({ currentTheme }: { currentTheme: Th
   const [expanded, setExpanded] = useState(false);
   const isNight = currentTheme === "night";
 
+  const openHours = () => {
+    setExpanded(true);
+    window.requestAnimationFrame(() => {
+      document.getElementById("liturgical-hours-list")?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+    });
+  };
+
   return (
     <section
       id="liturgical-day"
@@ -132,19 +142,16 @@ export default function LiturgicalHoursHome({ currentTheme }: { currentTheme: Th
           </p>
         </div>
 
-        <div className="mt-7 flex flex-wrap items-center gap-3">
-          <button type="button" className="hw-btn-ghost" aria-describedby="prayer-content-status">
-            Begin {activeHour.commonName}
-          </button>
+        <div className="mt-7">
           <button
             type="button"
-            className="font-mono text-[10px] uppercase tracking-widest opacity-55 transition-opacity hover:opacity-100"
-            aria-describedby="prayer-content-status"
+            className="hw-btn-ghost"
+            onClick={openHours}
+            aria-controls="liturgical-hours-list"
           >
-            Listen instead
+            Open {activeHour.commonName}
           </button>
         </div>
-        <p id="prayer-content-status" className="sr-only">Prayer content connection is being prepared.</p>
       </div>
 
       <div className={`border-t ${isNight ? "border-white/10" : "border-stone-200/80"}`}>
