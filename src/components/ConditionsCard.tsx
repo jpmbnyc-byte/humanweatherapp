@@ -58,17 +58,17 @@ export default function ConditionsCard({
 
   return (
     <div
-      className={`p-8 md:p-10 rounded-2xl border ${themeStyles.border} ${themeStyles.cardBg}`}
+      className={`p-6 sm:p-8 md:p-10 rounded-2xl border ${themeStyles.border} ${themeStyles.cardBg}`}
       id="conditions-card"
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
-        <span className="font-mono text-xs uppercase tracking-widest opacity-50">
+        <span className="font-mono text-sm uppercase tracking-widest opacity-60">
           Current conditions: {activeWeather.title}
         </span>
         <button
           type="button"
           onClick={handleListen}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-mono uppercase tracking-wide transition-colors cursor-pointer shrink-0 ${
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-mono uppercase tracking-wide transition-colors cursor-pointer shrink-0 ${
             isNight
               ? 'border-white/15 text-white/70 hover:border-accent/40 hover:text-accent'
               : 'border-stone-300 text-stone-600 hover:border-accent/50 hover:text-[#8a6f2e]'
@@ -78,21 +78,21 @@ export default function ConditionsCard({
         >
           {isSpeaking ? (
             <>
-              <Square className="w-3 h-3 fill-current" /> Stop
+              <Square className="w-4 h-4 fill-current" /> Stop
             </>
           ) : (
             <>
-              <Play className="w-3 h-3 fill-current" /> Play
+              <Play className="w-4 h-4 fill-current" /> Play
             </>
           )}
           {status === 'error' && (
-            <span className="text-[10px] normal-case tracking-normal opacity-80">voice unavailable</span>
+            <span className="text-xs normal-case tracking-normal opacity-80">voice unavailable</span>
           )}
         </button>
       </div>
 
       <h2
-        className={`font-serif text-2xl md:text-3xl font-medium tracking-tight leading-snug mb-6 ${isNight ? 'text-accent' : 'text-[#2c2824]'}`}
+        className={`font-serif text-3xl md:text-4xl font-medium tracking-tight leading-snug mb-7 ${isNight ? 'text-accent' : 'text-[#2c2824]'}`}
       >
         {activeWeather.title}
       </h2>
@@ -107,28 +107,28 @@ export default function ConditionsCard({
             ] as const
           ).map(([label, line]) => (
             <div key={label} className="py-4 first:pt-0 last:pb-0">
-              <span className="font-mono text-[10px] uppercase tracking-[0.2em] opacity-40 block mb-1.5">
+              <span className="font-mono text-xs uppercase tracking-[0.2em] opacity-55 block mb-2">
                 {label}
               </span>
-              <p className="font-sans text-base md:text-lg leading-relaxed opacity-90">{line}</p>
+              <p className="font-sans text-lg md:text-xl leading-[1.7] opacity-90">{line}</p>
             </div>
           ))}
         </div>
       ) : (
-        <p className="font-sans text-base md:text-lg leading-[1.75] mb-8 max-w-prose">
+        <p className="font-sans text-lg md:text-xl leading-[1.75] mb-8 max-w-prose">
           {activeWeather.description}
         </p>
       )}
 
       <div
-        className={`p-5 md:p-6 rounded-xl border font-serif text-base md:text-lg italic mb-8 leading-relaxed ${
+        className={`p-5 md:p-7 rounded-xl border font-serif text-xl md:text-2xl italic mb-8 leading-[1.65] ${
           isNight
             ? 'border-[#d4b05a]/20 bg-white/[0.05] text-[#f5f0e8]'
             : 'border-accent/15 bg-accent/[0.03] text-[#2c2824]'
         }`}
       >
         <span
-          className={`font-mono text-xs uppercase tracking-widest not-italic block mb-2 ${
+          className={`font-mono text-sm uppercase tracking-widest not-italic block mb-3 ${
             isNight ? 'text-[#d4b85a]' : 'opacity-60'
           }`}
         >
@@ -139,18 +139,18 @@ export default function ConditionsCard({
 
       {showPrescription ? (
         <div className="border-t border-accent/10 pt-6">
-          <span className="font-mono text-xs uppercase tracking-widest opacity-40 block mb-2">
+          <span className="font-mono text-sm uppercase tracking-widest opacity-55 block mb-3">
             Prescription
           </span>
           {prescription.target === 'clear' ? (
-            <p className="font-serif text-lg italic opacity-80">{prescription.clearMessage}</p>
+            <p className="font-serif text-xl md:text-2xl leading-relaxed italic opacity-85">{prescription.clearMessage}</p>
           ) : (
             <div className="flex flex-col sm:flex-row sm:items-center gap-4">
               <div className="flex-1">
-                <p className="hw-instruction opacity-90 mb-2">{prescription.reason}</p>
-                <p className="font-mono text-sm uppercase tracking-wide opacity-90 mb-2">{prescription.label}</p>
+                <p className="hw-instruction text-lg leading-relaxed opacity-90 mb-3">{prescription.reason}</p>
+                <p className="font-mono text-base uppercase tracking-wide opacity-90 mb-3">{prescription.label}</p>
                 <p
-                  className={`hw-instruction-setup ${
+                  className={`hw-instruction-setup text-base leading-relaxed ${
                     isNight ? 'text-white/55' : 'text-stone-600'
                   }`}
                 >
@@ -160,7 +160,7 @@ export default function ConditionsCard({
               <button
                 type="button"
                 onClick={handlePrescription}
-                className={`px-4 py-2 rounded-xl border text-xs font-mono uppercase tracking-widest cursor-pointer transition-colors ${
+                className={`px-4 py-3 rounded-xl border text-sm font-mono uppercase tracking-widest cursor-pointer transition-colors ${
                   isNight
                     ? 'border-accent/30 text-accent hover:bg-accent/10'
                     : 'border-accent/40 text-[#8a6f2e] hover:bg-accent/5'
@@ -173,28 +173,28 @@ export default function ConditionsCard({
         </div>
       ) : (
         <div className="border-t border-accent/10 pt-6">
-          <span className="font-mono text-xs uppercase tracking-widest opacity-40 block mb-3">
+          <span className="font-mono text-sm uppercase tracking-widest opacity-55 block mb-3">
             Prescription
           </span>
-          <p className={`hw-section-intro mb-4 ${isNight ? 'text-white/70' : 'text-stone-600'}`}>
+          <p className={`hw-section-intro text-lg leading-relaxed mb-4 ${isNight ? 'text-white/70' : 'text-stone-600'}`}>
             Routed prescriptions unlock with membership.
           </p>
           <PurchaseOffer currentTheme={isNight ? 'night' : 'day'} variant="compact" />
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-6 border-t border-accent/10 pt-6 mt-8 text-left">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 border-t border-accent/10 pt-6 mt-8 text-left">
         <div>
-          <span className="font-mono text-xs uppercase tracking-widest opacity-40 block mb-1">
+          <span className="font-mono text-sm uppercase tracking-widest opacity-55 block mb-2">
             Clinical index
           </span>
-          <span className="font-mono text-sm opacity-80">{activeWeather.clinicalIndex}</span>
+          <span className="font-mono text-base leading-relaxed opacity-85">{activeWeather.clinicalIndex}</span>
         </div>
         <div>
-          <span className="font-mono text-xs uppercase tracking-widest opacity-40 block mb-1">
+          <span className="font-mono text-sm uppercase tracking-widest opacity-55 block mb-2">
             Respiratory ratio
           </span>
-          <span className="font-mono text-sm opacity-80">
+          <span className="font-mono text-base leading-relaxed opacity-85">
             {activeWeather.respiratoryRatio} (inhale:exhale)
           </span>
         </div>
