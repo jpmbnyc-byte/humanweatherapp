@@ -248,7 +248,7 @@ function AppBody() {
 
   return (
     <div
-      className={`min-h-screen w-full flex flex-col ${themeStyles.bg} ${themeStyles.text} theme-transition relative overflow-x-hidden`}
+      className={`hw-sfumato-shell min-h-screen w-full flex flex-col ${themeStyles.bg} ${themeStyles.text} theme-transition relative overflow-x-hidden`}
       id="app-root-container"
       data-active-office={place?.activeOffice ?? 'none'}
       data-office-state={place?.officeState ?? 'none'}
