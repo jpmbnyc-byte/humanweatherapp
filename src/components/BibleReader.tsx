@@ -213,7 +213,7 @@ export default function BibleReader({
         if (cancelled) return;
         setChapterCount(chapters.length || 1);
         setChapter(safeChapter);
-        setChapterHtml(bibleBook.get_chapter(safeChapter));
+        setChapterHtml(bibleBook.get_chapter(safeChapter, { attribute: false }));
         setAttribution(bibleBook.get_attribution());
         writeMemory({ language, resource, book, chapter: safeChapter });
       } catch (cause) {
@@ -318,7 +318,10 @@ export default function BibleReader({
               dangerouslySetInnerHTML={{ __html: chapterHtml }}
             />
             {attribution && (
-              <p className="mt-12 border-t pt-5 font-mono text-xs leading-relaxed opacity-50">{attribution}</p>
+              <div
+                className="mt-12 border-t pt-5 font-mono text-xs leading-relaxed opacity-50 [&_a]:underline [&_a]:underline-offset-4"
+                dangerouslySetInnerHTML={{ __html: attribution }}
+              />
             )}
           </article>
         )}
