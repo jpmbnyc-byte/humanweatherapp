@@ -159,10 +159,10 @@
 }
 
 .theme-transition {
-  transition: background-color 350ms cubic-bezier(0.4, 0, 0.2, 1),
-              color 350ms cubic-bezier(0.4, 0, 0.2, 1),
-              border-color 350ms cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 350ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 900ms cubic-bezier(0.22, 1, 0.36, 1),
+              color 700ms cubic-bezier(0.22, 1, 0.36, 1),
+              border-color 900ms cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 900ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 html {
@@ -192,6 +192,75 @@ body {
 }
 
 @layer components {
+  /*
+   * Sfumato interface system — atmosphere is accumulated in translucent
+   * glazes. Content stays optically sharp while tonal boundaries dissolve.
+   */
+  @keyframes hw-sfumato-drift {
+    0%, 100% { transform: translate3d(-2%, -1%, 0) scale(1.03); opacity: 0.66; }
+    50% { transform: translate3d(3%, 2%, 0) scale(1.09); opacity: 0.9; }
+  }
+
+  @keyframes hw-sfumato-breathe {
+    0%, 100% { transform: translate3d(2%, 1%, 0) scale(1.06); opacity: 0.48; }
+    50% { transform: translate3d(-3%, -2%, 0) scale(1.12); opacity: 0.72; }
+  }
+
+  .hw-sfumato-shell {
+    isolation: isolate;
+    background-image:
+      radial-gradient(ellipse 115% 68% at 12% 2%, color-mix(in oklch, var(--accent) 9%, transparent), transparent 61%),
+      radial-gradient(ellipse 94% 72% at 91% 96%, color-mix(in oklch, var(--chart-2) 8%, transparent), transparent 66%);
+  }
+
+  .hw-sfumato-shell::before,
+  .hw-sfumato-shell::after {
+    content: "";
+    position: fixed;
+    inset: -18%;
+    z-index: 1;
+    pointer-events: none;
+    will-change: transform, opacity;
+  }
+
+  .hw-sfumato-shell::before {
+    background:
+      radial-gradient(ellipse 42% 38% at 22% 26%, color-mix(in oklch, var(--accent) 12%, transparent), transparent 74%),
+      radial-gradient(ellipse 48% 42% at 76% 62%, color-mix(in oklch, var(--chart-3) 10%, transparent), transparent 76%);
+    filter: blur(34px) saturate(108%);
+    animation: hw-sfumato-drift 32s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  }
+
+  .hw-sfumato-shell::after {
+    background:
+      radial-gradient(ellipse 36% 32% at 68% 18%, color-mix(in oklch, var(--chart-4) 9%, transparent), transparent 78%),
+      radial-gradient(ellipse 44% 38% at 34% 82%, color-mix(in oklch, var(--accent) 8%, transparent), transparent 76%);
+    filter: blur(52px) saturate(104%);
+    animation: hw-sfumato-breathe 41s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  }
+
+  .hw-sfumato-shell :is(section, article, div).rounded-2xl.border,
+  .hw-sfumato-shell .hw-station-chamber,
+  .hw-sfumato-shell .hw-therapy-panel {
+    backdrop-filter: blur(18px) saturate(112%);
+    -webkit-backdrop-filter: blur(18px) saturate(112%);
+    border-color: color-mix(in oklch, var(--foreground) 9%, transparent);
+    box-shadow:
+      inset 0 1px 0 color-mix(in oklch, white 7%, transparent),
+      inset 0 -20px 48px color-mix(in oklch, var(--background) 8%, transparent),
+      0 24px 70px color-mix(in oklch, var(--foreground) 7%, transparent);
+    transition:
+      background-color 900ms cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 900ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 900ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .hw-sfumato-shell :is(input, select, textarea, button):focus-visible {
+    outline: 1px solid color-mix(in oklch, var(--accent) 72%, white 12%);
+    outline-offset: 4px;
+    box-shadow: 0 0 0 7px color-mix(in oklch, var(--accent) 10%, transparent);
+  }
+
   /* Human Weather — uniform editorial type scale */
   .hw-eyebrow {
     font-family: var(--font-mono);
@@ -331,16 +400,18 @@ body {
   @keyframes hw-view-enter {
     from {
       opacity: 0;
-      transform: translateY(8px);
+      transform: translateY(10px) scale(0.995);
+      filter: blur(4px);
     }
     to {
       opacity: 1;
       transform: translateY(0);
+      filter: blur(0);
     }
   }
 
   .hw-view-enter {
-    animation: hw-view-enter 0.35s ease-out both;
+    animation: hw-view-enter 0.72s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   @keyframes hw-cell-pulse {
@@ -765,6 +836,11 @@ body {
     .hw-flow-channel,
     .hw-plasma-sweep,
     .hw-pressure-fronts {
+      animation: none;
+    }
+
+    .hw-sfumato-shell::before,
+    .hw-sfumato-shell::after {
       animation: none;
     }
 
