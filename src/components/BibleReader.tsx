@@ -213,7 +213,7 @@ export default function BibleReader({
         if (cancelled) return;
         setChapterCount(chapters.length || 1);
         setChapter(safeChapter);
-        setChapterHtml(bibleBook.get_chapter(safeChapter));
+        setChapterHtml(bibleBook.get_chapter(safeChapter, { attribute: false }));
         setAttribution(bibleBook.get_attribution());
         writeMemory({ language, resource, book, chapter: safeChapter });
       } catch (cause) {
