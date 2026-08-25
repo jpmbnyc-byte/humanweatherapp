@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 
 type Theme = "day" | "night";
-type HourId = "office" | "lauds" | "terce" | "sext" | "none" | "vespers" | "compline";
-type LiturgicalHour = {
+export type HourId = "office" | "lauds" | "terce" | "sext" | "none" | "vespers" | "compline";
+export type LiturgicalHour = {
   id: HourId;
   prayer: string;
   commonName: string;
@@ -61,7 +61,7 @@ export function LiturgicalHoursRail({
   onOpen,
 }: {
   currentTheme: Theme;
-  onOpen: () => void;
+  onOpen: (hour: LiturgicalHour) => void;
 }) {
   const { now, activeHour } = useLiturgicalNow();
   const isNight = currentTheme === "night";
@@ -69,7 +69,7 @@ export function LiturgicalHoursRail({
   return (
     <button
       type="button"
-      onClick={onOpen}
+      onClick={() => onOpen(activeHour)}
       aria-label={`Open the liturgical day. ${activeHour.commonName} is open now.`}
       className={`hw-pressable mt-3 w-full rounded-xl border px-4 py-3 text-left transition-colors ${
         isNight
@@ -97,7 +97,7 @@ export default function LiturgicalHoursHome({
   onOpenBible,
 }: {
   currentTheme: Theme;
-  onOpenBible: () => void;
+  onOpenBible: (hour: LiturgicalHour) => void;
 }) {
   const { now, activeHour } = useLiturgicalNow();
   const [expanded, setExpanded] = useState(false);
@@ -142,7 +142,7 @@ export default function LiturgicalHoursHome({
           <button
             type="button"
             className="hw-btn-ghost"
-            onClick={onOpenBible}
+            onClick={() => onOpenBible(activeHour)}
           >
             Open {activeHour.commonName}
           </button>
