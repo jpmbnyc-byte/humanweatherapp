@@ -66,16 +66,6 @@ export function LiturgicalHoursRail({
   const { now, activeHour } = useLiturgicalNow();
   const isNight = currentTheme === "night";
 
-  const openHours = () => {
-    setExpanded(true);
-    window.requestAnimationFrame(() => {
-      document.getElementById("liturgical-hours-list")?.scrollIntoView({
-        behavior: "smooth",
-        block: "nearest",
-      });
-    });
-  };
-
   return (
     <button
       type="button"
@@ -106,6 +96,16 @@ export default function LiturgicalHoursHome({ currentTheme }: { currentTheme: Th
   const { now, activeHour } = useLiturgicalNow();
   const [expanded, setExpanded] = useState(false);
   const isNight = currentTheme === "night";
+
+  const openHours = () => {
+    setExpanded(true);
+    window.requestAnimationFrame(() => {
+      document.getElementById("liturgical-hours-list")?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+    });
+  };
 
   return (
     <section
