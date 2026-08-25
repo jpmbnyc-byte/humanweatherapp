@@ -23,6 +23,7 @@ import { initHarness } from './lib/harness';
 import { unlockAudioContext } from './lib/audioEngine';
 import PracticeInstrumentNav, { PracticeInstrument } from './components/PracticeInstrumentNav';
 import { LiturgicalHoursRail } from './components/LiturgicalHoursHome';
+import type { LiturgicalHour } from './components/LiturgicalHoursHome';
 
 const SunIcon = () => (
   <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-accent" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
@@ -121,7 +122,7 @@ function AppBody() {
   const [place, setPlace] = useState<WhereAreWeResult | null>(null);
   const [showAddToHome, setShowAddToHome] = useState(false);
   const [practiceInstrument, setPracticeInstrument] = useState<PracticeInstrument>('circadian');
-  const [bibleOpen, setBibleOpen] = useState(false);
+  const [bibleHour, setBibleHour] = useState<LiturgicalHour | null>(null);
   const { geo } = useGeo();
 
   const refreshPlace = useCallback(() => {
@@ -152,7 +153,7 @@ function AppBody() {
     });
   }, [transitionToTab]);
 
-  const openBible = useCallback(() => setBibleOpen(true), []);
+  const openBible = useCallback((hour: LiturgicalHour) => setBibleHour(hour), []);
 
   useEffect(() => {
     dismissBootSplash();
@@ -265,12 +266,13 @@ function AppBody() {
         />
       )}
 
-      {bibleOpen && (
+      {bibleHour && (
         <Suspense fallback={<TabSkeleton isNight={isNight} />}>
           <BibleReader
             open
             currentTheme={currentTheme}
-            onClose={() => setBibleOpen(false)}
+            liturgicalHour={bibleHour}
+            onClose={() => setBibleHour(null)}
           />
         </Suspense>
       )}
