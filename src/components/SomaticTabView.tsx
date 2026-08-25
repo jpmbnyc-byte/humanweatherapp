@@ -18,6 +18,7 @@ import type { WhereAreWeResult } from "../lib/whereAreWe";
 import type { WeatherState } from "../types";
 import EnvironmentalMeetingPlace from "./EnvironmentalMeetingPlace";
 import LiturgicalHoursHome from "./LiturgicalHoursHome";
+import type { LiturgicalHour } from "./LiturgicalHoursHome";
 
 const BreathworkOrb = lazy(() => import("./BreathworkOrb"));
 const TheFascia = lazy(() => import("./TheFascia"));
@@ -35,7 +36,7 @@ type Props = {
   onStateChange: (state: WeatherState, coords: [number, number][]) => void;
   onNavigateTab: (tab: AppTab) => void;
   onContinueToBreath?: () => void;
-  onOpenBible?: () => void;
+  onOpenBible?: (hour: LiturgicalHour) => void;
   section: StationSection;
   children?: React.ReactNode;
   showPracticeBreathwork?: boolean;
