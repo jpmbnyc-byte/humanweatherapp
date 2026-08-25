@@ -34,11 +34,11 @@ export function getThemeStyles(theme: AppTheme) {
     accentBody: isNight ? 'text-[#d4b85a]' : 'text-[#2c2824]',
     border: isNight ? 'border-white/[0.07]' : 'border-stone-300/50',
     cardBg: isNight
-      ? 'bg-[#1e1c18]/90 border-white/[0.06]'
-      : 'bg-white/90 border-stone-200/60 shadow-sm shadow-stone-900/5',
+      ? 'bg-[#1e1c18]/74 border-white/[0.06]'
+      : 'bg-white/74 border-stone-200/50 shadow-sm shadow-stone-900/5',
     innerBg: isNight
-      ? 'bg-black/25 border-white/[0.05]'
-      : 'bg-[#f3efe8]/60 border-stone-200/40',
+      ? 'bg-black/18 border-white/[0.05]'
+      : 'bg-[#f3efe8]/52 border-stone-200/35',
     tabActive: isNight
       ? 'bg-white/[0.07] text-[#f5f0e8] border-[#d4b85a]/35 ring-1 ring-[#d4b05a]/25'
       : 'bg-white text-[#2c2824] border-stone-200/70 shadow-sm ring-1 ring-[#c4a044]/25',
