@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef } from "react";
 import { PATHWAYS, WEATHER_STATES } from "../data/somatic";
 import { WeatherState, Pathway } from "../types";
-import { Hand, Trash2 } from "lucide-react";
+import { Hand, Sparkles, Trash2 } from "lucide-react";
 import { useFormingOptional } from "../lib/forming/FormingContext";
 import { getChannelPrefs, setChannelPrefs } from "../lib/harness/channels";
 import FormingDustLayer from "./FormingDustLayer";
 import SketchLivePreview from "./SketchLivePreview";
 import SomaticBodyFigure from "./SomaticBodyFigure";
 import { countSomaticZones, SOMATIC_ZONE_BANDS } from "../lib/somaticZones";
+import SomaticFigureSetup from "./SomaticFigureSetup";
+import { readSomaticFigure, SomaticFigurePreference } from "../lib/somaticFigure";
 
 interface SomaticGridProps {
   onStateChange: (state: WeatherState, activeCoordinates: [number, number][]) => void;
@@ -29,6 +31,10 @@ export default function SomaticGrid({
   const [drawMode, setDrawMode] = useState<boolean>(true); // true to draw, false to erase
   const [hapticsEnabled, setHapticsEnabled] = useState(true);
   const [hapticsSupported, setHapticsSupported] = useState(true);
+  const [figureSetupOpen, setFigureSetupOpen] = useState(false);
+  const [figurePreference, setFigurePreference] = useState<SomaticFigurePreference>(() =>
+    readSomaticFigure(),
+  );
   const gridRef = useRef<HTMLDivElement>(null);
   const lastCellRef = useRef<string | null>(null);
   const cellEnterRef = useRef<number>(Date.now());
@@ -270,23 +276,33 @@ export default function SomaticGrid({
           </span>
         </div>
 
-        {/* Reset Button */}
-        {activeCount > 0 && (
+        <div className="flex shrink-0 flex-col items-end gap-2">
           <button
             type="button"
-            id="clear-grid-btn"
-            onClick={() => {
-              clearGrid();
-              if (forming && !["capturing", "mounting", "stillness"].includes(forming.stage)) {
-                forming.abortForming();
-              }
-            }}
-            className="hw-pressable flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono rounded-full border border-red-500/30 text-red-400 bg-red-500/5 hover:bg-red-500/10 transition-colors"
+            onClick={() => setFigureSetupOpen(true)}
+            className="hw-pressable flex items-center gap-1.5 rounded-full border border-accent/25 bg-accent/5 px-3 py-2 font-sans text-sm text-accent"
           >
-            <Trash2 className="w-3.5 h-3.5" />
-            Clear Map
+            <Sparkles className="h-3.5 w-3.5" aria-hidden />
+            Your figure
           </button>
-        )}
+          {/* Reset Button */}
+          {activeCount > 0 && (
+            <button
+              type="button"
+              id="clear-grid-btn"
+              onClick={() => {
+                clearGrid();
+                if (forming && !["capturing", "mounting", "stillness"].includes(forming.stage)) {
+                  forming.abortForming();
+                }
+              }}
+              className="hw-pressable flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono rounded-full border border-red-500/30 text-red-400 bg-red-500/5 hover:bg-red-500/10 transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Clear Map
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Gentle instruction intro */}
@@ -365,7 +381,7 @@ export default function SomaticGrid({
                 : "0 18px 45px -18px rgba(103, 78, 36, 0.18)",
           }}
         >
-          <SomaticBodyFigure currentTheme={currentTheme} />
+          <SomaticBodyFigure currentTheme={currentTheme} preference={figurePreference} />
           <FormingDustLayer />
           {grid.map((row, rIdx) =>
             row.map((active, cIdx) => {
@@ -415,10 +431,15 @@ export default function SomaticGrid({
         </div>
       </div>
 
-      <SketchLivePreview
+      <SomaticFigureSetup
         currentTheme={currentTheme}
-        onContinueToBreath={onContinueToBreath}
+        open={figureSetupOpen}
+        preference={figurePreference}
+        onClose={() => setFigureSetupOpen(false)}
+        onSave={setFigurePreference}
       />
+
+      <SketchLivePreview currentTheme={currentTheme} onContinueToBreath={onContinueToBreath} />
 
       {/* Guide Pathways Entry points */}
       <div className="w-full mt-6">
