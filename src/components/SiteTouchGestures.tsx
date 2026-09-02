@@ -2,7 +2,7 @@ import React, { ReactNode, useEffect, useRef, useState } from "react";
 
 const RELOAD_DISTANCE = 110;
 
-/** Global mobile gestures. Page zoom remains native; installed PWAs receive pull-to-reload. */
+/** Global mobile gestures: native magnification plus installed-PWA pull-to-reload. */
 export default function SiteTouchGestures({ children }: { children: ReactNode }) {
   const [pull, setPull] = useState(0);
   const pullRef = useRef(0);
