@@ -6,6 +6,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
+import SiteTouchGestures from "../components/SiteTouchGestures";
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
@@ -85,7 +86,10 @@ export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      {
+        name: "viewport",
+        content: "width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=5, user-scalable=yes",
+      },
       { name: "theme-color", content: "#141210" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-title", content: "Human Weather" },
@@ -162,5 +166,9 @@ function RootComponent() {
     scheduleDeferredFonts();
   }, []);
 
-  return <Outlet />;
+  return (
+    <SiteTouchGestures>
+      <Outlet />
+    </SiteTouchGestures>
+  );
 }
