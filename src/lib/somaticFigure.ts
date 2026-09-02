@@ -80,3 +80,52 @@ export async function makeSomaticPortrait(file: File): Promise<string> {
 
   return canvas.toDataURL("image/jpeg", 0.82);
 }
+
+
+async function loadFigureImage(source: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("The generated figure could not be opened."));
+    image.src = source;
+  });
+}
+
+export async function generateSomaticFigure(selfie: string): Promise<string> {
+  const response = await fetch("/api/somatic-figure", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ selfie }),
+  });
+  const payload = (await response.json().catch(() => ({}))) as { figure?: string; error?: string };
+  if (!response.ok || !payload.figure) {
+    throw new Error(payload.error || "Your figure could not be drawn just now.");
+  }
+
+  const image = await loadFigureImage(payload.figure);
+  const width = 720;
+  const height = 1200;
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d", { alpha: false });
+  if (!context) throw new Error("This browser could not save the generated figure.");
+
+  context.fillStyle = "#eee5d7";
+  context.fillRect(0, 0, width, height);
+  const sourceRatio = image.naturalWidth / image.naturalHeight;
+  const targetRatio = width / height;
+  let sourceWidth = image.naturalWidth;
+  let sourceHeight = image.naturalHeight;
+  let sourceX = 0;
+  let sourceY = 0;
+  if (sourceRatio > targetRatio) {
+    sourceWidth = image.naturalHeight * targetRatio;
+    sourceX = (image.naturalWidth - sourceWidth) / 2;
+  } else {
+    sourceHeight = image.naturalWidth / targetRatio;
+    sourceY = (image.naturalHeight - sourceHeight) / 2;
+  }
+  context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, width, height);
+  return canvas.toDataURL("image/jpeg", 0.82);
+}
