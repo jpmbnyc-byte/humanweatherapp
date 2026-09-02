@@ -1,4 +1,5 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Camera, RefreshCw, UserRound, X } from "lucide-react";
 import {
   makeSomaticPortrait,
@@ -29,7 +30,16 @@ export default function SomaticFigureSetup({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!open) return null;
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [open]);
+
+  if (!open || typeof document === "undefined") return null;
 
   const commit = (next: SomaticFigurePreference) => {
     saveSomaticFigure(next);
@@ -55,7 +65,7 @@ export default function SomaticFigureSetup({
     }
   };
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[90] flex items-end justify-center bg-black/45 p-0 backdrop-blur-sm sm:items-center sm:p-5"
       role="presentation"
@@ -183,6 +193,7 @@ export default function SomaticFigureSetup({
           onChange={(event) => void handlePhoto(event.target.files?.[0])}
         />
       </section>
-    </div>
+    </div>,
+    document.body,
   );
 }
