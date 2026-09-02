@@ -12,7 +12,7 @@ export default function SomaticBodyFigure({ currentTheme, preference }: Props) {
       <img
         src={`/somatic/${standard === "man" ? "male" : "female"}-manuscript.svg`}
         alt=""
-        className="h-full w-full object-cover"
+        className="h-full w-full object-contain"
         style={{
           opacity: currentTheme === "night" ? 0.64 : 0.94,
           mixBlendMode: currentTheme === "night" ? "screen" : "multiply",
