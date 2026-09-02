@@ -1,34 +1,28 @@
 import React from "react";
-import "../somatic-sfumato.css";
-import { SOMATIC_BODY_FIELD_IMAGE } from "../assets/somaticBodyField";
-import { SomaticFigurePreference } from "../lib/somaticFigure";
+import { SOMATIC_FIGURE_POINTS, SomaticFigurePreference } from "../lib/somaticFigure";
 
 type Props = { currentTheme: "day" | "night"; preference: SomaticFigurePreference };
 
-/** Static male/female somatic reference figures, dissolved into the surrounding field. */
+/** The approved static manuscript figure. Touch geometry is figure-specific. */
 export default function SomaticBodyFigure({ currentTheme, preference }: Props) {
-  const isNight = currentTheme === "night";
-  const image = preference.standard === "man" ? SOMATIC_BODY_FIELD_IMAGE : "/somatic-female.jpg";
-
+  const standard = preference.standard === "man" ? "man" : "woman";
+  const points = SOMATIC_FIGURE_POINTS[standard];
   return (
-    <div
-      className="pointer-events-none absolute inset-0 z-0 select-none hw-somatic-figure-field"
-      aria-hidden="true"
-    >
+    <div className="pointer-events-none absolute inset-0 z-0 select-none" aria-hidden="true">
       <img
-        src={image}
+        src={`/somatic/${standard === "man" ? "male" : "female"}-manuscript.svg`}
         alt=""
-        draggable={false}
-        className="absolute inset-0 h-full w-full object-contain object-center hw-somatic-figure-image"
+        className="h-full w-full object-cover"
         style={{
-          opacity: isNight ? 0.74 : 0.9,
-          mixBlendMode: isNight ? "soft-light" : "multiply",
-          filter: isNight
-            ? "grayscale(.1) sepia(.08) saturate(.74) brightness(1.08) contrast(.8)"
-            : "grayscale(.02) sepia(.04) saturate(.92) brightness(1.04) contrast(.9)",
+          opacity: currentTheme === "night" ? 0.64 : 0.94,
+          mixBlendMode: currentTheme === "night" ? "screen" : "multiply",
+          maskImage: "linear-gradient(to bottom, transparent 0%, black 3%, black 96%, transparent 100%)",
+          WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 3%, black 96%, transparent 100%)",
         }}
       />
-      <div className="absolute inset-[7%] hw-somatic-luminous-veil" />
+      {Object.entries(points).map(([zone, top]) => (
+        <span key={zone} className="absolute left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full border border-current/45 bg-accent/45 shadow-[0_0_0_5px_rgba(212,176,90,.06)]" style={{ top: `${top}%` }} />
+      ))}
     </div>
   );
 }
