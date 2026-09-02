@@ -85,56 +85,52 @@ async function loadFigureImage(source: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image();
     image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error("The generated figure could not be opened."));
+    image.onerror = () => reject(new Error("The prepared portrait could not be opened."));
     image.src = source;
   });
 }
 
 export async function generateSomaticFigure(selfie: string): Promise<string> {
-  const response = await fetch("/api/somatic-figure", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ selfie }),
-  });
-  const payload = (await response.json().catch(() => ({}))) as { figure?: string; error?: string };
-  if (!response.ok || !payload.figure) {
-    throw new Error(payload.error || "Your figure could not be drawn just now.");
-  }
-
-  const image = await loadFigureImage(payload.figure);
-  const width = 720;
-  const height = 1200;
+  const image = await loadFigureImage(selfie);
+  const width = 360;
+  const height = 420;
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
-  const context = canvas.getContext("2d", { alpha: false });
-  if (!context) throw new Error("This browser could not save the generated figure.");
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  if (!context) throw new Error("This browser could not draw the portrait.");
 
-  context.fillStyle = "#eee5d7";
-  context.fillRect(0, 0, width, height);
-  const sourceRatio = image.naturalWidth / image.naturalHeight;
-  const targetRatio = width / height;
-  let sourceWidth = image.naturalWidth;
-  let sourceHeight = image.naturalHeight;
-  let sourceX = 0;
-  let sourceY = 0;
-  if (sourceRatio > targetRatio) {
-    sourceWidth = image.naturalHeight * targetRatio;
-    sourceX = (image.naturalWidth - sourceWidth) / 2;
-  } else {
-    sourceHeight = image.naturalWidth / targetRatio;
-    sourceY = (image.naturalHeight - sourceHeight) / 2;
+  context.drawImage(image, 0, 0, image.naturalWidth, image.naturalHeight, 0, 15, width, width);
+  const source = context.getImageData(0, 0, width, height);
+  const output = context.createImageData(width, height);
+  const luminance = new Float32Array(width * height);
+  for (let i = 0; i < width * height; i += 1) {
+    const p = i * 4;
+    luminance[i] = source.data[p] * 0.299 + source.data[p + 1] * 0.587 + source.data[p + 2] * 0.114;
   }
-  context.drawImage(
-    image,
-    sourceX,
-    sourceY,
-    sourceWidth,
-    sourceHeight,
-    0,
-    0,
-    width,
-    height,
-  );
-  return canvas.toDataURL("image/jpeg", 0.82);
+
+  for (let y = 1; y < height - 1; y += 1) {
+    for (let x = 1; x < width - 1; x += 1) {
+      const i = y * width + x;
+      const gx = -luminance[i - width - 1] + luminance[i - width + 1]
+        - 2 * luminance[i - 1] + 2 * luminance[i + 1]
+        - luminance[i + width - 1] + luminance[i + width + 1];
+      const gy = -luminance[i - width - 1] - 2 * luminance[i - width] - luminance[i - width + 1]
+        + luminance[i + width - 1] + 2 * luminance[i + width] + luminance[i + width + 1];
+      const edge = Math.min(255, Math.hypot(gx, gy) * 0.72);
+      const shadow = Math.max(0, 142 - luminance[i]) * 0.42;
+      const nx = (x - width / 2) / (width * 0.47);
+      const ny = (y - height * 0.48) / (height * 0.48);
+      const feather = Math.max(0, Math.min(1, (1.08 - (nx * nx + ny * ny)) * 4));
+      const alpha = Math.min(210, (edge + shadow) * feather);
+      const p = i * 4;
+      output.data[p] = 76;
+      output.data[p + 1] = 61;
+      output.data[p + 2] = 48;
+      output.data[p + 3] = alpha;
+    }
+  }
+  context.clearRect(0, 0, width, height);
+  context.putImageData(output, 0, 0);
+  return canvas.toDataURL("image/png");
 }
