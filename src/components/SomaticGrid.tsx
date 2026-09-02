@@ -373,10 +373,7 @@ export default function SomaticGrid({
           ))}
         </div>
         <div
-          ref={gridRef}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={() => setIsDrawing(false)}
-          className={`grid grid-cols-8 grid-rows-8 rounded-[2.5rem] border backdrop-blur-md transition-all duration-300 w-full aspect-[3/5] relative overflow-hidden ${
+          className={`rounded-[2.5rem] border backdrop-blur-md transition-all duration-300 w-full aspect-[3/5] relative overflow-hidden ${
             currentTheme === "night"
               ? "bg-[#1e1c18]/35 border-white/[0.07]"
               : "bg-[#f1e9dc]/45 border-stone-200/50 shadow-sm shadow-stone-900/5"
@@ -391,37 +388,44 @@ export default function SomaticGrid({
         >
           <SomaticBodyFigure currentTheme={currentTheme} preference={figurePreference} />
           <FormingDustLayer />
-          {grid.map((row, rIdx) =>
-            row.map((active, cIdx) => {
-              const cellKey = `${rIdx},${cIdx}`;
-              return (
-                <div
-                  key={cellKey}
-                  data-cell={cellKey}
-                  onMouseDown={(e) => handleMouseDown(rIdx, cIdx, e)}
-                  onMouseEnter={() => handleMouseEnterCell(rIdx, cIdx)}
-                  onTouchStart={(e) => handleTouchStart(rIdx, cIdx, e)}
-                  aria-label={`${active ? "Unmark" : "Mark"} body field row ${rIdx + 1}, column ${cIdx + 1}`}
-                  className="relative z-10 cursor-crosshair select-none overflow-visible transition-all duration-500"
-                  style={{
-                    touchAction: "pan-y",
-                    background: active
-                      ? `radial-gradient(circle, ${currentTheme === "night" ? "rgba(215,166,104,.72)" : "rgba(156,78,65,.5)"} 0%, rgba(91,121,130,.25) 38%, transparent 72%)`
-                      : "transparent",
-                    transform: active ? "scale(1.6)" : "scale(1)",
-                  }}
-                >
-                  {/* Subtle internal particle animation for active cells */}
-                  {active && (
-                    <div
-                      className="absolute inset-[-35%] rounded-full bg-white/10 blur-[8px] hw-cell-pulse"
-                      style={{ animationDuration: `${2 + ((rIdx * 8 + cIdx) % 5) * 0.4}s` }}
-                    />
-                  )}
-                </div>
-              );
-            }),
-          )}
+          <div
+            ref={gridRef}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={() => setIsDrawing(false)}
+            className="absolute inset-x-0 top-0 z-10 grid h-[68%] grid-cols-8 grid-rows-8"
+            style={{ touchAction: "pan-y" }}
+          >
+            {grid.map((row, rIdx) =>
+              row.map((active, cIdx) => {
+                const cellKey = `${rIdx},${cIdx}`;
+                return (
+                  <div
+                    key={cellKey}
+                    data-cell={cellKey}
+                    onMouseDown={(e) => handleMouseDown(rIdx, cIdx, e)}
+                    onMouseEnter={() => handleMouseEnterCell(rIdx, cIdx)}
+                    onTouchStart={(e) => handleTouchStart(rIdx, cIdx, e)}
+                    aria-label={`${active ? "Unmark" : "Mark"} body field row ${rIdx + 1}, column ${cIdx + 1}`}
+                    className="relative cursor-crosshair select-none overflow-visible transition-all duration-500"
+                    style={{
+                      touchAction: "pan-y",
+                      background: active
+                        ? `radial-gradient(circle, ${currentTheme === "night" ? "rgba(215,166,104,.72)" : "rgba(156,78,65,.5)"} 0%, rgba(91,121,130,.25) 38%, transparent 72%)`
+                        : "transparent",
+                      transform: active ? "scale(1.6)" : "scale(1)",
+                    }}
+                  >
+                    {active && (
+                      <div
+                        className="absolute inset-[-35%] rounded-full bg-white/10 blur-[8px] hw-cell-pulse"
+                        style={{ animationDuration: `${2 + ((rIdx * 8 + cIdx) % 5) * 0.4}s` }}
+                      />
+                    )}
+                  </div>
+                );
+              }),
+            )}
+          </div>
         </div>
       </div>
 
