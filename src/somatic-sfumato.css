@@ -1,0 +1,76 @@
+/* Somatic field — sfumato: no hard card, no boxed image edge. */
+#somatic-field .grid.grid-cols-8.grid-rows-8 {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  overflow: visible !important;
+}
+
+.hw-somatic-figure-field {
+  overflow: visible;
+  isolation: isolate;
+  -webkit-mask-image: radial-gradient(
+    ellipse 74% 90% at 50% 49%,
+    #000 0%,
+    #000 56%,
+    rgba(0,0,0,.92) 68%,
+    rgba(0,0,0,.58) 80%,
+    rgba(0,0,0,.2) 91%,
+    transparent 100%
+  );
+  mask-image: radial-gradient(
+    ellipse 74% 90% at 50% 49%,
+    #000 0%,
+    #000 56%,
+    rgba(0,0,0,.92) 68%,
+    rgba(0,0,0,.58) 80%,
+    rgba(0,0,0,.2) 91%,
+    transparent 100%
+  );
+}
+
+.hw-somatic-figure-image {
+  transform: scale(1.018);
+  transform-origin: 50% 50%;
+}
+
+.hw-somatic-luminous-veil {
+  border-radius: 48%;
+  background:
+    radial-gradient(ellipse 38% 30% at 50% 34%, rgba(196, 124, 105, .12), transparent 72%),
+    radial-gradient(ellipse 42% 34% at 50% 56%, rgba(117, 150, 162, .11), transparent 74%),
+    radial-gradient(ellipse 34% 24% at 50% 72%, rgba(178, 111, 96, .09), transparent 72%);
+  filter: blur(28px);
+  mix-blend-mode: screen;
+  opacity: .72;
+}
+
+.dark .hw-somatic-luminous-veil {
+  opacity: .42;
+  filter: blur(34px);
+}
+
+@media (max-width: 640px) {
+  .hw-somatic-figure-field {
+    -webkit-mask-image: radial-gradient(
+      ellipse 80% 92% at 50% 49%,
+      #000 0%,
+      #000 54%,
+      rgba(0,0,0,.88) 69%,
+      rgba(0,0,0,.48) 82%,
+      rgba(0,0,0,.14) 92%,
+      transparent 100%
+    );
+    mask-image: radial-gradient(
+      ellipse 80% 92% at 50% 49%,
+      #000 0%,
+      #000 54%,
+      rgba(0,0,0,.88) 69%,
+      rgba(0,0,0,.48) 82%,
+      rgba(0,0,0,.14) 92%,
+      transparent 100%
+    );
+  }
+}
