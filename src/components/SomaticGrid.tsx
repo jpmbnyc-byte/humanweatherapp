@@ -7,7 +7,7 @@ import { getChannelPrefs, setChannelPrefs } from "../lib/harness/channels";
 import FormingDustLayer from "./FormingDustLayer";
 import SketchLivePreview from "./SketchLivePreview";
 import SomaticBodyFigure from "./SomaticBodyFigure";
-import { countSomaticZones, SOMATIC_ZONE_BANDS } from "../lib/somaticZones";
+import { countSomaticZones } from "../lib/somaticZones";
 import SomaticFigureSetup from "./SomaticFigureSetup";
 import { readSomaticFigure, SomaticFigurePreference } from "../lib/somaticFigure";
 
@@ -352,15 +352,16 @@ export default function SomaticGrid({
         </div>
       </div>
 
-      {/* Interactive 8x8 Grid */}
-      <div className="w-full grid grid-cols-[auto_1fr] gap-3 md:gap-4 items-stretch">
+      {/* The body is the coordinate system; the classifier remains invisible beneath it. */}
+      <div className="w-full grid grid-cols-[5.5rem_1fr] gap-2 md:grid-cols-[7rem_1fr] md:gap-4 items-stretch">
         <div
-          className="grid grid-rows-4 py-3 md:py-4 font-mono text-[9px] md:text-[10px] uppercase tracking-[0.14em] opacity-55 text-right"
+          className="grid py-5 font-mono text-[10px] md:text-xs uppercase tracking-[0.18em] opacity-65 text-right"
+          style={{ gridTemplateRows: "17% 12% 20% 22% 29%" }}
           aria-hidden
         >
-          {SOMATIC_ZONE_BANDS.map((zone) => (
-            <span key={zone.id} className="flex items-center justify-end">
-              {zone.label}
+          {["Head", "Throat", "Chest", "Core", "Pelvis"].map((label) => (
+            <span key={label} className="flex items-center justify-end gap-2">
+              {label}<span className="h-px w-4 bg-current opacity-35 md:w-8" />
             </span>
           ))}
         </div>
@@ -368,10 +369,10 @@ export default function SomaticGrid({
           ref={gridRef}
           onTouchMove={handleTouchMove}
           onTouchEnd={() => setIsDrawing(false)}
-          className={`grid grid-cols-8 gap-1.5 md:gap-2 p-3 md:p-4 rounded-3xl border backdrop-blur-md transition-all duration-300 w-full aspect-square relative overflow-hidden ${
+          className={`grid grid-cols-8 grid-rows-8 rounded-[2.5rem] border backdrop-blur-md transition-all duration-300 w-full aspect-[3/5] relative overflow-hidden ${
             currentTheme === "night"
-              ? "bg-[#1e1c18]/90 border-white/[0.09]"
-              : "bg-white/90 border-stone-200/80 shadow-sm shadow-stone-900/5"
+              ? "bg-[#1e1c18]/35 border-white/[0.07]"
+              : "bg-[#f1e9dc]/45 border-stone-200/50 shadow-sm shadow-stone-900/5"
           }`}
           style={{
             touchAction: "pan-y",
@@ -393,34 +394,20 @@ export default function SomaticGrid({
                   onMouseDown={(e) => handleMouseDown(rIdx, cIdx, e)}
                   onMouseEnter={() => handleMouseEnterCell(rIdx, cIdx)}
                   onTouchStart={(e) => handleTouchStart(rIdx, cIdx, e)}
-                  className="relative z-10 aspect-square rounded-md cursor-crosshair select-none overflow-hidden transition-all duration-300"
+                  aria-label={`${active ? "Unmark" : "Mark"} body field row ${rIdx + 1}, column ${cIdx + 1}`}
+                  className="relative z-10 cursor-crosshair select-none overflow-visible transition-all duration-500"
                   style={{
                     touchAction: "pan-y",
-                    backgroundColor: active
-                      ? currentTheme === "night"
-                        ? "#d4b05a"
-                        : "#b8956b"
-                      : currentTheme === "night"
-                        ? "rgba(255,255,255,0.012)"
-                        : "rgba(196, 160, 68, 0.028)",
-                    border: active
-                      ? currentTheme === "night"
-                        ? "1px solid #d4b05a"
-                        : "1px solid #b8956b"
-                      : currentTheme === "night"
-                        ? "1px solid rgba(255,255,255,0.05)"
-                        : "1px solid rgba(196, 160, 68, 0.12)",
-                    boxShadow: active
-                      ? currentTheme === "night"
-                        ? "0 0 14px rgba(196,160,68,0.8), inset 0 0 4px rgba(255,255,255,0.4)"
-                        : "0 0 14px rgba(184,149,107,0.6), inset 0 0 4px rgba(255,255,255,0.5)"
-                      : "none",
+                    background: active
+                      ? `radial-gradient(circle, ${currentTheme === "night" ? "rgba(215,166,104,.72)" : "rgba(156,78,65,.5)"} 0%, rgba(91,121,130,.25) 38%, transparent 72%)`
+                      : "transparent",
+                    transform: active ? "scale(1.6)" : "scale(1)",
                   }}
                 >
                   {/* Subtle internal particle animation for active cells */}
                   {active && (
                     <div
-                      className="absolute inset-0 bg-white/20 blur-[1px] hw-cell-pulse"
+                      className="absolute inset-[-35%] rounded-full bg-white/10 blur-[8px] hw-cell-pulse"
                       style={{ animationDuration: `${2 + ((rIdx * 8 + cIdx) % 5) * 0.4}s` }}
                     />
                   )}
