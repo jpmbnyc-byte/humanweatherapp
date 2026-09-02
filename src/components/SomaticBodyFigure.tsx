@@ -21,10 +21,11 @@ export default function SomaticBodyFigure({ currentTheme, preference }: Props) {
         fill="none"
         style={{ opacity: currentTheme === "night" ? 0.16 : 0.2 }}
       >
-        <rect x="18" y="10.5" width="70" height="67" rx="0.4" stroke="currentColor" strokeWidth="0.22" />
+        <rect x="18" y="8" width="70" height="87" rx="0.4" stroke="currentColor" strokeWidth="0.22" />
         <circle cx={geometry.axisX} cy={geometry.guideCenterY} r={geometry.guideRadius} stroke="currentColor" strokeWidth="0.22" />
         <line x1={geometry.axisX} y1="4" x2={geometry.axisX} y2="95" stroke="currentColor" strokeWidth="0.18" />
         <line x1="18" y1={geometry.guideCenterY} x2="88" y2={geometry.guideCenterY} stroke="currentColor" strokeWidth="0.14" strokeDasharray="1.2 1.5" />
+        <path d={`M 18 22 L ${geometry.axisX} ${geometry.guideCenterY} L 88 22 M 18 95 L ${geometry.axisX} ${geometry.guideCenterY} L 88 95`} stroke="currentColor" strokeWidth="0.11" />
       </svg>
       <img
         src={`/somatic/${standard === "man" ? "male" : "female"}-manuscript.svg`}
