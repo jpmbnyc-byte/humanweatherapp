@@ -14,6 +14,9 @@ export default function SomaticBodyFigure({ currentTheme, preference }: Props) {
       className="pointer-events-none absolute inset-0 z-0 h-full w-full select-none"
       aria-hidden="true" focusable="false">
       <defs>
+        <clipPath id={`portrait-${id}`}>
+          <ellipse cx="50" cy="23" rx="8.2" ry="11" />
+        </clipPath>
         <filter id={`soft-${id}`} x="-40%" y="-40%" width="180%" height="180%">
           <feGaussianBlur stdDeviation="5.5" />
         </filter>
@@ -23,18 +26,6 @@ export default function SomaticBodyFigure({ currentTheme, preference }: Props) {
         <ellipse cx="51" cy="103" rx="24" ry="22" fill="#557987" />
         <ellipse cx="48" cy="127" rx="22" ry="18" fill="#9b574d" />
       </g>
-      {preference.kind === "likeness" && preference.portrait ? (
-        <image
-          href={preference.portrait}
-          x="10"
-          y="1"
-          width="80"
-          height="178"
-          preserveAspectRatio="xMidYMid meet"
-          opacity={currentTheme === "night" ? 0.72 : 0.9}
-          style={{ mixBlendMode: currentTheme === "night" ? "screen" : "multiply" }}
-        />
-      ) : (
       <>
       <g fill="none" stroke={paper} strokeLinecap="round" strokeLinejoin="round">
         <path d="M50 7V173" strokeWidth=".34" opacity=".35" />
@@ -48,14 +39,20 @@ export default function SomaticBodyFigure({ currentTheme, preference }: Props) {
       </g>
       <path d="M43 38C39 55 38 75 39 91C40 103 42 108 50 110C58 108 60 103 61 91C62 75 61 55 57 38C53 41 47 41 43 38Z"
         fill={wash} opacity={currentTheme === "night" ? 0.12 : 0.1} />
-        <g fill="none" stroke={paper} strokeLinecap="round" opacity=".45">
+        {preference.kind === "likeness" && preference.portrait ? (
+          <g clipPath={`url(#portrait-${id})`}>
+            <image href={preference.portrait} x="40.7" y="10.8" width="18.6" height="24.5"
+              preserveAspectRatio="xMidYMid slice" opacity={currentTheme === "night" ? 0.8 : 0.92}
+              style={{ mixBlendMode: currentTheme === "night" ? "screen" : "multiply" }} />
+            <ellipse cx="50" cy="23" rx="8.2" ry="11" fill={wash} opacity=".06" />
+          </g>
+        ) : <g fill="none" stroke={paper} strokeLinecap="round" opacity=".45">
           <ellipse cx="50" cy="23" rx="8" ry="10.5" strokeWidth=".72" opacity=".68" />
           <path d="M43 20C44 12 48 10 51 11C56 11 58 16 57 21" strokeWidth="1" opacity=".65" />
           <path d="M46 22.5H48M52 22.5H54M48 27C49.5 28 50.5 28 52 27" strokeWidth=".48" />
           {preference.standard === "man" && <path d="M44 25C45 31 48 33 50 33C53 33 56 30 56 25" strokeWidth=".62" />}
-        </g>
+        </g>}
       </>
-      )}
     </svg>
   );
 }
