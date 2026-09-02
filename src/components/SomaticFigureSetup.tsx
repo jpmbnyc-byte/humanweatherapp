@@ -8,6 +8,7 @@ import {
   SomaticFigurePreference,
   StandardFigure,
 } from "../lib/somaticFigure";
+import SomaticBodyFigure from "./SomaticBodyFigure";
 
 type Props = {
   currentTheme: "day" | "night";
@@ -102,18 +103,15 @@ export default function SomaticFigureSetup({
         </div>
 
         <p className="mt-4 font-sans text-base leading-relaxed opacity-75">
-          One clear selfie becomes a complete manuscript figure—drawn in the same posture,
-          linework, and sfumato atmosphere as the Human Weather field.
+          One clear selfie becomes engraved linework for the face, hair, and beard, integrated
+          into the Human Weather manuscript body entirely on this device.
         </p>
 
         {preview ? (
           <div className="mt-6">
-            <div className="mx-auto aspect-[3/5] w-52 overflow-hidden rounded-[1.5rem] border border-accent/20 bg-[#eee5d7] shadow-inner">
-              <img
-                src={preview}
-                alt="Your prepared somatic figure portrait"
-                className="h-full w-full object-cover"
-              />
+            <div className="relative mx-auto aspect-[5/9] w-52 overflow-hidden rounded-[1.5rem] border border-accent/20 bg-[#eee5d7] shadow-inner">
+              <SomaticBodyFigure currentTheme="day" preference={{ kind: "likeness", standard: preference.standard, portrait: preview }} />
+              <span className="sr-only">Preview of your prepared somatic figure</span>
             </div>
             <div className="mt-6 grid gap-2.5">
               <button
@@ -194,8 +192,8 @@ export default function SomaticFigureSetup({
           </p>
         )}
         <p className="mt-6 border-t border-current/10 pt-4 font-sans text-sm leading-relaxed opacity-55">
-          Your selfie is sent securely for this one drawing and is not retained by Human Weather.
-          The completed figure is saved only on this device. It is never used to interpret mood,
+          Your selfie never leaves this device. The completed figure is saved only on this device.
+          It is never used to interpret mood,
           health, identity, or the places you touch.
         </p>
         <input
