@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { Camera, ImagePlus, RefreshCw, UserRound, X } from "lucide-react";
 import {
   makeSomaticPortrait,
+  generateSomaticFigure,
   saveSomaticFigure,
   SomaticFigurePreference,
   StandardFigure,
@@ -58,7 +59,8 @@ export default function SomaticFigureSetup({
     setBusy(true);
     setError(null);
     try {
-      setPreview(await makeSomaticPortrait(file));
+      const selfie = await makeSomaticPortrait(file);
+      setPreview(await generateSomaticFigure(selfie));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "That photo could not be prepared.");
     } finally {
@@ -86,7 +88,7 @@ export default function SomaticFigureSetup({
           <div>
             <span className="hw-eyebrow mb-2 block">Your figure</span>
             <h2 id="somatic-figure-title" className="font-serif text-3xl leading-tight">
-              Bring your face into the field.
+              Create your figure.
             </h2>
           </div>
           <button
@@ -100,17 +102,17 @@ export default function SomaticFigureSetup({
         </div>
 
         <p className="mt-4 font-sans text-base leading-relaxed opacity-75">
-          One photo creates the figure you will return to. Face, hair, and beard remain visible; the
-          body map stays unchanged.
+          One clear selfie becomes a complete manuscript figure—drawn in the same posture,
+          linework, and sfumato atmosphere as the Human Weather field.
         </p>
 
         {preview ? (
           <div className="mt-6">
-            <div className="mx-auto aspect-square w-52 overflow-hidden rounded-[42%] border border-accent/25 bg-white/30 shadow-inner">
+            <div className="mx-auto aspect-[3/5] w-52 overflow-hidden rounded-[1.5rem] border border-accent/20 bg-[#eee5d7] shadow-inner">
               <img
                 src={preview}
                 alt="Your prepared somatic figure portrait"
-                className="h-full w-full object-cover mix-blend-multiply"
+                className="h-full w-full object-cover"
               />
             </div>
             <div className="mt-6 grid gap-2.5">
@@ -148,7 +150,7 @@ export default function SomaticFigureSetup({
                 disabled={busy}
                 className="hw-pressable flex min-h-14 items-center justify-center gap-2 rounded-full bg-accent px-4 py-3 font-mono text-xs uppercase tracking-[0.1em] text-[#171713] disabled:opacity-55"
               >
-                <ImagePlus className="h-5 w-5" /> {busy ? "Preparing…" : "Upload photo"}
+                <ImagePlus className="h-5 w-5" /> {busy ? "Drawing…" : "Upload photo"}
               </button>
               <button
                 type="button"
@@ -192,8 +194,9 @@ export default function SomaticFigureSetup({
           </p>
         )}
         <p className="mt-6 border-t border-current/10 pt-4 font-sans text-sm leading-relaxed opacity-55">
-          Prepared on this device. The photo is not used to interpret mood, health, identity, or the
-          places you touch.
+          Your selfie is sent securely for this one drawing and is not retained by Human Weather.
+          The completed figure is saved only on this device. It is never used to interpret mood,
+          health, identity, or the places you touch.
         </p>
         <input
           ref={libraryInputRef}
