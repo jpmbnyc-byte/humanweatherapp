@@ -8,32 +8,36 @@
   overflow: visible !important;
 }
 
+/*
+ * Preserve the approved figure composition in full. Sfumato belongs around
+ * the image field; it must never be achieved by zooming or cropping anatomy.
+ */
 .hw-somatic-figure-field {
   overflow: visible;
   isolation: isolate;
   -webkit-mask-image: radial-gradient(
-    ellipse 74% 90% at 50% 49%,
+    ellipse 96% 99% at 50% 50%,
     #000 0%,
-    #000 56%,
-    rgba(0,0,0,.92) 68%,
-    rgba(0,0,0,.58) 80%,
-    rgba(0,0,0,.2) 91%,
+    #000 72%,
+    rgba(0,0,0,.96) 84%,
+    rgba(0,0,0,.7) 93%,
     transparent 100%
   );
   mask-image: radial-gradient(
-    ellipse 74% 90% at 50% 49%,
+    ellipse 96% 99% at 50% 50%,
     #000 0%,
-    #000 56%,
-    rgba(0,0,0,.92) 68%,
-    rgba(0,0,0,.58) 80%,
-    rgba(0,0,0,.2) 91%,
+    #000 72%,
+    rgba(0,0,0,.96) 84%,
+    rgba(0,0,0,.7) 93%,
     transparent 100%
   );
 }
 
 .hw-somatic-figure-image {
-  transform: scale(1.018);
-  transform-origin: 50% 50%;
+  object-fit: contain;
+  object-position: center bottom;
+  transform: none;
+  transform-origin: 50% 100%;
 }
 
 .hw-somatic-luminous-veil {
@@ -55,21 +59,19 @@
 @media (max-width: 640px) {
   .hw-somatic-figure-field {
     -webkit-mask-image: radial-gradient(
-      ellipse 80% 92% at 50% 49%,
+      ellipse 98% 100% at 50% 50%,
       #000 0%,
-      #000 54%,
-      rgba(0,0,0,.88) 69%,
-      rgba(0,0,0,.48) 82%,
-      rgba(0,0,0,.14) 92%,
+      #000 74%,
+      rgba(0,0,0,.96) 86%,
+      rgba(0,0,0,.72) 94%,
       transparent 100%
     );
     mask-image: radial-gradient(
-      ellipse 80% 92% at 50% 49%,
+      ellipse 98% 100% at 50% 50%,
       #000 0%,
-      #000 54%,
-      rgba(0,0,0,.88) 69%,
-      rgba(0,0,0,.48) 82%,
-      rgba(0,0,0,.14) 92%,
+      #000 74%,
+      rgba(0,0,0,.96) 86%,
+      rgba(0,0,0,.72) 94%,
       transparent 100%
     );
   }
