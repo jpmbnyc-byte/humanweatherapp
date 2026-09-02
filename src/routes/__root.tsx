@@ -166,6 +166,7 @@ function RootComponent() {
     scheduleDeferredFonts();
   }, []);
 
+  // Mount once above every route so touch behavior remains consistent site-wide.
   return (
     <SiteTouchGestures>
       <Outlet />
