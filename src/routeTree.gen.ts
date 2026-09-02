@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DebugHarnessRouteImport } from './routes/debug/harness'
+import { Route as ApiSomaticFigureRouteImport } from './routes/api/somatic-figure'
 import { Route as ApiStripeWebhookRouteImport } from './routes/api/stripe/webhook'
 
 const IndexRoute = IndexRouteImport.update({
@@ -23,6 +24,11 @@ const DebugHarnessRoute = DebugHarnessRouteImport.update({
   path: '/debug/harness',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSomaticFigureRoute = ApiSomaticFigureRouteImport.update({
+  id: '/api/somatic-figure',
+  path: '/api/somatic-figure',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiStripeWebhookRoute = ApiStripeWebhookRouteImport.update({
   id: '/api/stripe/webhook',
   path: '/api/stripe/webhook',
@@ -31,30 +37,40 @@ const ApiStripeWebhookRoute = ApiStripeWebhookRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/api/somatic-figure': typeof ApiSomaticFigureRoute
   '/debug/harness': typeof DebugHarnessRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/api/somatic-figure': typeof ApiSomaticFigureRoute
   '/debug/harness': typeof DebugHarnessRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/api/somatic-figure': typeof ApiSomaticFigureRoute
   '/debug/harness': typeof DebugHarnessRoute
   '/api/stripe/webhook': typeof ApiStripeWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/debug/harness' | '/api/stripe/webhook'
+  fullPaths:
+    '/' | '/api/somatic-figure' | '/debug/harness' | '/api/stripe/webhook'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/debug/harness' | '/api/stripe/webhook'
-  id: '__root__' | '/' | '/debug/harness' | '/api/stripe/webhook'
+  to: '/' | '/api/somatic-figure' | '/debug/harness' | '/api/stripe/webhook'
+  id:
+    | '__root__'
+    | '/'
+    | '/api/somatic-figure'
+    | '/debug/harness'
+    | '/api/stripe/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ApiSomaticFigureRoute: typeof ApiSomaticFigureRoute
   DebugHarnessRoute: typeof DebugHarnessRoute
   ApiStripeWebhookRoute: typeof ApiStripeWebhookRoute
 }
@@ -75,6 +91,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DebugHarnessRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/somatic-figure': {
+      id: '/api/somatic-figure'
+      path: '/api/somatic-figure'
+      fullPath: '/api/somatic-figure'
+      preLoaderRoute: typeof ApiSomaticFigureRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/stripe/webhook': {
       id: '/api/stripe/webhook'
       path: '/api/stripe/webhook'
@@ -87,6 +110,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ApiSomaticFigureRoute: ApiSomaticFigureRoute,
   DebugHarnessRoute: DebugHarnessRoute,
   ApiStripeWebhookRoute: ApiStripeWebhookRoute,
 }
