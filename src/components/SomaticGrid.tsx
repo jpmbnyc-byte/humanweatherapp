@@ -1,15 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import { PATHWAYS, WEATHER_STATES } from "../data/somatic";
 import { WeatherState, Pathway } from "../types";
-import { Hand, Sparkles, Trash2 } from "lucide-react";
+import { Hand, Trash2 } from "lucide-react";
 import { useFormingOptional } from "../lib/forming/FormingContext";
 import { getChannelPrefs, setChannelPrefs } from "../lib/harness/channels";
 import FormingDustLayer from "./FormingDustLayer";
 import SketchLivePreview from "./SketchLivePreview";
 import SomaticBodyFigure from "./SomaticBodyFigure";
 import { countSomaticZones } from "../lib/somaticZones";
-import SomaticFigureSetup from "./SomaticFigureSetup";
-import { readSomaticFigure, SomaticFigurePreference } from "../lib/somaticFigure";
+import { readSomaticFigure, saveSomaticFigure, SomaticFigurePreference } from "../lib/somaticFigure";
 
 interface SomaticGridProps {
   onStateChange: (state: WeatherState, activeCoordinates: [number, number][]) => void;
@@ -28,13 +27,13 @@ export default function SomaticGrid({
       .map(() => Array(8).fill(false)),
   );
   const [isDrawing, setIsDrawing] = useState(false);
-  const [drawMode, setDrawMode] = useState<boolean>(true); // true to draw, false to erase
+  const [drawMode, setDrawMode] = useState<boolean>(true);
   const [hapticsEnabled, setHapticsEnabled] = useState(true);
   const [hapticsSupported, setHapticsSupported] = useState(true);
-  const [figureSetupOpen, setFigureSetupOpen] = useState(false);
-  const [figurePreference, setFigurePreference] = useState<SomaticFigurePreference>(() =>
-    readSomaticFigure(),
-  );
+  const [figurePreference, setFigurePreference] = useState<SomaticFigurePreference>(() => {
+    const saved = readSomaticFigure();
+    return { kind: "standard", standard: saved.standard };
+  });
   const gridRef = useRef<HTMLDivElement>(null);
   const lastCellRef = useRef<string | null>(null);
   const cellEnterRef = useRef<number>(Date.now());
@@ -59,6 +58,13 @@ export default function SomaticGrid({
     if (next && hapticsSupported) navigator.vibrate(14);
   };
 
+  const chooseFigure = (standard: "woman" | "man") => {
+    const next: SomaticFigurePreference = { kind: "standard", standard };
+    setFigurePreference(next);
+    saveSomaticFigure(next);
+    pulseHaptic();
+  };
+
   const touchForming = (r: number, c: number, dwellMs = 24) => {
     if (!forming) return;
     const nx = (c + 0.5) / 8;
@@ -66,33 +72,27 @@ export default function SomaticGrid({
     forming.registerTouch(nx, ny, dwellMs);
   };
 
-  // Classify state based on active grid cells
   useEffect(() => {
     const activeCoords: [number, number][] = [];
     grid.forEach((row, rIdx) => {
       row.forEach((active, cIdx) => {
-        if (active) {
-          activeCoords.push([rIdx, cIdx]);
-        }
+        if (active) activeCoords.push([rIdx, cIdx]);
       });
     });
 
     const count = activeCoords.length;
-
     if (count === 0) {
       const stillnessState = WEATHER_STATES.find((s) => s.id === "autonomic_stillness")!;
       onStateChange(stillnessState, activeCoords);
       return;
     }
 
-    // Compute metrics
     let sumRow = 0;
     activeCoords.forEach(([r]) => {
       sumRow += r;
     });
-    const avgRow = sumRow / count; // 0 to 7. Lower = closer to head (top), higher = pelvis (bottom)
+    const avgRow = sumRow / count;
 
-    // Compute neighbors for coherence calculation
     let neighborsCount = 0;
     const isNeighbor = (c1: [number, number], c2: [number, number]) => {
       const dr = Math.abs(c1[0] - c2[0]);
@@ -101,14 +101,10 @@ export default function SomaticGrid({
     };
 
     activeCoords.forEach((c1) => {
-      const hasNeighbor = activeCoords.some((c2) => isNeighbor(c1, c2));
-      if (hasNeighbor) {
-        neighborsCount++;
-      }
+      if (activeCoords.some((c2) => isNeighbor(c1, c2))) neighborsCount++;
     });
 
-    const coherenceRatio = neighborsCount / count; // 0 to 1
-
+    const coherenceRatio = neighborsCount / count;
     const zoneCounts = countSomaticZones(activeCoords);
     const headRatio = zoneCounts.head / count;
     const upperBodyRatio = (zoneCounts.head + zoneCounts.chest) / count;
@@ -116,8 +112,7 @@ export default function SomaticGrid({
     const rows = activeCoords.map(([r]) => r);
     const rowSpread = rows.length > 0 ? Math.max(...rows) - Math.min(...rows) : 0;
 
-    let detectedStateId = "vaporous_resonance_drift"; // default equilibrium
-
+    let detectedStateId = "vaporous_resonance_drift";
     if (count >= 2 && count <= 12 && headRatio >= 0.7) {
       detectedStateId = "frontal_tension_headache";
     } else if (count >= 3 && count <= 14 && headRatio >= 0.55 && coherenceRatio < 0.45) {
@@ -134,23 +129,15 @@ export default function SomaticGrid({
     } else if (count >= 8 && count <= 20 && rowSpread >= 3 && avgRow >= 2 && avgRow <= 5.2) {
       detectedStateId = "barometric_rainy_grey";
     } else if (count >= 20) {
-      // Very high load
       detectedStateId = "sympathetic_heat_dome";
     } else if (coherenceRatio < 0.4 && count >= 3) {
-      // Fragmented, scattered
       detectedStateId = "scattered_atmospheric_drift";
     } else if (upperBodyRatio >= 0.65 && count >= 3) {
-      // Marks gather in the explicit Head + Chest bands.
       detectedStateId = "sympathetic_heat_dome";
     } else if (pelvisRatio >= 0.55 && count >= 3) {
-      // Marks gather in the explicit Pelvis band.
       detectedStateId = "dewpoint_restorative_slumber";
     } else if (coherenceRatio >= 0.7 && count >= 5) {
-      // Coherent cluster
       detectedStateId = "high_resonant_thermal_coherence";
-    } else {
-      // Stable moderate state
-      detectedStateId = "vaporous_resonance_drift";
     }
 
     const state = WEATHER_STATES.find((s) => s.id === detectedStateId) || WEATHER_STATES[4];
@@ -195,12 +182,9 @@ export default function SomaticGrid({
 
   useEffect(() => {
     window.addEventListener("mouseup", handleGlobalMouseUp);
-    return () => {
-      window.removeEventListener("mouseup", handleGlobalMouseUp);
-    };
+    return () => window.removeEventListener("mouseup", handleGlobalMouseUp);
   }, []);
 
-  // Handle Touch Events for seamless mobile drawing
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!gridRef.current) return;
     const touch = e.touches[0];
@@ -242,9 +226,7 @@ export default function SomaticGrid({
       .fill(null)
       .map(() => Array(8).fill(false));
     pathway.cells.forEach(([r, c]) => {
-      if (r >= 0 && r < 8 && c >= 0 && c < 8) {
-        nextGrid[r][c] = true;
-      }
+      if (r >= 0 && r < 8 && c >= 0 && c < 8) nextGrid[r][c] = true;
     });
     setGrid(nextGrid);
     pulseHaptic();
@@ -263,7 +245,6 @@ export default function SomaticGrid({
 
   return (
     <div className="flex flex-col items-center w-full max-w-2xl mx-auto" id="somatic-field">
-      {/* Title & Stats */}
       <div className="w-full flex items-start justify-between gap-4 mb-4">
         <div className="flex flex-col">
           <span className="hw-eyebrow mb-2">Somatic field mapping</span>
@@ -276,36 +257,24 @@ export default function SomaticGrid({
           </span>
         </div>
 
-        <div className="flex shrink-0 flex-col items-end gap-2">
+        {activeCount > 0 && (
           <button
             type="button"
-            onClick={() => setFigureSetupOpen(true)}
-            className="hw-pressable flex items-center gap-1.5 rounded-full border border-accent/25 bg-accent/5 px-3 py-2 font-sans text-sm text-accent"
+            id="clear-grid-btn"
+            onClick={() => {
+              clearGrid();
+              if (forming && !["capturing", "mounting", "stillness"].includes(forming.stage)) {
+                forming.abortForming();
+              }
+            }}
+            className="hw-pressable flex shrink-0 items-center gap-1.5 rounded-full border border-red-500/30 bg-red-500/5 px-2.5 py-1 text-xs font-mono text-red-400 transition-colors hover:bg-red-500/10"
           >
-            <Sparkles className="h-3.5 w-3.5" aria-hidden />
-            Your figure
+            <Trash2 className="w-3.5 h-3.5" />
+            Clear Map
           </button>
-          {/* Reset Button */}
-          {activeCount > 0 && (
-            <button
-              type="button"
-              id="clear-grid-btn"
-              onClick={() => {
-                clearGrid();
-                if (forming && !["capturing", "mounting", "stillness"].includes(forming.stage)) {
-                  forming.abortForming();
-                }
-              }}
-              className="hw-pressable flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono rounded-full border border-red-500/30 text-red-400 bg-red-500/5 hover:bg-red-500/10 transition-colors"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              Clear Map
-            </button>
-          )}
-        </div>
+        )}
       </div>
 
-      {/* Gentle instruction intro */}
       <div
         className={`w-full rounded-2xl border p-5 md:p-6 mb-5 ${
           currentTheme === "night"
@@ -314,13 +283,11 @@ export default function SomaticGrid({
         }`}
       >
         <p className="font-serif text-lg md:text-xl leading-relaxed">
-          Touch anywhere that asks for your attention. Drag across several places if the feeling
-          spreads. There is no correct shape to make.
+          Touch the body. Stay with the place that answers.
         </p>
         <p className="font-sans text-sm md:text-base leading-relaxed opacity-65 mt-3">
-          The top of the field follows the head and chest. The lower field follows the belly, core,
-          and pelvis. The figure is a body compass: mark both where you feel sensation and where
-          movement feels available. Your marks help shape the breathing rhythm offered next.
+          Mark where sensation asks for attention. Drag when it spreads. The field remains yours to
+          notice — no score and no diagnosis.
         </p>
 
         <div className="flex items-center justify-between gap-4 border-t border-current/10 mt-5 pt-4">
@@ -329,9 +296,7 @@ export default function SomaticGrid({
             <div className="min-w-0">
               <span className="font-sans text-sm font-medium block">Touch feedback</span>
               <span className="font-sans text-xs opacity-55 block">
-                {hapticsSupported
-                  ? "A soft pulse as each place is marked."
-                  : "Not available on this device."}
+                {hapticsSupported ? "A soft pulse as each place is marked." : "Not available on this device."}
               </span>
             </div>
           </div>
@@ -352,7 +317,27 @@ export default function SomaticGrid({
         </div>
       </div>
 
-      {/* The body is the coordinate system; the classifier remains invisible beneath it. */}
+      <div className="mb-4 flex items-center justify-center gap-1 rounded-full border border-current/10 bg-current/[0.025] p-1">
+        {(["woman", "man"] as const).map((standard) => {
+          const active = figurePreference.standard === standard;
+          return (
+            <button
+              key={standard}
+              type="button"
+              aria-pressed={active}
+              onClick={() => chooseFigure(standard)}
+              className={`hw-pressable rounded-full px-5 py-2 font-mono text-[11px] uppercase tracking-[0.18em] transition-all ${
+                active
+                  ? "border border-accent/45 bg-accent/10 text-accent"
+                  : "border border-transparent opacity-55 hover:opacity-80"
+              }`}
+            >
+              {standard}
+            </button>
+          );
+        })}
+      </div>
+
       <div className="w-full grid grid-cols-[5.5rem_1fr] gap-2 md:grid-cols-[7rem_1fr] md:gap-4 items-stretch">
         <div
           className="grid py-5 font-mono text-[10px] md:text-xs uppercase tracking-[0.18em] opacity-65 text-right"
@@ -404,7 +389,6 @@ export default function SomaticGrid({
                     transform: active ? "scale(1.6)" : "scale(1)",
                   }}
                 >
-                  {/* Subtle internal particle animation for active cells */}
                   {active && (
                     <div
                       className="absolute inset-[-35%] rounded-full bg-white/10 blur-[8px] hw-cell-pulse"
@@ -418,17 +402,8 @@ export default function SomaticGrid({
         </div>
       </div>
 
-      <SomaticFigureSetup
-        currentTheme={currentTheme}
-        open={figureSetupOpen}
-        preference={figurePreference}
-        onClose={() => setFigureSetupOpen(false)}
-        onSave={setFigurePreference}
-      />
-
       <SketchLivePreview currentTheme={currentTheme} onContinueToBreath={onContinueToBreath} />
 
-      {/* Guide Pathways Entry points */}
       <div className="w-full mt-6">
         <span className="hw-eyebrow block mb-2.5">Or load a guide pathway</span>
         <div className="flex flex-wrap gap-1.5 justify-center">
