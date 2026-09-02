@@ -13,6 +13,12 @@ export const SOMATIC_FIGURE_POINTS = {
   man: { head: 8.5, throat: 17, chest: 30.4, core: 43.6, pelvis: 56 },
 } as const;
 
+/** Measured against each manuscript crop, then translated into the containing field. */
+export const SOMATIC_FIGURE_GEOMETRY = {
+  woman: { axisX: 53.1, guideCenterY: 42, guideRadius: 31.5 },
+  man: { axisX: 53, guideCenterY: 42.5, guideRadius: 31.5 },
+} as const;
+
 export const DEFAULT_SOMATIC_FIGURE: SomaticFigurePreference = {
   kind: "standard",
   standard: "woman",
