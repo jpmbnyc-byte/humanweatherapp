@@ -6,7 +6,7 @@ export type SomaticFigurePreference = {
   portrait?: string;
 };
 
-export const SOMATIC_FIGURE_KEY = "human-weather:somatic-figure:v1";
+export const SOMATIC_FIGURE_KEY = "human-weather:somatic-figure:v2";
 
 export const DEFAULT_SOMATIC_FIGURE: SomaticFigurePreference = {
   kind: "standard",
@@ -81,7 +81,6 @@ export async function makeSomaticPortrait(file: File): Promise<string> {
   return canvas.toDataURL("image/jpeg", 0.82);
 }
 
-
 async function loadFigureImage(source: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image();
@@ -126,6 +125,16 @@ export async function generateSomaticFigure(selfie: string): Promise<string> {
     sourceHeight = image.naturalWidth / targetRatio;
     sourceY = (image.naturalHeight - sourceHeight) / 2;
   }
-  context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, width, height);
+  context.drawImage(
+    image,
+    sourceX,
+    sourceY,
+    sourceWidth,
+    sourceHeight,
+    0,
+    0,
+    width,
+    height,
+  );
   return canvas.toDataURL("image/jpeg", 0.82);
 }
