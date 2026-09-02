@@ -15,7 +15,9 @@ export const SOMATIC_FIGURE_POINTS = {
 
 /** Measured against each manuscript crop, then translated into the containing field. */
 export const SOMATIC_FIGURE_GEOMETRY = {
-  woman: { axisX: 50, guideCenterY: 42, guideRadius: 31.5 },
+  // The source crop contains manuscript notation on the left, so its anatomical
+  // median sits right of the image box's mathematical center.
+  woman: { axisX: 53, guideCenterY: 42.6, guideRadius: 31.5 },
   man: { axisX: 50, guideCenterY: 42.5, guideRadius: 31.5 },
 } as const;
 
