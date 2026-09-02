@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Camera, RefreshCw, UserRound, X } from "lucide-react";
+import { Camera, ImagePlus, RefreshCw, UserRound, X } from "lucide-react";
 import {
   makeSomaticPortrait,
   saveSomaticFigure,
@@ -23,7 +23,8 @@ export default function SomaticFigureSetup({
   onClose,
   onSave,
 }: Props) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const libraryInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(
     preference.kind === "likeness" ? (preference.portrait ?? null) : null,
   );
@@ -124,10 +125,10 @@ export default function SomaticFigureSetup({
               </button>
               <button
                 type="button"
-                onClick={() => inputRef.current?.click()}
+                onClick={() => libraryInputRef.current?.click()}
                 className="hw-pressable flex min-h-12 items-center justify-center gap-2 rounded-full border border-current/15 px-5 py-3 font-sans text-base"
               >
-                <RefreshCw className="h-4 w-4" /> Try another photo
+                <RefreshCw className="h-4 w-4" /> Choose another photo
               </button>
               <button
                 type="button"
@@ -140,14 +141,24 @@ export default function SomaticFigureSetup({
           </div>
         ) : (
           <div className="mt-6 grid gap-3">
-            <button
-              type="button"
-              onClick={() => inputRef.current?.click()}
-              disabled={busy}
-              className="hw-pressable flex min-h-14 items-center justify-center gap-3 rounded-full bg-accent px-5 py-3 font-mono text-sm uppercase tracking-[0.12em] text-[#171713] disabled:opacity-55"
-            >
-              <Camera className="h-5 w-5" /> {busy ? "Preparing…" : "Take or choose a selfie"}
-            </button>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => libraryInputRef.current?.click()}
+                disabled={busy}
+                className="hw-pressable flex min-h-14 items-center justify-center gap-2 rounded-full bg-accent px-4 py-3 font-mono text-xs uppercase tracking-[0.1em] text-[#171713] disabled:opacity-55"
+              >
+                <ImagePlus className="h-5 w-5" /> {busy ? "Preparing…" : "Upload photo"}
+              </button>
+              <button
+                type="button"
+                onClick={() => cameraInputRef.current?.click()}
+                disabled={busy}
+                className="hw-pressable flex min-h-14 items-center justify-center gap-2 rounded-full border border-current/15 px-4 py-3 font-mono text-xs uppercase tracking-[0.1em] disabled:opacity-55"
+              >
+                <Camera className="h-5 w-5" /> Take selfie
+              </button>
+            </div>
             <div className="flex items-center gap-3 py-1 text-xs uppercase tracking-[0.14em] opacity-45">
               <span className="h-px flex-1 bg-current" />
               or
@@ -185,12 +196,25 @@ export default function SomaticFigureSetup({
           places you touch.
         </p>
         <input
-          ref={inputRef}
+          ref={libraryInputRef}
+          type="file"
+          accept="image/*"
+          className="sr-only"
+          onChange={(event) => {
+            void handlePhoto(event.target.files?.[0]);
+            event.currentTarget.value = "";
+          }}
+        />
+        <input
+          ref={cameraInputRef}
           type="file"
           accept="image/*"
           capture="user"
           className="sr-only"
-          onChange={(event) => void handlePhoto(event.target.files?.[0])}
+          onChange={(event) => {
+            void handlePhoto(event.target.files?.[0]);
+            event.currentTarget.value = "";
+          }}
         />
       </section>
     </div>,
