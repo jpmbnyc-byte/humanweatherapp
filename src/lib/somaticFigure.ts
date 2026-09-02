@@ -15,8 +15,8 @@ export const SOMATIC_FIGURE_POINTS = {
 
 /** Measured against each manuscript crop, then translated into the containing field. */
 export const SOMATIC_FIGURE_GEOMETRY = {
-  woman: { axisX: 53.1, guideCenterY: 42, guideRadius: 31.5 },
-  man: { axisX: 53, guideCenterY: 42.5, guideRadius: 31.5 },
+  woman: { axisX: 50, guideCenterY: 42, guideRadius: 31.5 },
+  man: { axisX: 50, guideCenterY: 42.5, guideRadius: 31.5 },
 } as const;
 
 export const DEFAULT_SOMATIC_FIGURE: SomaticFigurePreference = {
