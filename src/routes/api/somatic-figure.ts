@@ -35,7 +35,9 @@ export const Route = createFileRoute("/api/somatic-figure")({
             return Response.json({ error: "Choose one clear selfie under 15 MB." }, { status: 400 });
           }
 
-          const token = process.env.AI_GATEWAY_API_KEY\n            || process.env.VERCEL_OIDC_TOKEN\n            || request.headers.get("x-vercel-oidc-token");
+          const token = process.env.AI_GATEWAY_API_KEY
+            || process.env.VERCEL_OIDC_TOKEN
+            || request.headers.get("x-vercel-oidc-token");
           if (!token) {
             console.error("[somatic-figure] AI Gateway identity unavailable");
             return Response.json({ error: "Figure generation is not configured yet." }, { status: 503 });
